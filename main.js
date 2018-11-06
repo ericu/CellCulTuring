@@ -65,19 +65,23 @@
    }
 
    function lifeCell(data, i, j) {
-     let sum = 0;
+     let neighborSum = 0;
+     let current
      for (var dI = -1; dI <2; ++dI) {
        for (var dJ = -1; dJ <2; ++dJ) {
-         sum += lifeVal(getPixel(data, i + dI, j + dJ))
+         let value = lifeVal(getPixel(data, i + dI, j + dJ))
+         if (!dI && !dJ) {
+           current = value
+         } else {
+           neighborSum += value;
+         }
        }
      }
-     if (sum === 3) {
+     if ((neighborSum === 3) ||
+         (current && neighborSum === 2)) {
        return live
-     } else if (sum === 2) {
-       return getPixel(data, i, j)
-     } else {
-       return dead
      }
+     return dead
    }
 
    function lifeStep() {
