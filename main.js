@@ -96,11 +96,25 @@
          putPixel(newData.data, i, j, value);
        }
      }
-     context.clearRect(0, 0, width, height);
      context.putImageData(newData, 0, 0)
    }
 
+   let running = false;
+   function animationFrame() {
+     if (running) {
+       lifeStep()
+       requestAnimationFrame(animationFrame);
+     }
+   }
+
+   function toggleRun() {
+     running = !running;
+     if (running) {
+       animationFrame()
+     }
+   }
+
    window.init = init;
-   window.lifeStep = lifeStep;
+   window.toggleRun = toggleRun;
 })()
 
