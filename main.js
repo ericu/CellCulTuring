@@ -24,7 +24,7 @@
      width = canvas.width - 2 * borderSize;
      height = canvas.height - 2 * borderSize;
 
-     context.fillStyle = 'rgba(128, 128, 0, 1.0)';
+     context.fillStyle = 'rgba(0, 255, 255, 1.0)';
      context.fillRect(0, 0, canvas.width, canvas.height);
      let fillStyleBlack = 'rgba(0, 0, 0, 1.0)';
      let fillStyleWhite = 'rgba(255, 255, 255, 1.0)';
@@ -35,6 +35,14 @@
          context.fillRect(i + originX, j + originY, 1, 1);
        }
      }
+     context.fillStyle = fillStyleWhite;
+     context.fillRect(125, 145, 17, 30);
+     context.fillRect(25, 143, 17, 20);
+     context.fillRect(15, 113, 17, 20);
+     context.fillStyle = fillStyleBlack;
+     context.fillRect(45, 45, 7, 3);
+     context.fillRect(115, 20, 17, 20);
+     context.fillRect(85, 30, 17, 20);
    }
 
    function getAddr(i, j) {
@@ -135,7 +143,7 @@
    }
 
    function lifeStep2 () {
-     convolution3x3(lifeCell2);
+     runConv3x3Step(lifeCell2);
    }
 
    function dumpBoard() {
@@ -149,7 +157,7 @@
      }
    }
 
-   function convolution3x3(f) {
+   function runConv3x3Step(f) {
      let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
      let view = new Uint32Array(oldData.data.buffer);
      let newData = context.createImageData(oldData)
@@ -189,7 +197,6 @@
    }
 
    function test() {
-//     context.putImageData(newData, 0, 0);
      context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
      context2.fillRect(0, 0, canvas2.width, canvas2.height);
      let oldData = context.getImageData(originX, originY, canvas.width / 2,
@@ -214,7 +221,7 @@
 
    window.init = init;
    window.toggleRun = toggleRun;
-   window.lifeStep = lifeStep;
+   window.lifeStep2 = lifeStep2;
    window.test = lifeStep2;
 })()
 
