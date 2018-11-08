@@ -6,17 +6,20 @@
   let context;
   let width;
   let height;
+  let originX = 1; // Leave a 1-pixel sentinel border.
+  let originY = 1; // Leave a 1-pixel sentinel border.
 
    function init() {
      let initStart = performance.now();
      canvas = document.getElementById('canvas');
      context = canvas.getContext('2d');
-     width = canvas.width;
-     height = canvas.height;
-     context.clearRect(0, 0, width, height);
-     context.fillStyle = 'rgba(128, 128, 128, 1.0)';
+     context.clearRect(0, 0, canvas.width, canvas.height);
 //     context.fillStyle = 'rgb(200, 0, 0)';
-     context.fillRect(0, 0, width, height);
+     width = canvas.width - 2;
+     height = canvas.height - 2;
+
+     context.fillStyle = 'rgba(0, 0, 0, 1.0)';
+     context.fillRect(0, 0, canvas.width, canvas.height);
      let drawingStart = performance.now();
      let fillStyleBlack = 'rgba(0, 0, 0, 1.0)';
      let fillStyleWhite = 'rgba(255, 255, 255, 1.0)';
@@ -24,33 +27,33 @@
        for (let j = 0; j < height; ++j) {
          context.fillStyle = i < j ? fillStyleBlack : fillStyleWhite;
 //         context.fillStyle = `rgb(${255 * i / width}, ${255 * j / height}, 128)`;
-         context.fillRect(i, j, 1, 1);
+         context.fillRect(i + originX, j + originY, 1, 1);
        }
      }
      let drawingEnd = performance.now();
-     let imageData = context.getImageData(0, 0, width, height);
-     for (let i = 0; i < width / 2; ++i) {
-       for (let j = 0; j < height / 2; ++j) {
-         let addr = 4 * (i + width * j)
-         imageData.data[addr    ] = 80
-         imageData.data[addr + 1] = 0
-         imageData.data[addr + 2] = 0
-       }
-     }
-     context.putImageData(imageData, width / 2, height / 4)
+//     let imageData = context.getImageData(0, 0, width, height);
+//     for (let i = 0; i < width / 2; ++i) {
+//       for (let j = 0; j < height / 2; ++j) {
+//         let addr = 4 * ((i + originX) + width * (j + originY))
+//         imageData.data[addr    ] = 80
+//         imageData.data[addr + 1] = 0
+//         imageData.data[addr + 2] = 0
+//       }
+//     }
+//     context.putImageData(imageData, width / 2, height / 4)
    }
 
    const dead = [0, 0, 0, 255]
    const live = [255, 255, 255, 255]
    function getPixel(data, i, j) {
-     if (i < 0 || j < 0 || i >= width || j >= width) {
-       return dead
-     }
-     var addr = 4*(i + width * j)
+//     if (i < 0 || j < 0 || i >= width || j >= width) {
+//       return dead
+//     }
+     var addr = 4*(i + canvas.width * j)
      return data.slice(addr, addr + 4)
    }
    function putPixel(data, i, j, pixel) {
-     var addr = 4*(i + width * j)
+     var addr = 4*(i + canvas.width * j)
      data[addr++] = pixel[0]
      data[addr++] = pixel[1]
      data[addr++] = pixel[2]
@@ -85,22 +88,28 @@
    }
 
    function lifeStep() {
-     let oldData = context.getImageData(0, 0, width, height);
+     let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
      let newData = context.createImageData(oldData)
      let liveCount = 0;
      let deadCount = 0;
      for (let i = 0; i < width; ++i) {
        for (let j = 0; j < height; ++j) {
-         let value = lifeCell(oldData.data, i, j);
+         let x = i + originX;
+         let y = j + originY
+         let value = lifeCell(oldData.data, x, y);
          if (lifeVal(value)) {
            ++liveCount;
          } else {
            ++deadCount;
          }
-         putPixel(newData.data, i, j, value);
+         putPixel(newData.data, x, y, value);
        }
      }
-     context.putImageData(newData, 0, 0)
+//     context.putImageData(newData, 0, 0);
+     // TODO: Why is this right?  It should be moving the offset rectangle to
+     // the real origin, whereas it appears to do what we want, which is to move
+     // the offset rectangle to the offset rectangle.
+     context.putImageData(newData, 0, 0, originX, originY, width, height);
    }
 
    let running = false;
@@ -120,5 +129,6 @@
 
    window.init = init;
    window.toggleRun = toggleRun;
+   window.lifeStep = lifeStep;
 })()
 
