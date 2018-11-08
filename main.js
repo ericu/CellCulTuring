@@ -14,13 +14,11 @@
      canvas = document.getElementById('canvas');
      context = canvas.getContext('2d');
      context.clearRect(0, 0, canvas.width, canvas.height);
-//     context.fillStyle = 'rgb(200, 0, 0)';
      width = canvas.width - 2;
      height = canvas.height - 2;
 
      context.fillStyle = 'rgba(0, 0, 0, 1.0)';
      context.fillRect(0, 0, canvas.width, canvas.height);
-     let drawingStart = performance.now();
      let fillStyleBlack = 'rgba(0, 0, 0, 1.0)';
      let fillStyleWhite = 'rgba(255, 255, 255, 1.0)';
      for (let i = 0; i < width; ++i) {
@@ -30,25 +28,11 @@
          context.fillRect(i + originX, j + originY, 1, 1);
        }
      }
-     let drawingEnd = performance.now();
-//     let imageData = context.getImageData(0, 0, width, height);
-//     for (let i = 0; i < width / 2; ++i) {
-//       for (let j = 0; j < height / 2; ++j) {
-//         let addr = 4 * ((i + originX) + width * (j + originY))
-//         imageData.data[addr    ] = 80
-//         imageData.data[addr + 1] = 0
-//         imageData.data[addr + 2] = 0
-//       }
-//     }
-//     context.putImageData(imageData, width / 2, height / 4)
    }
 
-   const dead = [0, 0, 0, 255]
+   const dead = [0, 0, 255, 255]
    const live = [255, 255, 255, 255]
    function getPixel(data, i, j) {
-//     if (i < 0 || j < 0 || i >= width || j >= width) {
-//       return dead
-//     }
      var addr = 4*(i + canvas.width * j)
      return data.slice(addr, addr + 4)
    }
