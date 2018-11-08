@@ -41,6 +41,10 @@
      return 4 * (i + canvas.width * j)
    }
 
+   function getAddr32(i, j) {
+     return i + canvas.width * j
+   }
+
    const dead = [0, 0, 255, 255]
    const live = [255, 255, 255, 255]
    function getPixel(data, i, j) {
@@ -57,6 +61,14 @@
 
    function lifeVal(color) {
      if (color[0]) {
+       return 1;
+     }
+     return 0;
+   }
+
+   function lifeVal2(color) {
+     console.log(color.toString(16));
+     if (color & 0xff000000) {
        return 1;
      }
      return 0;
@@ -83,18 +95,15 @@
    }
 
    function lifeCell2(topRow, midRow, botRow) {
+     assert(topRow.length === 3);
+     assert(midRow.length === 3);
+     assert(botRow.length === 3);
+     let current = lifeVal2(midRow[1]);
      let neighborSum = 0;
-     let current
-     for (var dI = -1; dI <2; ++dI) {
-       for (var dJ = -1; dJ <2; ++dJ) {
-         let value = lifeVal(getPixel(data, i + dI, j + dJ))
-         if (!dI && !dJ) {
-           current = value
-         } else {
-           neighborSum += value;
-         }
-       }
-     }
+     neighborSum += _.sumBy(topRow, p => lifeVal2(p))
+     neighborSum += _.sumBy(botRow, p => lifeVal2(p))
+     neighborSum += lifeVal2(midRow[0])
+     neighborSum += lifeVal2(midRow[2])
      if ((neighborSum === 3) ||
          (current && neighborSum === 2)) {
        return live
@@ -126,48 +135,48 @@
      context.putImageData(newData, 0, 0, originX, originY, width, height);
    }
 
+   function lifeStep2 () {
+     convolution3x3(lifeCell2);
+   }
+
    function convolution3x3(f) {
      let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
-     let data = oldData.data
+     let view = new Uint32Array(oldData.data.buffer);
      let newData = context.createImageData(oldData)
-     let topAddr, midAddr, botAddr
-     let topData = []
-     let midData = []
-     let botData = []
      // TODO: Fill border
-     for (let j = originY; j < canvas.height; ++j) {
+     for (let j = originY; j < canvas.height - borderSize; ++j) {
        let i = originX;
-       topAddr = getAddr(i - 1, j - 1);
-       topData.push(); // placeholder
-       topData.push(data.slice(topAddr, topAddr + 4)
-       topAddr += 4;
-       topData.push(data.slice(topAddr, topAddr + 4)
-       topAddr += 4;
+       let topAddr = getAddr32(i - 1, j - 1);
+       let topData = [0]; // placeholder
+       topData.push(view[topAddr])
+       ++topAddr;
+       topData.push(view[topAddr])
+       ++topAddr;
 
-       midAddr = getAddr(i - 1, j);
-       midData.push(); // placeholder
-       midData.push(data.slice(midAddr, midAddr + 4)
-       midAddr += 4;
-       midData.push(data.slice(midAddr, midAddr + 4)
-       midAddr += 4;
+       let midAddr = getAddr32(i - 1, j);
+       let midData = [0]; // placeholder
+       midData.push(view[midAddr])
+       ++midAddr;
+       midData.push(view[midAddr])
+       ++midAddr;
 
-       botAddr = getAddr(i - 1, j + 1);
-       botData.push(); // placeholder
-       botData.push(data.slice(botAddr, botAddr + 4)
-       botAddr += 4;
-       botData.push(data.slice(botAddr, botAddr + 4)
-       botAddr += 4;
+       let botAddr = getAddr32(i - 1, j + 1);
+       let botData = [0]; // placeholder
+       botData.push(view[botAddr])
+       ++botAddr;
+       botData.push(view[botAddr])
+       ++botAddr;
 
-       for (; i < canvas.width; ++i) {
+       for (; i < canvas.width - borderSize; ++i) {
          topData.shift();
-         topData.push(data.slice(topAddr, topAddr + 4)
-         topAddr += 4;
+         topData.push(view[topAddr])
+         ++topAddr;
          midData.shift();
-         midData.push(data.slice(midAddr, midAddr + 4)
-         midAddr += 4;
+         midData.push(view[midAddr])
+         ++midAddr;
          botData.shift();
-         botData.push(data.slice(botAddr, botAddr + 4)
-         botAddr += 4;
+         botData.push(view[botAddr])
+         ++botAddr;
 
          let value = f(topData, midData, botData)
          putPixel(newData.data, i, j, value);
@@ -176,7 +185,7 @@
      // 0,0 is the origin of the second imageData, overlaid onto the first.
      // Then we copy over only a subset "dirty region" by using the last 4
      // parameters.
-     context.putImageData(newData, 0, 0, originX, originY, width, height);
+     context2.putImageData(newData, 0, 0, originX, originY, width, height);
    }
 
    function test() {
@@ -206,6 +215,6 @@
    window.init = init;
    window.toggleRun = toggleRun;
    window.lifeStep = lifeStep;
-   window.test = test;
+   window.test = lifeStep2;
 })()
 
