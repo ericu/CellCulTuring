@@ -2,8 +2,8 @@
 
 (function () {
 
-  let canvas;
-  let context;
+  let canvas, canvas2;
+  let context, context2;
   let width;
   let height;
   let originX = 1; // Leave a 1-pixel sentinel border.
@@ -12,7 +12,13 @@
    function init() {
      let initStart = performance.now();
      canvas = document.getElementById('canvas');
+     canvas.style.width = 3 * canvas.width + 'px';
+     canvas.style.height = 3 * canvas.height + 'px';
+     canvas2 = document.getElementById('canvas2');
+     canvas2.style.width = 2 * canvas.width + 'px';
+     canvas2.style.height = 2 * canvas.height + 'px';
      context = canvas.getContext('2d');
+     context2 = canvas2.getContext('2d');
      context.clearRect(0, 0, canvas.width, canvas.height);
      width = canvas.width - 2;
      height = canvas.height - 2;
@@ -97,8 +103,6 @@
 
    function test() {
 //     context.putImageData(newData, 0, 0);
-     let canvas2 = document.getElementById('canvas2');
-     let context2 = canvas2.getContext('2d');
      context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
      context2.fillRect(0, 0, canvas2.width, canvas2.height);
      let oldData = context.getImageData(originX, originY, canvas.width / 2,
