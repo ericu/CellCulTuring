@@ -89,11 +89,21 @@
          putPixel(newData.data, x, y, value);
        }
      }
-//     context.putImageData(newData, 0, 0);
-     // TODO: Why is this right?  It should be moving the offset rectangle to
-     // the real origin, whereas it appears to do what we want, which is to move
-     // the offset rectangle to the offset rectangle.
+     // 0,0 is the origin of the second imageData, overlaid onto the first.
+     // Then we copy over only a subset "dirty region" by using the last 4
+     // parameters.
      context.putImageData(newData, 0, 0, originX, originY, width, height);
+   }
+
+   function test() {
+//     context.putImageData(newData, 0, 0);
+     let canvas2 = document.getElementById('canvas2');
+     let context2 = canvas2.getContext('2d');
+     context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
+     context2.fillRect(0, 0, canvas2.width, canvas2.height);
+     let oldData = context.getImageData(originX, originY, canvas.width / 2,
+                                        canvas.height / 2);
+     context2.putImageData(oldData, originX, originY, 0, 0, width, height);
    }
 
    let running = false;
@@ -114,5 +124,6 @@
    window.init = init;
    window.toggleRun = toggleRun;
    window.lifeStep = lifeStep;
+   window.test = test;
 })()
 
