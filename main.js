@@ -221,7 +221,7 @@
 
    window.init = init;
    window.toggleRun = toggleRun;
-   window.lifeStep2 = lifeStep2;
+   window.lifeStep = lifeStep2;
    window.test = lifeStep2;
 })()
 
