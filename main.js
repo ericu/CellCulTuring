@@ -43,6 +43,7 @@
      context.fillRect(45, 45, 7, 3);
      context.fillRect(115, 20, 17, 20);
      context.fillRect(85, 30, 17, 20);
+     dumpBoard();
    }
 
    function getAddr(i, j) {
@@ -101,6 +102,19 @@
      return dead
    }
 
+   function smooth(topRow, midRow, botRow) {
+     let v = _([topRow, midRow, botRow])
+       .flatten()
+       .map(v => ([v & 0xff, v >>> 8 & 0xff, v >>> 16 & 0xff, v >>> 24 & 0xff]))
+       .unzip()
+       .map(_.sum)
+       .map(v => v / 9)
+       .map(Math.round)
+       .map(x => (x > 255 ? 255 : (x < 0 ? 0 : x)))
+       .value()
+     return (v[0] | v[1] << 8 | v[2] << 16 | v[3] << 24) >>> 0;
+   }
+
    function lifeCell2(topRow, midRow, botRow) {
      assert(topRow.length === 3);
      assert(midRow.length === 3);
@@ -142,11 +156,16 @@
      context.putImageData(newData, 0, 0, originX, originY, width, height);
    }
 
-   function lifeStep2 () {
+   function lifeStep2() {
      runConv3x3Step(lifeCell2);
    }
 
+   function smoothStep() {
+     return runConv3x3Step(smooth)
+   }
+
    function dumpBoard() {
+     console.log('board state:')
      let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
      let view = new Uint32Array(oldData.data.buffer);
      for (let b = 0; b < canvas.height; ++b) {
@@ -161,6 +180,7 @@
      let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
      let view = new Uint32Array(oldData.data.buffer);
      let newData = context.createImageData(oldData)
+     let outputView = new Uint32Array(newData.data.buffer);
      for (let j = originY; j < canvas.height - borderSize; ++j) {
        let i = originX;
        let topAddr = getAddr32(i - 1, j - 1);
@@ -187,13 +207,14 @@
          botData.push(view[botAddr++])
 
          let value = f(topData, midData, botData)
-         putPixel(newData.data, i, j, value);
+         outputView[getAddr32(i, j)] = value;
        }
      }
      // 0,0 is the origin of the second imageData, overlaid onto the first.
      // Then we copy over only a subset "dirty region" by using the last 4
      // parameters.
      context.putImageData(newData, 0, 0, originX, originY, width, height);
+     dumpBoard();
    }
 
    function test() {
@@ -207,7 +228,7 @@
    let running = false;
    function animationFrame() {
      if (running) {
-       lifeStep2()
+       smoothStep()
        requestAnimationFrame(animationFrame);
      }
    }
@@ -222,6 +243,7 @@
    window.init = init;
    window.toggleRun = toggleRun;
    window.lifeStep = lifeStep2;
-   window.test = lifeStep2;
+   window.smoothStep = smoothStep;
+   window.test = smoothStep;
 })()
 
