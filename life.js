@@ -1,5 +1,5 @@
 (function () {
-   function initLifeCell2() {
+   function initLifeCell2(canvas) {
      initArbitraryPattern();
    }
 

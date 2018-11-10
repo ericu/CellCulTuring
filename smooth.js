@@ -1,5 +1,5 @@
 (function () {
-   function initSmooth() {
+   function initSmooth(canvas) {
 //     initArbitraryPattern();
    }
 

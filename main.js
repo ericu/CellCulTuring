@@ -12,7 +12,6 @@
   const originY = borderSize;
 
    function init() {
-     let initStart = performance.now();
      canvas = document.getElementById('canvas');
      canvas.style.width = 3 * canvas.width + 'px';
      canvas.style.height = 3 * canvas.height + 'px';
@@ -55,7 +54,7 @@
    function onSelectAnimation() {
      const select = document.getElementById('animation');
      const animation = select.options[select.selectedIndex].value;
-     animations[animation].init();
+     animations[animation].init(canvas);
      curFunc = animations[animation].f;
    }
    window.onSelectAnimation = onSelectAnimation;
