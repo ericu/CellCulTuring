@@ -18,14 +18,32 @@
     bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
     bm.declare('FULL_ALPHA', 8, 24);
 
+    // TODO: Use a 7-bit encoding that covers the full 7x7 surrounding square,
+    // for 32 real directions.  The first two bits pick the quadrant, and then
+    // next 8 use a lookup table to get their specifics.  Could allocate one of
+    // those 3 to whether x or y is primary, which may be convenient, but it's
+    // still not symmetric after that.  Here the highest bit indicates Y primary
+    // if set.
+    //  .   .   .   .   7   5   .
+    //  .   .   .   .   6   .   3
+    //  .   .   .   .   4   2   1
+    //  .   .   .   x   0   .   .
+    //  .   .   .   .   .   .   .
+    //  .   .   .   .   .   .   .
+    //  .   .   .   .   .   .   .
 
-    // Ball motion bits; for now, but them in ball color low bits, but they
+    // From the bits, we'll want a 'given this color, where does the ball want
+    // to be next cycle', which takes into account the Bresenham state.  Then
+    // we'll need a 'given this current state, produce the next color', which
+    // updates the state before setting the color.  We'll also need a "bounce
+    // this state off the x or y axis" which should also adjust the Bresenham
+    // state accordingly [however we arbitrarily decide it should get
+    // adjusted].
+
+    // Ball motion bits; for now, put them in ball color low bits, but they
     // could also go in alpha low bits.
-    // TODO: Use these instead of the old ones.
     bm.declare('C_MOVE_R_NOT_L', 1, 8);
     bm.declare('C_MOVE_D_NOT_U', 1, 9);
-    bm.declare('C_MOVE_X_MORE_THAN_Y', 1, 10);
-    bm.declare('C_MOVE_RATIO_BITS', 2, 11);
 
     bm.combine('BALL_MOTION_TEMP_HACK', ['C_MOVE_R_NOT_L', 'C_MOVE_D_NOT_U']);
     bm.combine('C_WALL', ['FULL_ALPHA', 'WALL_FLAG']);
