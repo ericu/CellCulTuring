@@ -8,6 +8,10 @@
 <body onload="init()">
 <canvas id="canvas" width="150" height="200"></canvas>
 <canvas id="canvas2" width="150" height="200"></canvas>
+<select id="animation" onchange="onSelectAnimation()">
+  <option value="life" selected>life</option>
+  <option value="smooth">smooth</option>
+</select>
 <button type="button" onclick="toggleRun()">toggleRun</button>
 <button type="button" onclick="step()">step</button>
 <button type="button" onclick="test()">test</button>

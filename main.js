@@ -6,6 +6,7 @@
   let context, context2;
   let width;
   let height;
+  // TODO: This isn't general.
   const borderSize = 1; // Leave a 1-pixel sentinel border.
   const originX = borderSize;
   const originY = borderSize;
@@ -23,7 +24,10 @@
      context.clearRect(0, 0, canvas.width, canvas.height);
      width = canvas.width - 2 * borderSize;
      height = canvas.height - 2 * borderSize;
+     onSelectAnimation();
+   }
 
+   function initArbitraryPattern() {
      context.fillStyle = 'rgba(0, 255, 255, 1.0)';
      context.fillRect(0, 0, canvas.width, canvas.height);
      let fillStyleBlack = 'rgba(0, 0, 0, 1.0)';
@@ -43,7 +47,35 @@
      context.fillRect(45, 45, 7, 3);
      context.fillRect(115, 20, 17, 20);
      context.fillRect(85, 30, 17, 20);
-//     dumpBoard();
+   }
+
+   var curFunc = lifeCell2;
+
+   function onSelectAnimation() {
+     const elt = document.getElementById('animation');
+     const animation = elt.options[elt.selectedIndex].value;
+     animations[animation].init();
+     curFunc = animations[animation].f;
+   }
+   window.onSelectAnimation = onSelectAnimation;
+
+   var animations = {
+     life: {
+       init: initLifeCell2,
+       f: lifeCell2
+     },
+     smooth: {
+       init: initSmooth,
+       f: smooth
+     }
+   }
+
+   function initLifeCell2 () {
+     initArbitraryPattern();
+   }
+
+   function initSmooth () {
+//     initArbitraryPattern();
    }
 
    function getAddr32(i, j) {
@@ -55,6 +87,17 @@
        return 1;
      }
      return 0;
+   }
+
+   const live32 = 0xffffffff;
+   const dead32 = 0xff000000;
+   function lifeCell2(data) {
+     let current = lifeVal2(data[4]);
+     let neighborSum = _.sumBy(data, p => lifeVal2(p)) - current;
+     if ((neighborSum === 3) || (current && neighborSum === 2)) {
+       return live32
+     }
+     return dead32
    }
 
    function smooth(data) {
@@ -72,27 +115,6 @@
        .value()
      return (v[0] | v[1] << 8 | v[2] << 16 | v[3] << 24) >>> 0;
    }
-
-   const live32 = 0xffffffff;
-   const dead32 = 0xff000000;
-   function lifeCell2(data) {
-     let current = lifeVal2(data[4]);
-     let neighborSum = _.sumBy(data, p => lifeVal2(p)) - current;
-     if ((neighborSum === 3) || (current && neighborSum === 2)) {
-       return live32
-     }
-     return dead32
-   }
-
-   function lifeStep2() {
-     return runConv3x3Step(lifeCell2);
-   }
-
-   function smoothStep() {
-     return runConv3x3Step(smooth)
-   }
-
-   const curFunc = lifeStep2;
 
    function dumpBoard() {
      console.log('board state:')
@@ -147,12 +169,12 @@
    function test() {
      context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
      context2.fillRect(0, 0, canvas2.width, canvas2.height);
-     const output = curFunc();
+     const output = runConv3x3Step(curFunc)
      context2.putImageData(output, 0, 0, originX, originY, width, height);
    }
 
    function step() {
-     const output = curFunc()
+     const output = runConv3x3Step(curFunc)
      // 0,0 is the origin of the second imageData, overlaid onto the first.
      // Then we copy over only a subset "dirty region" by using the last 4
      // parameters.
@@ -193,6 +215,7 @@
        }
      }
    }
+
 
    window.init = init;
    window.toggleRun = toggleRun;
