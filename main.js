@@ -221,9 +221,10 @@
    }
 
    let running = false;
-   function animationFrame() {
+   function animationFrame(timestamp) {
      if (running) {
        smoothStep()
+       updateFPS(timestamp);
        requestAnimationFrame(animationFrame);
      }
    }
@@ -231,7 +232,26 @@
    function toggleRun() {
      running = !running;
      if (running) {
-       animationFrame()
+       requestAnimationFrame(animationFrame);
+     }
+   }
+
+   var fpsFrames = 0
+   var fpsStartTime = -1
+
+   function updateFPS(timestamp) {
+     if (fpsStartTime < 0) {
+       fpsStartTime = timestamp;
+     } else {
+       ++fpsFrames
+       var timeDiff = timestamp - fpsStartTime
+       // If it's been over a second and we've done something, update.
+       if (timeDiff >= 1000 && fpsFrames > 0) {
+         let fps = fpsFrames * 1000 / timeDiff
+         document.getElementById('fps').innerText = fps.toFixed(3)
+         fpsFrames = 0;
+         fpsStartTime = timestamp
+       }
      }
    }
 
