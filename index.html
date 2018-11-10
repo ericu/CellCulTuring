@@ -3,14 +3,14 @@
 <script src="imports/lodash.js"></script>
 <script src="util.js"></script>
 <script src="main.js"></script>
+<script src="life.js"></script>
+<script src="smooth.js"></script>
 <link href="main.css" rel="stylesheet" type="text/css">
 </head>
 <body onload="init()">
 <canvas id="canvas" width="150" height="200"></canvas>
 <canvas id="canvas2" width="150" height="200"></canvas>
 <select id="animation" onchange="onSelectAnimation()">
-  <option value="life" selected>life</option>
-  <option value="smooth">smooth</option>
 </select>
 <button type="button" onclick="toggleRun()">toggleRun</button>
 <button type="button" onclick="step()">step</button>

@@ -48,72 +48,31 @@
      context.fillRect(115, 20, 17, 20);
      context.fillRect(85, 30, 17, 20);
    }
+   window.initArbitraryPattern = initArbitraryPattern;
 
-   var curFunc = lifeCell2;
+   var curFunc;
 
    function onSelectAnimation() {
-     const elt = document.getElementById('animation');
-     const animation = elt.options[elt.selectedIndex].value;
+     const select = document.getElementById('animation');
+     const animation = select.options[select.selectedIndex].value;
      animations[animation].init();
      curFunc = animations[animation].f;
    }
    window.onSelectAnimation = onSelectAnimation;
 
-   var animations = {
-     life: {
-       init: initLifeCell2,
-       f: lifeCell2
-     },
-     smooth: {
-       init: initSmooth,
-       f: smooth
-     }
+   var animations = {}
+   function registerAnimation(name, init, f) {
+     animations[name] = { init: init, f: f }
+     let select = document.getElementById('animation');
+     let opt = document.createElement('option');
+     opt.value = name;
+     opt.innerHTML = name;
+     select.appendChild(opt);
    }
-
-   function initLifeCell2 () {
-     initArbitraryPattern();
-   }
-
-   function initSmooth () {
-//     initArbitraryPattern();
-   }
+   window.registerAnimation = registerAnimation;
 
    function getAddr32(i, j) {
      return i + canvas.width * j
-   }
-
-   function lifeVal2(color) {
-     if (color & 0x000000ff) { // little-endian
-       return 1;
-     }
-     return 0;
-   }
-
-   const live32 = 0xffffffff;
-   const dead32 = 0xff000000;
-   function lifeCell2(data) {
-     let current = lifeVal2(data[4]);
-     let neighborSum = _.sumBy(data, p => lifeVal2(p)) - current;
-     if ((neighborSum === 3) || (current && neighborSum === 2)) {
-       return live32
-     }
-     return dead32
-   }
-
-   function smooth(data) {
-     let v = _(data)
-       .map(v => ([v & 0xff, v >>> 8 & 0xff, v >>> 16 & 0xff, v >>> 24 & 0xff]))
-       .unzip()
-       .map(_.sum)
-       .map(v => {
-          let x = Math.round(v / 9);
-          if (x > 255) {
-            return 255;
-          }
-          return x;
-        })
-       .value()
-     return (v[0] | v[1] << 8 | v[2] << 16 | v[3] << 24) >>> 0;
    }
 
    function dumpBoard() {
@@ -163,7 +122,6 @@
        }
      }
      return newData;
-//     dumpBoard();
    }
 
    function test() {
