@@ -12,7 +12,7 @@ function assert(val, message) {
 
 // This won't be super fast, but it may keep me sane, and can be optimized later
 // if need be.
-class BitKeeper {
+class BitMan {
   // TODO: Keep a running mask of all bits used, and identify collisions.
   // Namespace by new object or new API?
   constructor () {
@@ -41,14 +41,17 @@ class BitKeeper {
     return ((packed & record.mask) >>> 0) === record.mask;
   }
 
-  combine(newName, name0, name1) {
+  combine(newName, oldNames) {
     assert(!(newName in this.info));
-    assert(name0 in this.info);
-    assert(name1 in this.info);
-    const record0 = this.info[name0];
-    const record1 = this.info[name1];
-    let mask = (record0.mask | record1.mask) >>> 0;
-    let offset = Math.min(record0.offset, record1.offset);
+    assert(_.isArray(oldNames));
+    let mask = 0;
+    let offset = 32;
+    for (var name of oldNames) {
+      assert(name in this.info);
+      let record = this.info[name];
+      mask |= record.mask;
+      offset = Math.min(offset, record.offset);
+    }
     let bits = mask >>> offset;
     this.info[newName] = {
       offset: offset,
@@ -72,7 +75,7 @@ class BitKeeper {
   set(name, packed, value) {
     assert(name in this.info);
     const record = this.info[name];
-    assert(!(value & ~record.mask));
+    assert(!(value & ~record.bits));
     return ((packed & ~record.mask) | (value << record.offset)) >>> 0;
   }
 }
