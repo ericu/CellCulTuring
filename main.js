@@ -85,6 +85,7 @@
        console.log(t);
      }
    }
+   window.dumpBoard = dumpBoard;
 
    function runConv3x3Step(f) {
      let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
