@@ -1,5 +1,7 @@
+"use strict";
+
 (function () {
-   function initLifeCell2(canvas) {
+   function init(canvas) {
      initArbitraryPattern();
    }
 
@@ -23,6 +25,6 @@
 
    window.addEventListener(
      "load",
-     () => window.registerAnimation("life", initLifeCell2, lifeCell2));
+     () => window.registerAnimation("life", init, lifeCell2));
 
 })()

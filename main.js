@@ -13,11 +13,11 @@
 
    function init() {
      canvas = document.getElementById('canvas');
-     canvas.style.width = 3 * canvas.width + 'px';
-     canvas.style.height = 3 * canvas.height + 'px';
+     canvas.style.width = 8 * canvas.width + 'px';
+     canvas.style.height = 8 * canvas.height + 'px';
      canvas2 = document.getElementById('canvas2');
-     canvas2.style.width = 2 * canvas.width + 'px';
-     canvas2.style.height = 2 * canvas.height + 'px';
+     canvas2.style.width = 8 * canvas.width + 'px';
+     canvas2.style.height = 8 * canvas.height + 'px';
      context = canvas.getContext('2d');
      context2 = canvas2.getContext('2d');
      context.clearRect(0, 0, canvas.width, canvas.height);

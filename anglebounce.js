@@ -1,35 +1,55 @@
 "use strict";
 
-(function () {
-  // Basic colors: ball, background, wall.
-  // Ball also contains a velocity variable.  Start with just one of the 8
-  // directions, but work toward Bresenham's algorithm for more angles.
-  // Ball squish involves a compression layer counter.
-  // Hard-code ball as 3x3 for now?  Nah--start with 1x1 and add compression
-  // later.  So just ball [with velocity], background, wall.
-  // 0xAABBGGRR because of endianness; TODO: Make endian-independent.
-  const C_WALL = 0xff0000ff;
-  const C_BACKGROUND = 0xffff0000;
-  const C_BALL = 0xff00ff00;
+//(function () {
+  let bk;
+  let C_WALL, C_BACKGROUND, C_BALL;
+
+  function initBitkeeper() {
+    bk = new BitKeeper();
+
+    // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
+
+    bk.declare('A', 8, 24);
+    bk.declare('B', 8, 16);
+    bk.declare('G', 8, 8);
+    bk.declare('R', 8, 0);
+
+    // Sentinel bits that determine type:
+    bk.declare('WALL_FLAG', 1, 7);
+    bk.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
+    bk.declare('FULL_ALPHA', 8, 24);
+
+
+    // Ball motion bits; for now, but them in ball color low bits, but they
+    // could also go in alpha low bits.
+    bk.declare('C_MOVE_R_NOT_L', 1, 8);
+    bk.declare('C_MOVE_D_NOT_U', 1, 9);
+    bk.declare('C_MOVE_X_MORE_THAN_Y', 1, 10);
+    bk.declare('C_MOVE_RATIO_BITS', 2, 11);
+
+    C_WALL = (bk.getMask('FULL_ALPHA') | bk.getMask('WALL_FLAG')) >>> 0;
+    C_BACKGROUND = bk.getMask('FULL_ALPHA');
+    C_BALL = (bk.getMask('FULL_ALPHA') | bk.getMask('BALL_FLAG')) >>> 0;
+
+  }
 
   function isWall (c) {
-    return c == C_WALL;
+    return bk.isSet('WALL_FLAG', c);
   }
 
   function isBackground (c) {
-    return c == C_BACKGROUND;
+    return !isBall(c) && !isWall(c);
   }
 
   function isBall (c) {
-    return ((c & C_BALL) >>> 0) == C_BALL;
+    return bk.isSet('BALL_FLAG', c);
   }
-  window.C_BALL = C_BALL;
 
   function styleFromUint(u) {
-    let a = u >>> 24 & 0xff;
-    let b = u >>> 16 & 0xff;
-    let g = u >>>  8 & 0xff;
-    let r = u >>>  0 & 0xff;
+    let a = bk.get('A', u);
+    let b = bk.get('B', u);
+    let g = bk.get('G', u);
+    let r = bk.get('R', u);
     return `rgba(${r},${g},${b},${a})`
   }
 
@@ -60,7 +80,9 @@
     }
   }
 
-  function init(canvas) {
+  function initAngleBounce(canvas) {
+    initBitkeeper();
+
     let context = canvas.getContext('2d');
 
 
@@ -79,7 +101,7 @@
                      Math.round(canvas.height / 2), 1, 1);
   }
 
-  function bounce(data) {
+  function angleBounce(data) {
     const current = data[4];
 
     if (isWall(current)) {
@@ -130,6 +152,7 @@
 
   window.addEventListener(
     "load",
-    () => window.registerAnimation("bounce", init, bounce));
+    () => window.registerAnimation("angle bounce", initAngleBounce,
+                                   angleBounce));
 
-})();
+//})();
