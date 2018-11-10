@@ -46,33 +46,8 @@
 //     dumpBoard();
    }
 
-   function getAddr(i, j) {
-     return 4 * (i + canvas.width * j)
-   }
-
    function getAddr32(i, j) {
      return i + canvas.width * j
-   }
-
-   const dead = [0, 0, 255, 255]
-   const live = [255, 255, 255, 255]
-   function getPixel(data, i, j) {
-     var addr = getAddr(i, j);
-     return data.slice(addr, addr + 4)
-   }
-   function putPixel(data, i, j, pixel) {
-     var addr = getAddr(i, j);
-     data[addr++] = pixel[0]
-     data[addr++] = pixel[1]
-     data[addr++] = pixel[2]
-     data[addr]   = pixel[3]
-   }
-
-   function lifeVal(color) {
-     if (color[0]) {
-       return 1;
-     }
-     return 0;
    }
 
    function lifeVal2(color) {
@@ -80,26 +55,6 @@
        return 1;
      }
      return 0;
-   }
-
-   function lifeCell(data, i, j) {
-     let neighborSum = 0;
-     let current
-     for (var dI = -1; dI <2; ++dI) {
-       for (var dJ = -1; dJ <2; ++dJ) {
-         let value = lifeVal(getPixel(data, i + dI, j + dJ))
-         if (!dI && !dJ) {
-           current = value
-         } else {
-           neighborSum += value;
-         }
-       }
-     }
-     if ((neighborSum === 3) ||
-         (current && neighborSum === 2)) {
-       return live
-     }
-     return dead
    }
 
    function smooth(data) {
@@ -118,46 +73,26 @@
      return (v[0] | v[1] << 8 | v[2] << 16 | v[3] << 24) >>> 0;
    }
 
+   const live32 = 0xffffffff;
+   const dead32 = 0xff000000;
    function lifeCell2(data) {
-     let current = lifeVal2(midRow[1]);
+     let current = lifeVal2(data[4]);
      let neighborSum = _.sumBy(data, p => lifeVal2(p)) - current;
      if ((neighborSum === 3) || (current && neighborSum === 2)) {
-       return live
+       return live32
      }
-     return dead
-   }
-
-   function lifeStep() {
-     let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
-     let newData = context.createImageData(oldData)
-     let liveCount = 0;
-     let deadCount = 0;
-     for (let i = 0; i < width; ++i) {
-       for (let j = 0; j < height; ++j) {
-         let x = i + originX;
-         let y = j + originY
-         let value = lifeCell(oldData.data, x, y);
-         if (lifeVal(value)) {
-           ++liveCount;
-         } else {
-           ++deadCount;
-         }
-         putPixel(newData.data, x, y, value);
-       }
-     }
-     // 0,0 is the origin of the second imageData, overlaid onto the first.
-     // Then we copy over only a subset "dirty region" by using the last 4
-     // parameters.
-     context.putImageData(newData, 0, 0, originX, originY, width, height);
+     return dead32
    }
 
    function lifeStep2() {
-     runConv3x3Step(lifeCell2);
+     return runConv3x3Step(lifeCell2);
    }
 
    function smoothStep() {
      return runConv3x3Step(smooth)
    }
+
+   const curFunc = lifeStep2;
 
    function dumpBoard() {
      console.log('board state:')
@@ -205,25 +140,29 @@
          outputView[getAddr32(i, j)] = value;
        }
      }
-     // 0,0 is the origin of the second imageData, overlaid onto the first.
-     // Then we copy over only a subset "dirty region" by using the last 4
-     // parameters.
-     context.putImageData(newData, 0, 0, originX, originY, width, height);
+     return newData;
 //     dumpBoard();
    }
 
    function test() {
      context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
      context2.fillRect(0, 0, canvas2.width, canvas2.height);
-     let oldData = context.getImageData(originX, originY, canvas.width / 2,
-                                        canvas.height / 2);
-     context2.putImageData(oldData, originX, originY, 0, 0, width, height);
+     const output = curFunc();
+     context2.putImageData(output, 0, 0, originX, originY, width, height);
+   }
+
+   function step() {
+     const output = curFunc()
+     // 0,0 is the origin of the second imageData, overlaid onto the first.
+     // Then we copy over only a subset "dirty region" by using the last 4
+     // parameters.
+     context.putImageData(output, 0, 0, originX, originY, width, height);
    }
 
    let running = false;
    function animationFrame(timestamp) {
      if (running) {
-       smoothStep()
+       step();
        updateFPS(timestamp);
        requestAnimationFrame(animationFrame);
      }
@@ -257,8 +196,7 @@
 
    window.init = init;
    window.toggleRun = toggleRun;
-   window.lifeStep = lifeStep2;
-   window.smoothStep = smoothStep;
-   window.test = smoothStep;
+   window.step = step;
+   window.test = test;
 })()
 
