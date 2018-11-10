@@ -32,7 +32,7 @@
   }
 
   function ballDirectionBitsFromColor(color) {
-    return color * 0xf;
+    return color & 0xf;
   }
 
   function ballDirectionFromColor(color) {
@@ -43,17 +43,17 @@
     return C_BALL | dir.vX | (dir.vY << 2);
   }
 
-  function directionBitsFromIndex(i) {
+  function sourceDirectionBitsFromIndex(i) {
     switch (i) {
-      case 0: return 3 | (3 << 3);
-      case 1: return 0 | (3 << 3);
-      case 2: return 1 | (3 << 3);
-      case 3: return 3 | (0 << 3);
-      case 4: return 0 | (0 << 3);
-      case 5: return 1 | (0 << 3);
-      case 6: return 3 | (1 << 3);
-      case 7: return 0 | (1 << 3);
-      case 8: return 1 | (1 << 3);
+      case 0: return 1 | (1 << 2);
+      case 1: return 0 | (1 << 2);
+      case 2: return 3 | (1 << 2);
+      case 3: return 1 | (0 << 2);
+      case 4: return 0 | (0 << 2);
+      case 5: return 3 | (0 << 2);
+      case 6: return 1 | (3 << 2);
+      case 7: return 0 | (3 << 2);
+      case 8: return 3 | (3 << 2);
       default: assert(false);
     }
   }
@@ -75,8 +75,6 @@
       styleFromUint(ballColorFromDirection({vX: 1, vY: 1}));
     context.fillRect(Math.round(canvas.width / 2),
                      Math.round(canvas.height / 2), 1, 1);
-
-    dumpBoard();
   }
 
   function bounce(data) {
@@ -105,7 +103,6 @@
 
       if (bouncing) {
         let color = ballColorFromDirection(dir);
-        console.log('bouncing to color', color.toString(16))
         return color;
       } else {
         return C_BACKGROUND; // The ball has passed.
@@ -116,11 +113,9 @@
         let color = data[i];
         if (isBall(color)) {
           let dir = ballDirectionBitsFromColor(color);
-          let source = directionBitsFromIndex(i);
-          let xor = dir ^ source;
-          if (xor & 0x5 === 0) {
+          let source = sourceDirectionBitsFromIndex(i);
+          if (source === dir) {
             // Collision!
-            console.log('background to color', color.toString(16))
             return color;
           }
           return current; // There's only 1 ball; exit early.
