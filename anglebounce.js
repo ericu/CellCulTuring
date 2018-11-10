@@ -2,7 +2,6 @@
 
 //(function () {
   let bk;
-  let C_WALL, C_BACKGROUND, C_BALL;
 
   function initBitkeeper() {
     bk = new BitKeeper();
@@ -27,9 +26,9 @@
     bk.declare('C_MOVE_X_MORE_THAN_Y', 1, 10);
     bk.declare('C_MOVE_RATIO_BITS', 2, 11);
 
-    C_WALL = (bk.getMask('FULL_ALPHA') | bk.getMask('WALL_FLAG')) >>> 0;
-    C_BACKGROUND = bk.getMask('FULL_ALPHA');
-    C_BALL = (bk.getMask('FULL_ALPHA') | bk.getMask('BALL_FLAG')) >>> 0;
+    bk.combine('C_WALL', 'FULL_ALPHA', 'WALL_FLAG')
+    bk.alias('C_BACKGROUND', 'FULL_ALPHA');
+    bk.combine('C_BALL', 'FULL_ALPHA', 'BALL_FLAG')
 
   }
 
@@ -62,7 +61,7 @@
   }
 
   function ballColorFromDirection(dir) {
-    return C_BALL | dir.vX | (dir.vY << 2);
+    return bk.getMask('C_BALL') | dir.vX | (dir.vY << 2);
   }
 
   function sourceDirectionBitsFromIndex(i) {
@@ -86,12 +85,12 @@
     let context = canvas.getContext('2d');
 
 
-    context.fillStyle = styleFromUint(C_BACKGROUND);
+    context.fillStyle = styleFromUint(bk.getMask('C_BACKGROUND'));
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     // Strokes are between lines, so they end up fuzzy; fills aren't.
     context.translate(0.5, 0.5);
-    context.strokeStyle = styleFromUint(C_WALL);
+    context.strokeStyle = styleFromUint(bk.getMask('C_WALL'));
     context.strokeRect(0, 0, canvas.width - 1, canvas.height - 1);
     context.translate(-0.5, -0.5);
 
@@ -129,7 +128,7 @@
         let color = ballColorFromDirection(dir);
         return color;
       } else {
-        return C_BACKGROUND; // The ball has passed.
+        return bk.getMask('C_BACKGROUND'); // The ball has passed.
       }
     }
     if (isBackground(current)) {
