@@ -98,7 +98,7 @@
 
     var ms = MotionState.create(bm, 1, 1, 7, 0);
 
-    context.fillStyle = styleFromUint(ms.color);
+    context.fillStyle = styleFromUint(ms.nextColor());
     context.fillRect(Math.round(canvas.width / 2),
                      Math.round(canvas.height / 2), 1, 1);
   }
@@ -131,7 +131,7 @@
               (ms.dY < 0 && isWall(data[1]))) {
             ms.reflect('y')
           }
-          return ms.color;
+          return ms.nextColor();
         }
       }
       return current;

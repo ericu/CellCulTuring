@@ -152,8 +152,8 @@ class MotionState {
     color = this.bm.set('MOVE_R_NOT_L', color, this.right);
     color = this.bm.set('MOVE_D_NOT_U', color, this.down);
     color = this.bm.set('MOVE_STATE', color, this.nextState);
-    color = this.bm.set('BUFFER_X_DEPTH_COUNTER', this.depthX);
-    color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', this.depthY);
+    color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
+    color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
     return color;
   }
 }
