@@ -1,6 +1,6 @@
 "use strict";
 
-(function () {
+//(function () {
   let bm;
 
   function initBitMan() {
@@ -11,7 +11,7 @@
     // Sentinel bits that determine type:
     bm.declare('WALL_FLAG', 1, 7);
     bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
-    bm.declare('FULL_ALPHA', 8, 24);
+    bm.declare('FULL_ALPHA', 4, 28);
 
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
@@ -78,7 +78,7 @@
     }
   }
 
-  function initAngleBounce(canvas) {
+  function initBigBounce(canvas) {
     initBitMan();
 
     let context = canvas.getContext('2d');
@@ -100,7 +100,7 @@
                      Math.round(canvas.height / 2), 1, 1);
   }
 
-  function angleBounce(data) {
+  function bigBounce(data) {
     const current = data[4];
 
     if (isWall(current)) {
@@ -138,7 +138,7 @@
 
   window.addEventListener(
     "load",
-    () => window.registerAnimation("angle bounce", initAngleBounce,
-                                   angleBounce));
+    () => window.registerAnimation("big bounce", initBigBounce,
+                                   bigBounce));
 
-})();
+//})();

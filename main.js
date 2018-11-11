@@ -15,7 +15,11 @@
      canvas = document.getElementById('canvas');
      canvas.style.width = 8 * canvas.width + 'px';
      canvas.style.height = 8 * canvas.height + 'px';
-     canvas2 = document.getElementById('canvas2');
+     canvas2 = document.createElement('canvas');
+     canvas.parentElement.insertBefore(canvas2, canvas);
+     canvas.parentElement.insertBefore(canvas, canvas2);
+     canvas2.width = canvas.width;
+     canvas2.height = canvas.height;
      canvas2.style.width = 8 * canvas.width + 'px';
      canvas2.style.height = 8 * canvas.height + 'px';
      context = canvas.getContext('2d');
@@ -138,6 +142,8 @@
      // 0,0 is the origin of the second imageData, overlaid onto the first.
      // Then we copy over only a subset "dirty region" by using the last 4
      // parameters.
+     context.fillStyle = 'rgba(0, 0, 0, 1.0)';
+     context.fillRect(originX, originY, width, height);
      context.putImageData(output, 0, 0, originX, originY, width, height);
    }
 
@@ -147,6 +153,8 @@
        step();
        updateFPS(timestamp);
        requestAnimationFrame(animationFrame);
+     } else {
+       resetFPS();
      }
    }
 
@@ -157,8 +165,14 @@
      }
    }
 
-   var fpsFrames = 0
-   var fpsStartTime = -1
+   var fpsFrames = 0;
+   var fpsStartTime = -1;
+
+   function resetFPS() {
+     fpsFrames = 0;
+     fpsStartTime = -1;
+     document.getElementById('fps').innerText = "N/A";
+   }
 
    function updateFPS(timestamp) {
      if (fpsStartTime < 0) {

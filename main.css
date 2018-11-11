@@ -1,3 +1,31 @@
+body {
+  display: flex;
+  flex-direction: row;
+}
+
+#container {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  flex 0;
+}
+
+#background {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 1.0);
+  flex: 0 0 auto;
+  height: auto;
+}
+
+#controls {
+  display: flex;
+  flex-direction: row;
+  flex: 0 0 auto;
+  height: auto;
+}
+
 canvas {
   border: 1px solid red;
   image-rendering: pixelated;

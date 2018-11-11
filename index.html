@@ -4,6 +4,7 @@
 <script src="util.js"></script>
 <script src="main.js"></script>
 <script src="motionstate.js"></script>
+<script src="bigbounce.js"></script>
 <script src="anglebounce.js"></script>
 <script src="bounce.js"></script>
 <script src="life.js"></script>
@@ -11,13 +12,18 @@
 <link href="main.css" rel="stylesheet" type="text/css">
 </head>
 <body onload="init()">
-<canvas id="canvas" width="40" height="30"></canvas>
-<canvas id="canvas2" width="40" height="30"></canvas>
-<select id="animation" onchange="onSelectAnimation()">
-</select>
-<button type="button" onclick="toggleRun()">toggleRun</button>
-<button type="button" onclick="step()">step</button>
-<button type="button" onclick="test()">test</button>
-<span>FPS: <span id="fps">0.0</span></span>
+  <div id="container">
+    <div id="background">
+      <canvas id="canvas" width="40" height="30"></canvas>
+    </div>
+    <div id="controls">
+      <select id="animation" onchange="onSelectAnimation()">
+      </select>
+      <button type="button" onclick="toggleRun()">toggleRun</button>
+      <button type="button" onclick="step()">step</button>
+      <button type="button" onclick="test()">test</button>
+      <span>FPS: <span id="fps">0.0</span></span>
+    </div>
+  </div>
 </body>
 </html>
