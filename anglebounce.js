@@ -18,12 +18,12 @@
     bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
     bm.declare('FULL_ALPHA', 8, 24);
 
-    // TODO: Use a 7-bit encoding that covers the full 7x7 surrounding square,
-    // for 32 real directions.  The first two bits pick the quadrant, and then
-    // next 8 use a lookup table to get their specifics.  Could allocate one of
-    // those 3 to whether x or y is primary, which may be convenient, but it's
-    // still not symmetric after that.  Here the highest bit indicates Y primary
-    // if set.
+    // TODO: Use a 5-bit encoding that covers the full 7x7 surrounding square,
+    // for 32 real directions.  Then we'll need 2 more bits for Bresenham state.
+    // The first two bits pick the quadrant, and then next 3 use a lookup table
+    // to get their specifics.  Could allocate one of those 3 to whether x or y
+    // is primary, which may be convenient, but it's still not symmetric after
+    // that.  Here the highest bit indicates Y primary if set.
     //  .   .   .   .   7   5   .
     //  .   .   .   .   6   .   3
     //  .   .   .   .   4   2   1
@@ -39,6 +39,13 @@
     // this state off the x or y axis" which should also adjust the Bresenham
     // state accordingly [however we arbitrarily decide it should get
     // adjusted].
+    // To be written:
+    // ballMotionStateFromColor() [produces a BallMotionState object],
+    // ballMotionFromState() [takes BallMotionState, produces offset]
+    // reflectBallMotion(axis) [just flips one of the 2 high bits]
+    // nextColorFromBallMotion() [increments Bresenham state]...and some way of
+    // telling if the ballMotion hits the current cell, so
+    // sourceDirectionOffsetFromIndex [produces offset from index].
 
     // Ball motion bits; for now, put them in ball color low bits, but they
     // could also go in alpha low bits.

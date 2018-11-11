@@ -128,7 +128,7 @@
      context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
      context2.fillRect(0, 0, canvas2.width, canvas2.height);
      const output = runConv3x3Step(curFunc)
-     context2.putImageData(output, 0, 0, originX, originY, width, height);
+     context2.putImageData(output, 0, 0);
    }
 
    function step() {
