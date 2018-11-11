@@ -39,6 +39,58 @@
     // this state off the x or y axis" which should also adjust the Bresenham
     // state accordingly [however we arbitrarily decide it should get
     // adjusted].
+
+    // Given the above encoding, to support the full range of motions, the
+    // quadrant selection needs to be a rotation.  However, since we'll never go
+    // straight up or down in pong, we can do reflections instead, which is a
+    // lot easier, and we'll just have redundant encodings for straight
+    // horizontal.
+
+    // The lookup table should produce [bresenhamMax, bresenhamIncrement,
+    // primaryMotion].
+
+    const motionTable = [
+      {
+        dir = 'x';
+        bInc = 0;
+        bMax = 0;
+      },
+      {
+        dir = 'x';
+        bInc = 1;
+        bMax = 3;
+      },
+      {
+        dir = 'x';
+        bInc = 1;
+        bMax = 2;
+      },
+      {
+        dir = 'x';
+        bInc = 2;
+        bMax = 3;
+      },
+      {
+        dir = 'y'; // whichever
+        bInc = 1;
+        bMax = 1;
+      },
+      {
+        dir = 'y';
+        bInc = 2;
+        bMax = 3;
+      },
+      {
+        dir = 'y';
+        bInc = 1;
+        bMax = 2;
+      },
+      {
+        dir = 'y';
+        bInc = 1;
+        bMax = 3;
+      },
+    ]
     // To be written:
     // ballMotionStateFromColor() [produces a BallMotionState object],
     // ballMotionFromState() [takes BallMotionState, produces offset]
