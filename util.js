@@ -13,19 +13,21 @@ function assert(val, message) {
 // This won't be super fast, but it may keep me sane, and can be optimized later
 // if need be.
 class BitMan {
-  // TODO: Keep a running mask of all bits used, and identify collisions.
-  // Namespace by new object or new API?
   constructor () {
     this.info = {};
+    this.mask = 0;
   }
 
   declare(name, count, offset) {
     assert(!(name in this.info));
     let bits = ((1 << count) - 1) >>> 0;
+    let mask = (bits << offset) >>> 0
+    assert(!(this.mask & mask));
+    this.mask = (this.mask | mask) >>> 0;
     this.info[name] = {
       offset: offset,
       bits: bits,
-      mask:(bits << offset) >>> 0
+      mask: mask
     };
   }
 

@@ -8,11 +8,6 @@
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
-    bm.declare('A', 8, 24);
-    bm.declare('B', 8, 16);
-    bm.declare('G', 8, 8);
-    bm.declare('R', 8, 0);
-
     // Sentinel bits that determine type:
     bm.declare('WALL_FLAG', 1, 7);
     bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
@@ -41,11 +36,20 @@
     return bm.isSet('BALL_FLAG', c);
   }
 
+  let styleBm;
   function styleFromUint(u) {
-    let a = bm.get('A', u);
-    let b = bm.get('B', u);
-    let g = bm.get('G', u);
-    let r = bm.get('R', u);
+    if (!styleBm) {
+      styleBm = new BitMan();
+      styleBm.declare('A', 8, 24);
+      styleBm.declare('B', 8, 16);
+      styleBm.declare('G', 8, 8);
+      styleBm.declare('R', 8, 0);
+    }
+
+    let a = styleBm.get('A', u);
+    let b = styleBm.get('B', u);
+    let g = styleBm.get('G', u);
+    let r = styleBm.get('R', u);
     return `rgba(${r},${g},${b},${a})`
   }
 
@@ -103,28 +107,8 @@
     if (isWall(current)) {
       return current;
     }
-    // NOTE: It would really be nicer if the direction-switch didn't require a
-    // whole cycle; it could happen in the isBackground clause below.  Not
-    // worth doing given that we'll throw it away when we do the larger ball.
     if (isBall(current)) {
-      let ms = new MotionState(current);
-      let bouncing = false;
-      if ((ms.dX > 0 && isWall(data[5])) ||
-          (ms.dX < 0 && isWall(data[3]))) {
-        ms.reflect('x');
-        bouncing = true;
-      }
-      if ((ms.dY > 0 && isWall(data[7])) ||
-          (ms.dY < 0 && isWall(data[1]))) {
-        ms.reflect('y')
-        bouncing = true;
-      }
-
-      if (bouncing) {
-        return ms.nextColor();
-      } else {
-        return bm.getMask('C_BACKGROUND'); // The ball has passed.
-      }
+      return bm.getMask('C_BACKGROUND'); // The ball has passed.
     }
     if (isBackground(current)) {
       for (let i = 0; i < 9; ++i) {
@@ -132,10 +116,20 @@
         if (isBall(color)) {
           let ms = new MotionState(color);
           let source = sourceDirectionFromIndex(i);
-          if (source.dX === ms.dX && source.dY === ms.dY) {
-            return ms.nextColor();
+          if (source.dX !== ms.dX || source.dY !== ms.dY) {
+            return current; // There's only 1 ball; exit early.
           }
-          return current; // There's only 1 ball; exit early.
+          // It's a hit; lets see if it's also bouncing.
+          ms = new MotionState(ms.nextColor())
+          if ((ms.dX > 0 && isWall(data[5])) ||
+              (ms.dX < 0 && isWall(data[3]))) {
+            ms.reflect('x');
+          }
+          if ((ms.dY > 0 && isWall(data[7])) ||
+              (ms.dY < 0 && isWall(data[1]))) {
+            ms.reflect('y')
+          }
+          return ms.color;
         }
       }
       return current;

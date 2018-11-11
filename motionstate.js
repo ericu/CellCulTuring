@@ -63,6 +63,7 @@ const motionTable = [
   },
 ]
 
+// Note that these bit assignments are currently specific to anglebounce.js.
 class MotionState {
   constructor(color) {
 //    assert(isBall(this.color);
@@ -116,9 +117,11 @@ class MotionState {
   reflect(axis) {
     if (axis === 'x') {
       this.right = !this.right;
+      this.color = bm.set('MOVE_R_NOT_L', this.color, this.right);
     }
     else if (axis === 'y') {
       this.down = !this.down;
+      this.color = bm.set('MOVE_D_NOT_U', this.color, this.down);
     } else {
       assert(false);
     }
