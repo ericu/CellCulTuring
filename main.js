@@ -53,9 +53,11 @@
 
    function onSelectAnimation() {
      const select = document.getElementById('animation');
-     const animation = select.options[select.selectedIndex].value;
-     animations[animation].init(canvas);
-     curFunc = animations[animation].f;
+     if (select.selectedIndex >= 0) {
+       const animation = select.options[select.selectedIndex].value;
+       animations[animation].init(canvas);
+       curFunc = animations[animation].f;
+     }
    }
    window.onSelectAnimation = onSelectAnimation;
 
