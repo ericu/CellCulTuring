@@ -1,15 +1,16 @@
 "use strict";
 
+let width;
+let height;
+// TODO: This isn't general.
+const borderSize = 1; // Leave a 1-pixel sentinel border.
+const originX = borderSize;
+const originY = borderSize;
+
 (function () {
 
   let canvas, canvas2;
   let context, context2;
-  let width;
-  let height;
-  // TODO: This isn't general.
-  const borderSize = 1; // Leave a 1-pixel sentinel border.
-  const originX = borderSize;
-  const originY = borderSize;
 
    function init() {
      canvas = document.getElementById('canvas');

@@ -65,8 +65,9 @@ const motionTable = [
 
 // Note that these bit assignments are currently specific to anglebounce.js.
 class MotionState {
-  constructor(color) {
+  constructor(bm, color) {
 //    assert(isBall(this.color);
+    this.bm = bm;
     this.color = color;
     this.right = bm.get('MOVE_R_NOT_L', color);
     this.down = bm.get('MOVE_D_NOT_U', color);
@@ -105,23 +106,23 @@ class MotionState {
     this.nextState = nextState;
   }
 
-  static create(right, down, index, state) {
-    let color = bm.getMask('C_BALL');
+  static create(bm, right, down, index, state) {
+    let color = bm.getMask('BALL');
     color = bm.set('MOVE_R_NOT_L', color, right);
     color = bm.set('MOVE_D_NOT_U', color, down);
     color = bm.set('MOVE_INDEX', color, index);
     color = bm.set('MOVE_STATE', color, state);
-    return new MotionState(color);
+    return new MotionState(bm, color);
   }
 
   reflect(axis) {
     if (axis === 'x') {
       this.right = !this.right;
-      this.color = bm.set('MOVE_R_NOT_L', this.color, this.right);
+      this.color = this.bm.set('MOVE_R_NOT_L', this.color, this.right);
     }
     else if (axis === 'y') {
       this.down = !this.down;
-      this.color = bm.set('MOVE_D_NOT_U', this.color, this.down);
+      this.color = this.bm.set('MOVE_D_NOT_U', this.color, this.down);
     } else {
       assert(false);
     }
@@ -129,9 +130,9 @@ class MotionState {
 
   nextColor() {
     let color = this.color;
-    color = bm.set('MOVE_R_NOT_L', color, this.right);
-    color = bm.set('MOVE_D_NOT_U', color, this.down);
-    color = bm.set('MOVE_STATE', color, this.nextState);
+    color = this.bm.set('MOVE_R_NOT_L', color, this.right);
+    color = this.bm.set('MOVE_D_NOT_U', color, this.down);
+    color = this.bm.set('MOVE_STATE', color, this.nextState);
     return color;
   }
 }

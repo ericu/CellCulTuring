@@ -18,9 +18,9 @@
     bm.declare('MOVE_STATE', 2, 10);
     bm.declare('MOVE_INDEX', 4, 16);
 
-    bm.combine('C_WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.alias('C_BACKGROUND', 'FULL_ALPHA');
-    bm.combine('C_BALL', ['FULL_ALPHA', 'BALL_FLAG']);
+    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
+    bm.alias('BACKGROUND', 'FULL_ALPHA');
+    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
   }
 
 
@@ -84,16 +84,16 @@
     let context = canvas.getContext('2d');
 
 
-    context.fillStyle = styleFromUint(bm.getMask('C_BACKGROUND'));
+    context.fillStyle = styleFromUint(bm.getMask('BACKGROUND'));
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     // Strokes are between lines, so they end up fuzzy; fills aren't.
     context.translate(0.5, 0.5);
-    context.strokeStyle = styleFromUint(bm.getMask('C_WALL'));
+    context.strokeStyle = styleFromUint(bm.getMask('WALL'));
     context.strokeRect(0, 0, canvas.width - 1, canvas.height - 1);
     context.translate(-0.5, -0.5);
 
-    var ms = MotionState.create(1, 1, 7, 0);
+    var ms = MotionState.create(bm, 1, 1, 7, 0);
 
     context.fillStyle = styleFromUint(ms.color);
     context.fillRect(Math.round(canvas.width / 2),
@@ -107,19 +107,19 @@
       return current;
     }
     if (isBall(current)) {
-      return bm.getMask('C_BACKGROUND'); // The ball has passed.
+      return bm.getMask('BACKGROUND'); // The ball has passed.
     }
     if (isBackground(current)) {
       for (let i = 0; i < 9; ++i) {
         let color = data[i];
         if (isBall(color)) {
-          let ms = new MotionState(color);
+          let ms = new MotionState(bm, color);
           let source = sourceDirectionFromIndex(i);
           if (source.dX !== ms.dX || source.dY !== ms.dY) {
             return current; // There's only 1 ball; exit early.
           }
           // It's a hit; lets see if it's also bouncing.
-          ms = new MotionState(ms.nextColor())
+          ms = new MotionState(bm, ms.nextColor())
           if ((ms.dX > 0 && isWall(data[5])) ||
               (ms.dX < 0 && isWall(data[3]))) {
             ms.reflect('x');
