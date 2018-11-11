@@ -45,12 +45,10 @@
     bm.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_MAX_FLAG']);
     bm.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_MIN_FLAG']);
     bm.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_MAX_FLAG']);
-    bm.combine('XY_MAX_BUFFER', ['BUFFER_X_MAX_FLAG', 'BUFFER_Y_MAX_FLAG']);
-    bm.combine('XY_MIN_BUFFER', ['BUFFER_X_MIN_FLAG', 'BUFFER_Y_MIN_FLAG']);
-    bm.combine('X_MAX_Y_MIN_BUFFER',
-               ['BUFFER_X_MAX_FLAG', 'BUFFER_Y_MIN_FLAG']);
-    bm.combine('X_MIN_Y_MAX_BUFFER',
-               ['BUFFER_X_MIN_FLAG', 'BUFFER_Y_MAX_FLAG']);
+    bm.combine('XY_MAX_BUFFER', ['X_MAX_BUFFER', 'Y_MAX_BUFFER']);
+    bm.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
+    bm.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
+    bm.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
   }
 
   function isWall (c) {
@@ -127,16 +125,16 @@
 
     // Buffer regions
     context.fillStyle = styleFromUint(bm.getMask('X_MIN_BUFFER'));
-    context.fillRect(originX, BUFFER_SIZE,
+    context.fillRect(originX, originY + BUFFER_SIZE,
                      BUFFER_SIZE, height - 2 * BUFFER_SIZE);
     context.fillStyle = styleFromUint(bm.getMask('X_MAX_BUFFER'));
-    context.fillRect(originX + width - BUFFER_SIZE, BUFFER_SIZE,
+    context.fillRect(originX + width - BUFFER_SIZE, originY + BUFFER_SIZE,
                      BUFFER_SIZE, height - 2 * BUFFER_SIZE);
     context.fillStyle = styleFromUint(bm.getMask('Y_MIN_BUFFER'));
-    context.fillRect(BUFFER_SIZE, originY,
+    context.fillRect(originX + BUFFER_SIZE, originY,
                      width - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('Y_MIN_BUFFER'));
-    context.fillRect(BUFFER_SIZE, originY + height - BUFFER_SIZE,
+    context.fillStyle = styleFromUint(bm.getMask('Y_MAX_BUFFER'));
+    context.fillRect(originX + BUFFER_SIZE, originY + height - BUFFER_SIZE,
                      width - 2 * BUFFER_SIZE, BUFFER_SIZE);
     context.fillStyle = styleFromUint(bm.getMask('XY_MIN_BUFFER'));
     context.fillRect(originX, originY,

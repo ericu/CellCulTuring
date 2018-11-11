@@ -51,7 +51,7 @@ class BitMan {
     for (var name of oldNames) {
       assert(name in this.info);
       let record = this.info[name];
-      mask |= record.mask;
+      mask = (mask | record.mask) >>> 0;
       offset = Math.min(offset, record.offset);
     }
     let bits = mask >>> offset;
