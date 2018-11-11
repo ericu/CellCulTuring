@@ -2,9 +2,10 @@
 
 //(function () {
   let bm;
-  const BALL_SIZE_BITS = 3;
+  const BALL_SIZE_BITS = 2;
   const BALL_SIZE = 1 << BALL_SIZE_BITS;
-  const BUFFER_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
+  const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
+  const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
 
   function initBitMan() {
@@ -23,18 +24,23 @@
     bm.alias('BACKGROUND', 'FULL_ALPHA');
 
     // Used only by the ball.
-    bm.declare('BUFFER_DEPTH_COUNTER', BUFFER_DEPTH_COUNTER_BITS,
-               28 - BUFFER_DEPTH_COUNTER_BITS); // Take over low alpha bits.
+    bm.declare('BUFFER_X_DEPTH_COUNTER', BUFFER_X_DEPTH_COUNTER_BITS,
+               28 - BUFFER_X_DEPTH_COUNTER_BITS); // Take over low alpha bits.
+    bm.declare('BUFFER_Y_DEPTH_COUNTER', BUFFER_Y_DEPTH_COUNTER_BITS,
+               20); // Steal mid-range wall bits for now.
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 4, 16);
+    bm.declare('MOVE_INDEX', 4, 16); // Steal bits from wall.
 
-    // Used only by the background.
+    // Used by background and ball [since the ball has to replace the background
+    // bits it runs over].
     bm.declare('BUFFER_X_MIN_FLAG', 1, 0);
     bm.declare('BUFFER_Y_MIN_FLAG', 1, 1);
     bm.declare('BUFFER_X_MAX_FLAG', 1, 2);
     bm.declare('BUFFER_Y_MAX_FLAG', 1, 3);
+    bm.combine('BUFFER_FLAGS', ['BUFFER_X_MIN_FLAG', 'BUFFER_Y_MIN_FLAG',
+                                'BUFFER_X_MAX_FLAG', 'BUFFER_Y_MAX_FLAG']);
     bm.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_MIN_FLAG']);
     bm.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_MAX_FLAG']);
     bm.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_MIN_FLAG']);
@@ -150,7 +156,8 @@
     var ms = MotionState.create(bm, 1, 1, 7, 0);
     context.fillStyle = styleFromUint(ms.color);
     context.fillRect(Math.round(canvas.width / 2),
-                     Math.round(canvas.height / 2), 1, 1);
+                     Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
+    dumpBoard();
   }
 
   function bigBounce(data) {
@@ -159,34 +166,53 @@
     if (isWall(current)) {
       return current;
     }
-    if (isBall(current)) {
-      return bm.getMask('BACKGROUND'); // The ball has passed.
-    }
-    if (isBackground(current)) {
-      for (let i = 0; i < 9; ++i) {
-        let color = data[i];
-        if (isBall(color)) {
-          let ms = new MotionState(bm, color);
-          let source = sourceDirectionFromIndex(i);
-          if (source.dX !== ms.dX || source.dY !== ms.dY) {
-            return current; // There's only 1 ball; exit early.
-          }
-          // It's a hit; lets see if it's also bouncing.
+    // Both ball and background need to handle incoming ball pixels.
+    for (let i = 0; i < 9; ++i) {
+      let color = data[i];
+      let ms;
+      if (isBall(color)) {
+        if (!ms) { // All ball pixels have the same motion.
+          ms = new MotionState(bm, color);
+        }
+        let source = sourceDirectionFromIndex(i);
+        if (source.dX === ms.dX || source.dY === ms.dY) {
+          // It's a hit; lets see if it's also bouncing or in a buffer.
+          let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', color);
+          let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', color);
+          let bufferYMin = bm.get('BUFFER_Y_MIN_FLAG', color);
+          let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', color);
+
           ms = new MotionState(bm, ms.nextColor())
-          if ((ms.dX > 0 && isWall(data[5])) ||
-              (ms.dX < 0 && isWall(data[3]))) {
-            ms.reflect('x');
+          if (ms.dX > 0 && bufferXMax) {
+            ms.incDepthX();
+          } else if (ms.dX < 0 && bufferXMin) {
+            ms.decDepthX();
           }
-          if ((ms.dY > 0 && isWall(data[7])) ||
-              (ms.dY < 0 && isWall(data[1]))) {
+          if (ms.dY > 0 && bufferYMax) {
+            ms.incDepthY();
+          } else if (ms.dY < 0 && bufferYMin) {
+            ms.decDepthY();
+          }
+          if (ms.depthX >= BUFFER_SIZE) {
+            assert(ms.depthX <= BUFFER_SIZE);
+            ms.reflect('x')
+          }
+          if (ms.depthY >= BUFFER_SIZE) {
+            assert(ms.depthY <= BUFFER_SIZE);
             ms.reflect('y')
           }
-          return ms.color;
+          let nextColor = ms.color;
+          nextColor = bm.set('BUFFER_X_MIN_FLAG', nextColor, bufferXMin);
+          nextColor = bm.set('BUFFER_X_MAX_FLAG', nextColor, bufferXMax);
+          nextColor = bm.set('BUFFER_Y_MIN_FLAG', nextColor, bufferYMin);
+          nextColor = bm.set('BUFFER_Y_MAX_FLAG', nextColor, bufferYMax);
+          return nextColor;
         }
       }
-      return current;
     }
-    assert(false);
+    let bufferFlags = bm.get('BUFFER_FLAGS', current);
+    let background = bm.getMask('BACKGROUND')
+    return bm.set('BUFFER_FLAGS', background, bufferFlags);
   }
 
   window.addEventListener(

@@ -63,7 +63,10 @@ const motionTable = [
   },
 ]
 
-// Note that these bit assignments are currently specific to anglebounce.js.
+// Note that these bit assignments are currently specific to anglebounce.js and
+// bigbounce.js.
+
+// Don't access color directly; it may be out of date.
 class MotionState {
   constructor(bm, color) {
 //    assert(isBall(this.color);
@@ -73,6 +76,8 @@ class MotionState {
     this.down = bm.get('MOVE_D_NOT_U', color);
     this.state = bm.get('MOVE_STATE', color);
     this.index = bm.get('MOVE_INDEX', color);
+    this.depthX = bm.get('BUFFER_X_DEPTH_COUNTER', color);
+    this.depthY = bm.get('BUFFER_Y_DEPTH_COUNTER', color);
     assert(this.index >= 0 && this.index < motionTable.length);
 
     let dX = 0, dY = 0;
@@ -118,14 +123,28 @@ class MotionState {
   reflect(axis) {
     if (axis === 'x') {
       this.right = !this.right;
-      this.color = this.bm.set('MOVE_R_NOT_L', this.color, this.right);
     }
     else if (axis === 'y') {
       this.down = !this.down;
-      this.color = this.bm.set('MOVE_D_NOT_U', this.color, this.down);
     } else {
       assert(false);
     }
+  }
+
+  incDepthX() {
+    ++this.depthX;
+  }
+
+  incDepthY() {
+    ++this.depthY;
+  }
+
+  decDepthX() {
+    --this.depthX;
+  }
+
+  decDepthY() {
+    --this.depthY;
   }
 
   nextColor() {
@@ -133,6 +152,8 @@ class MotionState {
     color = this.bm.set('MOVE_R_NOT_L', color, this.right);
     color = this.bm.set('MOVE_D_NOT_U', color, this.down);
     color = this.bm.set('MOVE_STATE', color, this.nextState);
+    color = this.bm.set('BUFFER_X_DEPTH_COUNTER', this.depthX);
+    color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', this.depthY);
     return color;
   }
 }

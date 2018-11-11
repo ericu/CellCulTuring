@@ -11,7 +11,7 @@
     // Sentinel bits that determine type:
     bm.declare('WALL_FLAG', 1, 7);
     bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
-    bm.declare('FULL_ALPHA', 8, 24);
+    bm.declare('FULL_ALPHA', 4, 28);
 
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
@@ -21,6 +21,9 @@
     bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
     bm.alias('BACKGROUND', 'FULL_ALPHA');
     bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
+
+    bm.declare('BUFFER_X_DEPTH_COUNTER', 1, 24);
+    bm.declare('BUFFER_Y_DEPTH_COUNTER', 1, 25);
   }
 
 

@@ -68,7 +68,7 @@ class BitMan {
     this.info[newName] = this.info[name]
   }
 
-  getMask(name) { // TODO: Needed?
+  getMask(name) {
     assert(name in this.info);
     const record = this.info[name];
     return record.mask;
