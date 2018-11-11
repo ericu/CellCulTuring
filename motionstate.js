@@ -78,7 +78,7 @@ class MotionState {
 
     let nextState = this.state + record.bInc;
     let overflow = false;
-    if (nextState > record.bMax) {
+    if (record.bMax && nextState >= record.bMax) {
       overflow = true;
       nextState -= record.bMax;
     }

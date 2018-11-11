@@ -90,7 +90,7 @@
     context.strokeRect(0, 0, canvas.width - 1, canvas.height - 1);
     context.translate(-0.5, -0.5);
 
-    var ms = MotionState.create(1, 1, 3, 0);
+    var ms = MotionState.create(1, 1, 7, 0);
 
     context.fillStyle = styleFromUint(ms.color);
     context.fillRect(Math.round(canvas.width / 2),
