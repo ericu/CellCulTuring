@@ -23,7 +23,6 @@
     bm.declare('MOVE_STATE', 2, 10);
     bm.declare('MOVE_INDEX', 4, 0); // In the bottom of alpha for now.
 
-    bm.combine('BALL_MOTION_TEMP_HACK', ['MOVE_R_NOT_L', 'MOVE_D_NOT_U']);
     bm.combine('C_WALL', ['FULL_ALPHA', 'WALL_FLAG']);
     bm.alias('C_BACKGROUND', 'FULL_ALPHA');
     bm.combine('C_BALL', ['FULL_ALPHA', 'BALL_FLAG']);
@@ -50,61 +49,30 @@
     return `rgba(${r},${g},${b},${a})`
   }
 
-  function ballDirectionBitsFromColor(color) {
-    return bm.get('BALL_MOTION_TEMP_HACK', color);
-  }
-
   // For now, just do the 4 45-degree angles, nothing else.
-  function ballDirectionFromColor(color) {
-    let vX = bm.get('MOVE_R_NOT_L', color) ? 1 : -1;
-    let vY = bm.get('MOVE_D_NOT_U', color) ? 1 : -1;
-    return { vX: vX, vY: vY }
-  }
-
-  function ballColorFromDirection(dir) {
-    let positiveX = dir.vX > 0 ? 1 : 0;
-    let positiveY = dir.vY > 0 ? 1 : 0;
-    let color = bm.getMask('C_BALL')
-    color = bm.set('MOVE_R_NOT_L', color, positiveX)
-    color = bm.set('MOVE_D_NOT_U', color, positiveY)
-    return color;
-  }
-
-  function sourceDirectionBitsFromIndex(i) {
+  function sourceDirectionFromIndex(i) {
     let dirBits;
     switch (i) {
       case 0:
-        dirBits = [ 1,  1];
-        break;
+        return { dX:  1, dY:  1 };
       case 1:
-        dirBits = [ 0,  1];
-        break;
+        return { dX:  0, dY:  1 };
       case 2:
-        dirBits = [-1,  1];
-        break;
+        return { dX: -1, dY:  1 };
       case 3:
-        dirBits = [ 1,  0];
-        break;
+        return { dX:  1, dY:  0 };
       case 4:
-        dirBits = [ 0,  0];
-        break;
+        return { dX:  0, dY:  0 };
       case 5:
-        dirBits = [-1,  0];
-        break;
+        return { dX: -1, dY:  0 };
       case 6:
-        dirBits = [ 1, -1];
-        break;
+        return { dX:  1, dY: -1 };
       case 7:
-        dirBits = [ 0, -1];
-        break;
+        return { dX:  0, dY: -1 };
       case 8:
-        dirBits = [-1, -1];
-        break;
+        return { dX: -1, dY: -1 };
       default: assert(false);
     }
-    let packed = bm.set('MOVE_R_NOT_L', 0, dirBits[0] > 0);
-    packed = bm.set('MOVE_D_NOT_U', packed, dirBits[1] > 0);
-    return bm.get('BALL_MOTION_TEMP_HACK', packed);
   }
 
   function initAngleBounce(canvas) {
@@ -122,8 +90,9 @@
     context.strokeRect(0, 0, canvas.width - 1, canvas.height - 1);
     context.translate(-0.5, -0.5);
 
-    context.fillStyle =
-      styleFromUint(ballColorFromDirection({vX: 1, vY: 1}));
+    var ms = MotionState.create(1, 1, 3, 0);
+
+    context.fillStyle = styleFromUint(ms.color);
     context.fillRect(Math.round(canvas.width / 2),
                      Math.round(canvas.height / 2), 1, 1);
   }
@@ -138,22 +107,21 @@
     // whole cycle; it could happen in the isBackground clause below.  Not
     // worth doing given that we'll throw it away when we do the larger ball.
     if (isBall(current)) {
-      let dir = ballDirectionFromColor(current);
+      let ms = new MotionState(current);
       let bouncing = false;
-      if ((dir.vX > 0 && isWall(data[5])) ||
-          (dir.vX < 0 && isWall(data[3]))) {
-        dir.vX *= -1;
+      if ((ms.dX > 0 && isWall(data[5])) ||
+          (ms.dX < 0 && isWall(data[3]))) {
+        ms.reflect('x');
         bouncing = true;
       }
-      if ((dir.vY > 0 && isWall(data[7])) ||
-          (dir.vY < 0 && isWall(data[1]))) {
-        dir.vY *= -1;
+      if ((ms.dY > 0 && isWall(data[7])) ||
+          (ms.dY < 0 && isWall(data[1]))) {
+        ms.reflect('y')
         bouncing = true;
       }
 
       if (bouncing) {
-        let color = ballColorFromDirection(dir);
-        return color;
+        return ms.nextColor();
       } else {
         return bm.getMask('C_BACKGROUND'); // The ball has passed.
       }
@@ -162,16 +130,10 @@
       for (let i = 0; i < 9; ++i) {
         let color = data[i];
         if (isBall(color)) {
-          if (i & 1) {
-            // TEMP HACK: ignore cardinal directions because our half-converted
-            // encoding can't distinguish between no-motion and negative-motion
-            // for a given axis.
-            return current; // There's only 1 ball; exit early.
-          }
-          let dir = ballDirectionBitsFromColor(color);
-          let source = sourceDirectionBitsFromIndex(i);
-          if (source === dir) {
-            return color;
+          let ms = new MotionState(color);
+          let source = sourceDirectionFromIndex(i);
+          if (source.dX === ms.dX && source.dY === ms.dY) {
+            return ms.nextColor();
           }
           return current; // There's only 1 ball; exit early.
         }

@@ -22,44 +22,44 @@
 
 const motionTable = [
   {
-    dir = 'x';
-    bInc = 0;
-    bMax = 0;
+    dir: 'x',
+    bInc: 0,
+    bMax: 0,
   },
   {
-    dir = 'x';
-    bInc = 1;
-    bMax = 3;
+    dir: 'x',
+    bInc: 1,
+    bMax: 3,
   },
   {
-    dir = 'x';
-    bInc = 1;
-    bMax = 2;
+    dir: 'x',
+    bInc: 1,
+    bMax: 2,
   },
   {
-    dir = 'x';
-    bInc = 2;
-    bMax = 3;
+    dir: 'x',
+    bInc: 2,
+    bMax: 3,
   },
   {
-    dir = 'y'; // whichever
-    bInc = 1;
-    bMax = 1;
+    dir: 'y', // whichever
+    bInc: 1,
+    bMax: 1,
   },
   {
-    dir = 'y';
-    bInc = 2;
-    bMax = 3;
+    dir: 'y',
+    bInc: 2,
+    bMax: 3,
   },
   {
-    dir = 'y';
-    bInc = 1;
-    bMax = 2;
+    dir: 'y',
+    bInc: 1,
+    bMax: 2,
   },
   {
-    dir = 'y';
-    bInc = 1;
-    bMax = 3;
+    dir: 'y',
+    bInc: 1,
+    bMax: 3,
   },
 ]
 
@@ -102,6 +102,15 @@ class MotionState {
     this.dX = dX;
     this.dY = dY;
     this.nextState = nextState;
+  }
+
+  static create(right, down, index, state) {
+    let color = bm.getMask('C_BALL');
+    color = bm.set('MOVE_R_NOT_L', color, right);
+    color = bm.set('MOVE_D_NOT_U', color, down);
+    color = bm.set('MOVE_INDEX', color, index);
+    color = bm.set('MOVE_STATE', color, state);
+    return new MotionState(color);
   }
 
   reflect(axis) {
