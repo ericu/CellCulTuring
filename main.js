@@ -40,9 +40,10 @@ const originY = borderSize;
    }
 
    function initBuffers() {
+     // TODO: Are we keeping 2 buffers properly?
      canvasBuffer = context.getImageData(0, 0, canvas.width, canvas.height);
      backingBuffer = context.createImageData(canvasBuffer)
-     output2Buffer = context.createImageData(canvasBuffer)
+     output2Buffer = context2.createImageData(canvasBuffer)
      inputView = new Uint32Array(canvasBuffer.data.buffer);
      outputView = new Uint32Array(backingBuffer.data.buffer);
      output2View = new Uint32Array(output2Buffer.data.buffer);
@@ -114,15 +115,22 @@ const originY = borderSize;
    }
    window.dumpBoard = dumpBoard;
 
-   // TODO: It looks like there's a way to create a new view onto the underlying
-   // data instead of some of these copies; look for "array.subarray()".
+   // TODO: Look into array.subarray instead of the topData, midData, botData
+   // copies.  Could be cleaner and faster; faster still if we passed them into
+   // f instead of the flattened array, assuming that was useful to f.
    function runConv3x3Step(f, inputView, outputView) {
-
-     let row = inputView.subarray(0, canvas.width);
-     outputView.set(row);
-     row = inputView.subarray(getAddr32(0, canvas.height - 1));
-     outputView.set(row);
-     // TODO: Copy the sides as well.  And debug the above.
+     let inputRow = inputView.subarray(0, canvas.width);
+     let outputRow = outputView.subarray(0, canvas.width);
+     outputRow.set(inputRow);
+     let addr = getAddr32(0, canvas.height - 1);
+     inputRow = inputView.subarray(addr, addr + canvas.width);
+     outputRow = outputView.subarray(addr, addr + canvas.width);
+     outputRow.set(inputRow);
+     for (let j = 0; j < canvas.height; ++j) {
+       addr = getAddr32(0, j);
+       outputView[addr] = inputView[addr];
+       outputView[addr + canvas.width - 1] = inputView[addr + canvas.width - 1];
+     }
 
      for (let j = originY; j < canvas.height - borderSize; ++j) {
        let i = originX;
