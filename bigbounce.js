@@ -123,6 +123,8 @@
                originY + BUFFER_SIZE, BUFFER_SIZE, height - 2 * BUFFER_SIZE);
     c.fillRect(bm.getMask('Y_MIN_BUFFER'), originX + BUFFER_SIZE, originY,
                width - 2 * BUFFER_SIZE, BUFFER_SIZE);
+
+
     c.fillRect(bm.getMask('Y_MAX_BUFFER'), originX + BUFFER_SIZE,
                originY + height - BUFFER_SIZE,
                width - 2 * BUFFER_SIZE, BUFFER_SIZE);

@@ -32,25 +32,23 @@ const originY = borderSize;
    }
 
    function initArbitraryPattern() {
-     context.fillStyle = 'rgba(0, 255, 255, 1.0)';
-     context.fillRect(0, 0, canvas.width, canvas.height);
-     let fillStyleBlack = 'rgba(0, 0, 0, 1.0)';
-     let fillStyleWhite = 'rgba(255, 255, 255, 1.0)';
+     var c = new CanvasWrapper(canvas);
+     c.fillRect(0xffffff00, 0, 0, canvas.width, canvas.height);
+     let fillStyleBlack = 0xff000000;
+     let fillStyleWhite = 0xffffffff;
      for (let i = 0; i < width; ++i) {
        for (let j = 0; j < height; ++j) {
-         context.fillStyle = i < j ? fillStyleBlack : fillStyleWhite;
-//         context.fillStyle = `rgb(${255 * i / width}, ${255 * j / height}, 128)`;
-         context.fillRect(i + originX, j + originY, 1, 1);
+         c.fillRect(i < j ? fillStyleBlack : fillStyleWhite,
+                    i + originX, j + originY, 1, 1);
        }
      }
-     context.fillStyle = fillStyleWhite;
-     context.fillRect(125, 145, 17, 30);
-     context.fillRect(25, 143, 17, 20);
-     context.fillRect(15, 113, 17, 20);
-     context.fillStyle = fillStyleBlack;
-     context.fillRect(45, 45, 7, 3);
-     context.fillRect(115, 20, 17, 20);
-     context.fillRect(85, 30, 17, 20);
+     c.fillRect(fillStyleWhite, 125, 145, 17, 30);
+     c.fillRect(fillStyleWhite, 25, 143, 17, 20);
+     c.fillRect(fillStyleWhite, 15, 113, 17, 20);
+     c.fillRect(fillStyleBlack, 45, 45, 7, 3);
+     c.fillRect(fillStyleBlack, 115, 20, 17, 20);
+     c.fillRect(fillStyleBlack, 85, 30, 17, 20);
+     c.commit();
    }
    window.initArbitraryPattern = initArbitraryPattern;
 
