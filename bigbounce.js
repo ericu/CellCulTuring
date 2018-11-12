@@ -148,6 +148,7 @@
   function bigBounce(data) {
     const current = data[4];
 
+    assert(current !== 0xf007c400);
     if (isWall(current)) {
       return current;
     }
@@ -194,13 +195,17 @@
           let bufferFlags = bm.get('BUFFER_FLAGS', current);
           let nextColor = ms.getColor();
           nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
+          assert(nextColor !== 0xf007c400);
+          console.log(nextColor.toString(16));
           return nextColor;
         }
       }
     }
     let bufferFlags = bm.get('BUFFER_FLAGS', current);
     let background = bm.getMask('BACKGROUND')
-    return bm.set('BUFFER_FLAGS', background, bufferFlags);
+    let nextColor = bm.set('BUFFER_FLAGS', background, bufferFlags);
+    assert(nextColor !== 0xf007c400);
+    return nextColor;
   }
 
   window.addEventListener(

@@ -125,6 +125,7 @@ const originY = borderSize;
          botData.push(view[botAddr++])
 
          let value = f(_.flatten([topData, midData, botData]))
+//         console.log('output: ', value.toString(16))
          outputView[getAddr32(i, j)] = value;
        }
      }
@@ -146,6 +147,7 @@ const originY = borderSize;
      context.fillStyle = 'rgba(0, 0, 0, 1.0)';
      context.fillRect(originX, originY, width, height);
      context.putImageData(output, 0, 0, originX, originY, width, height);
+//     dumpBoard();
    }
 
    let running = false;

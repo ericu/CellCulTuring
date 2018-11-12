@@ -108,6 +108,8 @@ class MotionState {
     }
     this.dX = dX;
     this.dY = dY;
+//    assert(this.dX >= 0);
+//    assert(this.dY >= 0);
     this.nextState = nextState;
   }
 
