@@ -14,7 +14,7 @@ const originY = borderSize;
   let canvasBuffer;
   let canvas2Buffer
   let inputView;
-  let outputBuffer;
+  let backingBuffer;
   let output2Buffer;
   let outputView;
   let output2View;
@@ -36,17 +36,19 @@ const originY = borderSize;
      context2.clearRect(0, 0, canvas.width, canvas.height);
      width = canvas.width - 2 * borderSize;
      height = canvas.height - 2 * borderSize;
-     canvasBuffer = context.getImageData(0, 0, canvas.width, canvas.height);
-     outputBuffer = context.createImageData(canvasBuffer)
-     output2Buffer = context.createImageData(canvasBuffer)
-     inputView = new Uint32Array(canvasBuffer.data.buffer);
-     outputView = new Uint32Array(outputBuffer.data.buffer);
-     output2View = new Uint32Array(output2Buffer.data.buffer);
      onSelectAnimation();
    }
 
-   function initArbitraryPattern() {
-     var c = new CanvasWrapper(canvas);
+   function initBuffers() {
+     canvasBuffer = context.getImageData(0, 0, canvas.width, canvas.height);
+     backingBuffer = context.createImageData(canvasBuffer)
+     output2Buffer = context.createImageData(canvasBuffer)
+     inputView = new Uint32Array(canvasBuffer.data.buffer);
+     outputView = new Uint32Array(backingBuffer.data.buffer);
+     output2View = new Uint32Array(output2Buffer.data.buffer);
+   }
+
+   function initArbitraryPattern(c) {
      c.fillRect(0xffffff00, 0, 0, canvas.width, canvas.height);
      let fillStyleBlack = 0xff000000;
      let fillStyleWhite = 0xffffffff;
@@ -74,6 +76,7 @@ const originY = borderSize;
      if (select.selectedIndex >= 0) {
        const animation = select.options[select.selectedIndex].value;
        animations[animation].init(c);
+       initBuffers();
        curFunc = animations[animation].f;
      }
    }
@@ -111,63 +114,70 @@ const originY = borderSize;
    }
    window.dumpBoard = dumpBoard;
 
-   function runConv3x3Step(f) {
-     let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
-     let view = new Uint32Array(oldData.data.buffer);
-     let newData = context.createImageData(oldData)
-     let outputView = new Uint32Array(newData.data.buffer);
+   // TODO: It looks like there's a way to create a new view onto the underlying
+   // data instead of some of these copies; look for "array.subarray()".
+   function runConv3x3Step(f, inputView, outputView) {
+
+     let row = inputView.subarray(0, canvas.width);
+     outputView.set(row);
+     row = inputView.subarray(getAddr32(0, canvas.height - 1));
+     outputView.set(row);
+     // TODO: Copy the sides as well.  And debug the above.
+
      for (let j = originY; j < canvas.height - borderSize; ++j) {
        let i = originX;
        let topAddr = getAddr32(i - 1, j - 1);
        let topData = [0]; // placeholder
-       topData.push(view[topAddr++])
-       topData.push(view[topAddr++])
+       topData.push(inputView[topAddr++])
+       topData.push(inputView[topAddr++])
 
        let midAddr = getAddr32(i - 1, j);
        let midData = [0]; // placeholder
-       midData.push(view[midAddr++])
-       midData.push(view[midAddr++])
+       midData.push(inputView[midAddr++])
+       midData.push(inputView[midAddr++])
 
        let botAddr = getAddr32(i - 1, j + 1);
        let botData = [0]; // placeholder
-       botData.push(view[botAddr++])
-       botData.push(view[botAddr++])
+       botData.push(inputView[botAddr++])
+       botData.push(inputView[botAddr++])
 
        for (; i < canvas.width - borderSize; ++i) {
          topData.shift();
-         topData.push(view[topAddr++])
+         topData.push(inputView[topAddr++])
          midData.shift();
-         midData.push(view[midAddr++])
+         midData.push(inputView[midAddr++])
          botData.shift();
-         botData.push(view[botAddr++])
+         botData.push(inputView[botAddr++])
 
          let value = f(_.flatten([topData, midData, botData]))
 //         console.log('output: ', value.toString(16))
          outputView[getAddr32(i, j)] = value;
        }
      }
-     return newData;
    }
 
    function test() {
+     runConv3x3Step(curFunc, inputView, output2View)
+
+     // TODO: Remove this?
      context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
      context2.fillRect(0, 0, canvas2.width, canvas2.height);
-     const output = runConv3x3Step(curFunc)
-     context2.putImageData(output, 0, 0);
+
+     context2.putImageData(output2Buffer, 0, 0);
    }
 
    function step() {
-     const output = runConv3x3Step(curFunc)
-     // 0,0 is the origin of the second imageData, overlaid onto the first.
-     // Then we copy over only a subset "dirty region" by using the last 4
-     // parameters.
-//     context.fillStyle = 'rgba(0, 0, 0, 1.0)';
-//     context.fillRect(originX, originY, width, height);
+     runConv3x3Step(curFunc, inputView, outputView)
      context.clearRect(originX, originY, width, height);
+
      console.log('image data:');
-     dumpImageData(output);
      dumpBoard();
-     context.putImageData(output, 0, 0, originX, originY, width, height);
+
+     context.putImageData(backingBuffer, 0, 0, originX, originY, width, height);
+
+     // TODO: Should this be the buffers, not the views?
+     inputView.set(outputView);
+
      dumpBoard();
    }
 

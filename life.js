@@ -2,7 +2,7 @@
 
 (function () {
    function init(c) {
-     initArbitraryPattern();
+     initArbitraryPattern(c);
    }
 
    function lifeVal2(color) {
