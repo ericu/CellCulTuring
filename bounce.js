@@ -60,23 +60,13 @@
     }
   }
 
-  function init(canvas) {
-    let context = canvas.getContext('2d');
-
-
-    context.fillStyle = styleFromUint(C_BACKGROUND);
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Strokes are between lines, so they end up fuzzy; fills aren't.
-    context.translate(0.5, 0.5);
-    context.strokeStyle = styleFromUint(C_WALL);
-    context.strokeRect(0, 0, canvas.width - 1, canvas.height - 1);
-    context.translate(-0.5, -0.5);
-
-    context.fillStyle =
-      styleFromUint(ballColorFromDirection({vX: 1, vY: 1}));
-    context.fillRect(Math.round(canvas.width / 2),
-                     Math.round(canvas.height / 2), 1, 1);
+  function init(c) {
+    c.fillRect(C_BACKGROUND, 0, 0, canvas.width, canvas.height);
+    c.strokeRect(C_WALL, 0, 0, canvas.width - 1, canvas.height - 1);
+    c.fillRect(ballColorFromDirection({vX: 1, vY: 1}),
+               Math.round(canvas.width / 2),
+               Math.round(canvas.height / 2), 1, 1);
+    c.commit();
   }
 
   function bounce(data) {

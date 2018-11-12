@@ -11,6 +11,13 @@ const originY = borderSize;
 
   let canvas, canvas2;
   let context, context2;
+  let canvasBuffer;
+  let canvas2Buffer
+  let inputView;
+  let outputBuffer;
+  let output2Buffer;
+  let outputView;
+  let output2View;
 
    function init() {
      canvas = document.getElementById('canvas');
@@ -26,8 +33,15 @@ const originY = borderSize;
      context = canvas.getContext('2d');
      context2 = canvas2.getContext('2d');
      context.clearRect(0, 0, canvas.width, canvas.height);
+     context2.clearRect(0, 0, canvas.width, canvas.height);
      width = canvas.width - 2 * borderSize;
      height = canvas.height - 2 * borderSize;
+     canvasBuffer = context.getImageData(0, 0, canvas.width, canvas.height);
+     outputBuffer = context.createImageData(canvasBuffer)
+     output2Buffer = context.createImageData(canvasBuffer)
+     inputView = new Uint32Array(canvasBuffer.data.buffer);
+     outputView = new Uint32Array(outputBuffer.data.buffer);
+     output2View = new Uint32Array(output2Buffer.data.buffer);
      onSelectAnimation();
    }
 
@@ -55,10 +69,11 @@ const originY = borderSize;
    var curFunc;
 
    function onSelectAnimation() {
+     let c = new CanvasWrapper(canvas);
      const select = document.getElementById('animation');
      if (select.selectedIndex >= 0) {
        const animation = select.options[select.selectedIndex].value;
-       animations[animation].init(canvas);
+       animations[animation].init(c);
        curFunc = animations[animation].f;
      }
    }
@@ -79,16 +94,20 @@ const originY = borderSize;
      return i + canvas.width * j
    }
 
-   function dumpBoard() {
-     console.log('board state:')
-     let oldData = context.getImageData(0, 0, canvas.width, canvas.height);
-     let view = new Uint32Array(oldData.data.buffer);
-     for (let b = 0; b < canvas.height; ++b) {
+   function dumpImageData(data) {
+     let view = new Uint32Array(data.data.buffer);
+     for (let b = 0; b < data.height; ++b) {
        let addr = getAddr32(0, b);
-       var t = _.map(view.slice(addr, addr + canvas.width), i =>
+       var t = _.map(view.slice(addr, addr + data.width), i =>
                      i.toString(16)).join(', ');
        console.log(t);
      }
+   }
+   window.dumpImageData = dumpImageData;
+
+   function dumpBoard() {
+     console.log('board state:')
+     dumpImageData(context.getImageData(0, 0, canvas.width, canvas.height));
    }
    window.dumpBoard = dumpBoard;
 
@@ -142,10 +161,14 @@ const originY = borderSize;
      // 0,0 is the origin of the second imageData, overlaid onto the first.
      // Then we copy over only a subset "dirty region" by using the last 4
      // parameters.
-     context.fillStyle = 'rgba(0, 0, 0, 1.0)';
-     context.fillRect(originX, originY, width, height);
+//     context.fillStyle = 'rgba(0, 0, 0, 1.0)';
+//     context.fillRect(originX, originY, width, height);
+     context.clearRect(originX, originY, width, height);
+     console.log('image data:');
+     dumpImageData(output);
+     dumpBoard();
      context.putImageData(output, 0, 0, originX, originY, width, height);
-//     dumpBoard();
+     dumpBoard();
    }
 
    let running = false;

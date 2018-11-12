@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-   function init(canvas) {
+   function init(c) {
      initArbitraryPattern();
    }
 

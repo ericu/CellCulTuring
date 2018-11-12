@@ -3,8 +3,8 @@
 (function () {
   let bm;
 
-  function initBitMan() {
-    bm = new BitMan();
+  function initBitManager() {
+    bm = new BitManager();
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
@@ -42,7 +42,7 @@
   let styleBm;
   function styleFromUint(u) {
     if (!styleBm) {
-      styleBm = new BitMan();
+      styleBm = new BitManager();
       styleBm.declare('A', 8, 24);
       styleBm.declare('B', 8, 16);
       styleBm.declare('G', 8, 8);
@@ -81,26 +81,17 @@
     }
   }
 
-  function initAngleBounce(canvas) {
-    initBitMan();
+  function initAngleBounce(c) {
+    initBitManager();
 
-    let context = canvas.getContext('2d');
-
-
-    context.fillStyle = styleFromUint(bm.getMask('BACKGROUND'));
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Strokes are between lines, so they end up fuzzy; fills aren't.
-    context.translate(0.5, 0.5);
-    context.strokeStyle = styleFromUint(bm.getMask('WALL'));
-    context.strokeRect(0, 0, canvas.width - 1, canvas.height - 1);
-    context.translate(-0.5, -0.5);
+    c.fillRect(bm.getMask('BACKGROUND'), 0, 0, canvas.width, canvas.height);
+    c.strokeRect(bm.getMask('WALL'), 0, 0, canvas.width - 1, canvas.height - 1);
 
     var ms = MotionState.create(bm, 1, 1, 7, 0);
 
-    context.fillStyle = styleFromUint(ms.nextColor());
-    context.fillRect(Math.round(canvas.width / 2),
-                     Math.round(canvas.height / 2), 1, 1);
+    c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
+               Math.round(canvas.height / 2), 1, 1);
+    c.commit();
   }
 
   function angleBounce(data) {

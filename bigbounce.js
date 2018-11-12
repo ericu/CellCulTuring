@@ -8,8 +8,8 @@
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
 
-  function initBitMan() {
-    bm = new BitMan();
+  function initBitManager() {
+    bm = new BitManager();
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
@@ -66,7 +66,7 @@
   let styleBm;
   function styleFromUint(u) {
     if (!styleBm) {
-      styleBm = new BitMan();
+      styleBm = new BitManager();
       styleBm.declare('A', 8, 24);
       styleBm.declare('B', 8, 16);
       styleBm.declare('G', 8, 8);
@@ -105,10 +105,8 @@
     }
   }
 
-  function initBigBounce(canvas) {
-    initBitMan();
-
-    let c = new CanvasWrapper(canvas);
+  function initBigBounce(c) {
+    initBitManager();
 
     // We fill the whole canvas, then put a wall around that corresponds to the
     // originX/originY/width/height sentinel frame.
