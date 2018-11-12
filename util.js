@@ -10,10 +10,48 @@ function assert(val, message) {
   }
 }
 
+// We can't trust canvas to do bit-exact alpha values, since it has to translate
+// int -> float -> int.
+class CanvasWrapper {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.context = canvas.getContext('2d');
+    this.data = this.context.getImageData(0, 0, canvas.width, canvas.height);
+    this.view = new Uint32Array(this.data.data.buffer);
+  }
+
+  getAddr32(i, j) {
+    return i + this.canvas.width * j
+  }
+
+  fillRect(color, x, y, w, h) {
+    for (let i = 0; i < w; ++i) {
+      for (let j = 0; j < h; ++j) {
+        this.view[this.getAddr32(i + x, j + y)] = color;
+      }
+    }
+  }
+
+  strokeRect(color, x, y, w, h) {
+    for (let i = 0; i < w; ++i) {
+      this.view[this.getAddr32(i + x, y)] = color;
+      this.view[this.getAddr32(i + x, y + h)] = color;
+    }
+    for (let j = 0; j <= h; ++j) {
+      this.view[this.getAddr32(x, j + y)] = color;
+      this.view[this.getAddr32(x + w, j + y)] = color;
+    }
+  }
+
+  commit() {
+    this.context.putImageData(this.data, 0, 0);
+  }
+}
+
 // This won't be super fast, but it may keep me sane, and can be optimized later
 // if need be.
 class BitMan {
-  constructor () {
+  constructor() {
     this.info = {};
     this.mask = 0;
   }

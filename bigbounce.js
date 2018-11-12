@@ -73,7 +73,7 @@
       styleBm.declare('R', 8, 0);
     }
 
-    let a = styleBm.get('A', u);
+    let a = styleBm.get('A', u) / 255;
     let b = styleBm.get('B', u);
     let g = styleBm.get('G', u);
     let r = styleBm.get('R', u);
@@ -108,53 +108,40 @@
   function initBigBounce(canvas) {
     initBitMan();
 
-    let context = canvas.getContext('2d');
-
+    let c = new CanvasWrapper(canvas);
 
     // We fill the whole canvas, then put a wall around that corresponds to the
     // originX/originY/width/height sentinel frame.
 
-    context.fillStyle = styleFromUint(bm.getMask('BACKGROUND'));
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Strokes are between lines, so they end up fuzzy; fills aren't.
-    context.translate(0.5, 0.5);
-    context.strokeStyle = styleFromUint(bm.getMask('WALL'));
-    context.strokeRect(0, 0, canvas.width - 1, canvas.height - 1);
-    context.translate(-0.5, -0.5);
+    c.fillRect(bm.getMask('BACKGROUND'), 0, 0, canvas.width, canvas.height);
+    c.strokeRect(bm.getMask('WALL'), 0, 0, canvas.width - 1, canvas.height - 1);
 
     // Buffer regions
-    context.fillStyle = styleFromUint(bm.getMask('X_MIN_BUFFER'));
-    context.fillRect(originX, originY + BUFFER_SIZE,
-                     BUFFER_SIZE, height - 2 * BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('X_MAX_BUFFER'));
-    context.fillRect(originX + width - BUFFER_SIZE, originY + BUFFER_SIZE,
-                     BUFFER_SIZE, height - 2 * BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('Y_MIN_BUFFER'));
-    context.fillRect(originX + BUFFER_SIZE, originY,
-                     width - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('Y_MAX_BUFFER'));
-    context.fillRect(originX + BUFFER_SIZE, originY + height - BUFFER_SIZE,
-                     width - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('XY_MIN_BUFFER'));
-    context.fillRect(originX, originY,
-                     BUFFER_SIZE, BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('XY_MAX_BUFFER'));
-    context.fillRect(originX + width - BUFFER_SIZE,
-                     originY + height - BUFFER_SIZE,
-                     BUFFER_SIZE, BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('X_MAX_Y_MIN_BUFFER'));
-    context.fillRect(originX + width - BUFFER_SIZE, originY,
-                     BUFFER_SIZE, BUFFER_SIZE);
-    context.fillStyle = styleFromUint(bm.getMask('X_MIN_Y_MAX_BUFFER'));
-    context.fillRect(originX, originY + height - BUFFER_SIZE,
-                     BUFFER_SIZE, BUFFER_SIZE);
+    c.fillRect(bm.getMask('X_MIN_BUFFER'), originX, originY + BUFFER_SIZE,
+               BUFFER_SIZE, height - 2 * BUFFER_SIZE);
+    c.fillRect(bm.getMask('X_MAX_BUFFER'), originX + width - BUFFER_SIZE,
+               originY + BUFFER_SIZE, BUFFER_SIZE, height - 2 * BUFFER_SIZE);
+    c.fillRect(bm.getMask('Y_MIN_BUFFER'), originX + BUFFER_SIZE, originY,
+               width - 2 * BUFFER_SIZE, BUFFER_SIZE);
+    c.fillRect(bm.getMask('Y_MAX_BUFFER'), originX + BUFFER_SIZE,
+               originY + height - BUFFER_SIZE,
+               width - 2 * BUFFER_SIZE, BUFFER_SIZE);
+    c.fillRect(bm.getMask('XY_MIN_BUFFER'), originX, originY,
+               BUFFER_SIZE, BUFFER_SIZE);
+    c.fillRect(bm.getMask('XY_MAX_BUFFER'), originX + width - BUFFER_SIZE,
+               originY + height - BUFFER_SIZE,
+               BUFFER_SIZE, BUFFER_SIZE);
+    c.fillRect(bm.getMask('X_MAX_Y_MIN_BUFFER'), originX + width - BUFFER_SIZE,
+               originY, BUFFER_SIZE, BUFFER_SIZE);
+    c.fillRect(bm.getMask('X_MIN_Y_MAX_BUFFER'), originX,
+               originY + height - BUFFER_SIZE,
+               BUFFER_SIZE, BUFFER_SIZE);
 
     // arbitrarily moving ball
     var ms = MotionState.create(bm, 1, 1, 7, 0);
-    context.fillStyle = styleFromUint(ms.color);
-    context.fillRect(Math.round(canvas.width / 2),
-                     Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
+    c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
+               Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
+    c.commit();
     dumpBoard();
   }
 
@@ -167,11 +154,8 @@
     // Both ball and background need to handle incoming ball pixels.
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
-      let ms;
       if (isBall(color)) {
-        if (!ms) { // All ball pixels have the same motion.
-          ms = new MotionState(bm, color);
-        }
+        let ms = new MotionState(bm, color);
         let source = sourceDirectionFromIndex(i);
         if (source.dX === ms.dX || source.dY === ms.dY) {
           // It's a hit; lets see if it's also bouncing or in a buffer.
