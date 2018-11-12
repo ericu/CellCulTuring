@@ -140,20 +140,27 @@ class MotionState {
   }
 
   decDepthX() {
+    assert(this.depthX > 0);
     --this.depthX;
   }
 
   decDepthY() {
+    assert(this.depthY > 0);
     --this.depthY;
   }
 
-  nextColor() {
+  getColor() {
     let color = this.color;
     color = this.bm.set('MOVE_R_NOT_L', color, this.right);
     color = this.bm.set('MOVE_D_NOT_U', color, this.down);
-    color = this.bm.set('MOVE_STATE', color, this.nextState);
     color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
     color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
+    return color;
+  }
+
+  nextColor() {
+    let color = this.getColor();
+    color = this.bm.set('MOVE_STATE', color, this.nextState);
     return color;
   }
 }

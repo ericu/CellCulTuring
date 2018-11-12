@@ -157,7 +157,7 @@
       if (isBall(color)) {
         let ms = new MotionState(bm, color);
         let source = sourceDirectionFromIndex(i);
-        if (source.dX === ms.dX || source.dY === ms.dY) {
+        if (source.dX === ms.dX && source.dY === ms.dY) {
           // It's a hit; lets see if it's also bouncing or in a buffer.
           let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', color);
           let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', color);
@@ -168,11 +168,19 @@
           if (ms.dX > 0 && bufferXMax) {
             ms.incDepthX();
           } else if (ms.dX < 0 && bufferXMin) {
+            ms.incDepthX();
+          } else if (ms.dX > 0 && bufferXMin) {
+            ms.decDepthX();
+          } else if (ms.dX < 0 && bufferXMax) {
             ms.decDepthX();
           }
           if (ms.dY > 0 && bufferYMax) {
             ms.incDepthY();
           } else if (ms.dY < 0 && bufferYMin) {
+            ms.incDepthY();
+          } else if (ms.dY > 0 && bufferYMin) {
+            ms.decDepthY();
+          } else if (ms.dY < 0 && bufferYMax) {
             ms.decDepthY();
           }
           if (ms.depthX >= BUFFER_SIZE) {
@@ -183,11 +191,9 @@
             assert(ms.depthY <= BUFFER_SIZE);
             ms.reflect('y')
           }
-          let nextColor = ms.color;
-          nextColor = bm.set('BUFFER_X_MIN_FLAG', nextColor, bufferXMin);
-          nextColor = bm.set('BUFFER_X_MAX_FLAG', nextColor, bufferXMax);
-          nextColor = bm.set('BUFFER_Y_MIN_FLAG', nextColor, bufferYMin);
-          nextColor = bm.set('BUFFER_Y_MAX_FLAG', nextColor, bufferYMax);
+          let bufferFlags = bm.get('BUFFER_FLAGS', current);
+          let nextColor = ms.getColor();
+          nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
           return nextColor;
         }
       }
