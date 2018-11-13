@@ -1,6 +1,6 @@
 "use strict";
 
-//(function () {
+(function () {
   let bm;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
@@ -152,19 +152,30 @@
       return current;
     }
     // Both ball and background need to handle incoming ball pixels.
+    let bestMs;
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
       if (isBall(color)) {
-        let ms
-        if (isBall(current)) {
-          // We'll have the more current depth counter entering the buffer, and
-          // they'll match going out.
-          ms = new MotionState(bm, current);
-        } else {
-          ms = new MotionState(bm, color);
-        }
+        // with a diagonal entry to the buffer, a ball pixel moving into the
+        // buffer for the first time [so no depth count] can hit a buffer pixel
+        // [so no depth count] even if it's time to bounce.  We need to check
+        // all neighboring ball pixels and take the highest depth on the way in;
+        // they'll all match on the way out.
+        let ms = new MotionState(bm, color);
         let source = sourceDirectionFromIndex(i);
         if (source.dX === ms.dX && source.dY === ms.dY) {
+          if (!bestMs) {
+            let allMotions = _(data)
+              .filter(d => isBall(d))
+              .map(b => new MotionState(bm, b))
+              .value();
+            let maxDepthX = _.maxBy(allMotions, m => m.getDepthX()).getDepthX();
+            let maxDepthY = _.maxBy(allMotions, m => m.getDepthY()).getDepthY();
+            // TODO: Get rid of ms?
+            bestMs = ms = new MotionState(bm, color);
+            ms.setDepthX(maxDepthX);
+            ms.setDepthY(maxDepthY);
+          }
           // It's a hit; lets see if it's also bouncing or in a buffer.
           let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', current);
           let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', current);
@@ -173,44 +184,34 @@
           let bufferFlags = bm.get('BUFFER_FLAGS', current);
 
           ms = new MotionState(bm, ms.nextColor())
-          if (ms.depthX || ms.depthY) {
-            console.log(x, y, `depthX ${ms.depthX} depthY ${ms.depthY}`)
-          }
           if (ms.dX > 0 && bufferXMax) {
             ms.incDepthX();
           } else if (ms.dX < 0 && bufferXMin) {
             ms.incDepthX();
-          } else if (ms.depthX && ms.dX > 0 && !bufferXMax) {
+          } else if (ms.getDepthX() && ms.dX > 0 && !bufferXMax) {
             ms.decDepthX();
-          } else if (ms.depthX && ms.dX < 0 && !bufferXMin) {
+          } else if (ms.getDepthX() && ms.dX < 0 && !bufferXMin) {
             ms.decDepthX();
           }
           if (ms.dY > 0 && bufferYMax) {
             ms.incDepthY();
           } else if (ms.dY < 0 && bufferYMin) {
             ms.incDepthY();
-          } else if (ms.depthY && ms.dY > 0 && !bufferYMax) {
+          } else if (ms.getDepthY() && ms.dY > 0 && !bufferYMax) {
             ms.decDepthY();
-          } else if (ms.depthY && ms.dY < 0 && !bufferYMin) {
+          } else if (ms.getDepthY() && ms.dY < 0 && !bufferYMin) {
             ms.decDepthY();
           }
-          if (ms.depthX || ms.depthY) {
-            console.log(x, y, `BUFFER_FLAGS ${bufferFlags.toString(16)}`)
-            console.log(x, y, `now depthX ${ms.depthX} depthY ${ms.depthY}`)
-          }
-          if (ms.depthX >= BUFFER_SIZE) {
-            console.log('reflect x');
-            assert(ms.depthX <= BUFFER_SIZE);
+          if (ms.getDepthX() >= BUFFER_SIZE) {
+            assert(ms.getDepthX() <= BUFFER_SIZE);
             ms.reflect('x')
           }
-          if (ms.depthY >= BUFFER_SIZE) {
-            console.log('reflect y');
-            assert(ms.depthY <= BUFFER_SIZE);
+          if (ms.getDepthY() >= BUFFER_SIZE) {
+            assert(ms.getDepthY() <= BUFFER_SIZE);
             ms.reflect('y')
           }
           let nextColor = ms.getColor();
           nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
-//          console.log(nextColor.toString(16));
           return nextColor;
         }
       }
@@ -226,4 +227,4 @@
     () => window.registerAnimation("big bounce", initBigBounce,
                                    bigBounce));
 
-//})();
+})();

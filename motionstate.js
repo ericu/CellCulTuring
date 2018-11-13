@@ -133,6 +133,22 @@ class MotionState {
     }
   }
 
+  getDepthX() {
+    return this.depthX;
+  }
+
+  getDepthY() {
+    return this.depthY;
+  }
+
+  setDepthX(d) {
+    this.depthX = d;
+  }
+
+  setDepthY(d) {
+    this.depthY = d;
+  }
+
   incDepthX() {
     ++this.depthX;
   }
