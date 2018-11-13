@@ -1,5 +1,6 @@
 (function () {
-   function initSmooth(canvas) {
+   function initSmooth(c) {
+     initArbitraryPattern(c);
    }
 
    function smooth(data) {

@@ -1,35 +1,33 @@
 // We can't trust canvas to do bit-exact alpha values, since it has to translate
 // int -> float -> int.
 class CanvasWrapper {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.context = canvas.getContext('2d');
-    this.data = this.context.getImageData(0, 0, canvas.width, canvas.height);
+  constructor(data) {
+    this.data = data;
     this.view = new Uint32Array(this.data.data.buffer);
   }
 
   getAddr32(i, j) {
-    return i + this.canvas.width * j
+    return i + this.data.width * j
   }
 
   fillRect(color, x, y, w, h) {
     if (x < 0) {
       x = 0;
     }
-    if (x >= canvas.width) {
-      x = canvas.width - 1;
+    if (x >= this.data.width) {
+      x = this.data.width - 1;
     }
     if (y < 0) {
       y = 0;
     }
-    if (y >= canvas.height) {
-      y = canvas.height - 1;
+    if (y >= this.data.height) {
+      y = this.data.height - 1;
     }
-    if (x + w >= canvas.width) {
-      w = canvas.width - x;
+    if (x + w >= this.data.width) {
+      w = this.data.width - x;
     }
-    if (y + h >= canvas.height) {
-      h = canvas.height - y;
+    if (y + h >= this.data.height) {
+      h = this.data.height - y;
     }
     for (let i = 0; i < w; ++i) {
       for (let j = 0; j < h; ++j) {
@@ -42,20 +40,20 @@ class CanvasWrapper {
     if (x < 0) {
       x = 0;
     }
-    if (x >= canvas.width) {
-      x = canvas.width - 1;
+    if (x >= this.data.width) {
+      x = this.data.width - 1;
     }
     if (y < 0) {
       y = 0;
     }
-    if (y >= canvas.height) {
-      y = canvas.height - 1;
+    if (y >= this.data.height) {
+      y = this.data.height - 1;
     }
-    if (x + w >= canvas.width) {
-      w = canvas.width - x;
+    if (x + w >= this.data.width) {
+      w = this.data.width - x;
     }
-    if (y + h >= canvas.height) {
-      h = canvas.height - y;
+    if (y + h >= this.data.height) {
+      h = this.data.height - y;
     }
     for (let i = 0; i < w; ++i) {
       this.view[this.getAddr32(i + x, y)] = color;
@@ -68,7 +66,6 @@ class CanvasWrapper {
   }
 
   commit() {
-    this.context.putImageData(this.data, 0, 0);
   }
 }
 
