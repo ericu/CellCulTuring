@@ -3,7 +3,9 @@
 //(function () {
   let bm;
   const BALL_SIZE_BITS = 2;
-  const BALL_SIZE = 1 << BALL_SIZE_BITS;
+  // We need to keep the depth counter from overflowing, so the buffer can't be
+  // as deep as 1 << BALL_SIZE_BITS.
+  const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
   const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
@@ -141,11 +143,9 @@
     var ms = MotionState.create(bm, 1, 1, 7, 0);
     c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
                Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
-    c.commit();
-    dumpBoard();
   }
 
-  function bigBounce(data) {
+  function bigBounce(data, x, y) {
     const current = data[4];
 
     if (isWall(current)) {
@@ -155,43 +155,59 @@
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
       if (isBall(color)) {
-        let ms = new MotionState(bm, color);
+        let ms
+        if (isBall(current)) {
+          // We'll have the more current depth counter entering the buffer, and
+          // they'll match going out.
+          ms = new MotionState(bm, current);
+        } else {
+          ms = new MotionState(bm, color);
+        }
         let source = sourceDirectionFromIndex(i);
         if (source.dX === ms.dX && source.dY === ms.dY) {
           // It's a hit; lets see if it's also bouncing or in a buffer.
-          let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', color);
-          let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', color);
-          let bufferYMin = bm.get('BUFFER_Y_MIN_FLAG', color);
-          let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', color);
+          let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', current);
+          let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', current);
+          let bufferYMin = bm.get('BUFFER_Y_MIN_FLAG', current);
+          let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', current);
+          let bufferFlags = bm.get('BUFFER_FLAGS', current);
 
           ms = new MotionState(bm, ms.nextColor())
+          if (ms.depthX || ms.depthY) {
+            console.log(x, y, `depthX ${ms.depthX} depthY ${ms.depthY}`)
+          }
           if (ms.dX > 0 && bufferXMax) {
             ms.incDepthX();
           } else if (ms.dX < 0 && bufferXMin) {
             ms.incDepthX();
-          } else if (ms.dX > 0 && bufferXMin) {
+          } else if (ms.depthX && ms.dX > 0 && !bufferXMax) {
             ms.decDepthX();
-          } else if (ms.dX < 0 && bufferXMax) {
+          } else if (ms.depthX && ms.dX < 0 && !bufferXMin) {
             ms.decDepthX();
           }
           if (ms.dY > 0 && bufferYMax) {
             ms.incDepthY();
           } else if (ms.dY < 0 && bufferYMin) {
             ms.incDepthY();
-          } else if (ms.dY > 0 && bufferYMin) {
+          } else if (ms.depthY && ms.dY > 0 && !bufferYMax) {
             ms.decDepthY();
-          } else if (ms.dY < 0 && bufferYMax) {
+          } else if (ms.depthY && ms.dY < 0 && !bufferYMin) {
             ms.decDepthY();
           }
+          if (ms.depthX || ms.depthY) {
+            console.log(x, y, `BUFFER_FLAGS ${bufferFlags.toString(16)}`)
+            console.log(x, y, `now depthX ${ms.depthX} depthY ${ms.depthY}`)
+          }
           if (ms.depthX >= BUFFER_SIZE) {
+            console.log('reflect x');
             assert(ms.depthX <= BUFFER_SIZE);
             ms.reflect('x')
           }
           if (ms.depthY >= BUFFER_SIZE) {
+            console.log('reflect y');
             assert(ms.depthY <= BUFFER_SIZE);
             ms.reflect('y')
           }
-          let bufferFlags = bm.get('BUFFER_FLAGS', current);
           let nextColor = ms.getColor();
           nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
 //          console.log(nextColor.toString(16));

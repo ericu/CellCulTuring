@@ -91,7 +91,6 @@
 
     c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
                Math.round(canvas.height / 2), 1, 1);
-    c.commit();
   }
 
   function angleBounce(data) {

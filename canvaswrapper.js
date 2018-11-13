@@ -64,9 +64,6 @@ class CanvasWrapper {
       this.view[this.getAddr32(x + w, j + y)] = color;
     }
   }
-
-  commit() {
-  }
 }
 
 

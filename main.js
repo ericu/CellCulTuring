@@ -159,7 +159,7 @@ const originY = borderSize;
         botData.shift();
         botData.push(inputView[botAddr++])
 
-        let value = f(_.flatten([topData, midData, botData]))
+        let value = f(_.flatten([topData, midData, botData]), i, j)
         outputView[getAddr32(i, j)] = value;
       }
     }
