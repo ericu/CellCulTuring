@@ -152,30 +152,29 @@
       return current;
     }
     // Both ball and background need to handle incoming ball pixels.
-    let bestMs;
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
       if (isBall(color)) {
-        // with a diagonal entry to the buffer, a ball pixel moving into the
-        // buffer for the first time [so no depth count] can hit a buffer pixel
-        // [so no depth count] even if it's time to bounce.  We need to check
-        // all neighboring ball pixels and take the highest depth on the way in;
-        // they'll all match on the way out.
+        // With a diagonal entry to the buffer, a trailing ball pixel moving
+        // into the buffer for the first time [so no depth count] can hit a
+        // buffer pixel [so no depth count] even if it's time to bounce.  We
+        // need to check all neighboring ball pixels and take the highest depth
+        // on the way in; they'll all match on the way out.
         let ms = new MotionState(bm, color);
         let source = sourceDirectionFromIndex(i);
         if (source.dX === ms.dX && source.dY === ms.dY) {
-          if (!bestMs) {
-            let allMotions = _(data)
-              .filter(d => isBall(d))
-              .map(b => new MotionState(bm, b))
-              .value();
-            let maxDepthX = _.maxBy(allMotions, m => m.getDepthX()).getDepthX();
-            let maxDepthY = _.maxBy(allMotions, m => m.getDepthY()).getDepthY();
-            // TODO: Get rid of ms?
-            bestMs = ms = new MotionState(bm, color);
-            ms.setDepthX(maxDepthX);
-            ms.setDepthY(maxDepthY);
-          }
+          let allMotions = _(data)
+            .filter(d => isBall(d))
+            .map(b => new MotionState(bm, b))
+            .value();
+          let maxDepthX = _(allMotions)
+            .map(m => m.getDepthX())
+            .max();
+          let maxDepthY = _(allMotions)
+            .map(m => m.getDepthY())
+            .max();
+          ms.setDepthX(maxDepthX);
+          ms.setDepthY(maxDepthY);
           // It's a hit; lets see if it's also bouncing or in a buffer.
           let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', current);
           let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', current);
