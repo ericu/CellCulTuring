@@ -68,6 +68,17 @@ class BitManager {
     assert(!(value & ~record.bits));
     return ((packed & ~record.mask) | (value << record.offset)) >>> 0;
   }
+
+  setMask(name, packed, value) {
+    assert(name in this.info);
+    assert(_.isBoolean(value));
+    const record = this.info[name];
+    if (value) {
+      return (packed | record.mask) >>> 0;
+    } else {
+      return (packed & ~record.mask) >>> 0;
+    }
+  }
 }
 
 
