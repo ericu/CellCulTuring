@@ -21,12 +21,14 @@ class BitManager {
 
   get(name, packed) {
     assert(name in this.info);
+    assert(_.isNumber(packed));
     const record = this.info[name];
     return (packed & record.mask) >>> record.offset;
   }
 
   isSet(name, packed) {
     assert(name in this.info);
+    assert(_.isNumber(packed));
     const record = this.info[name];
     return ((packed & record.mask) >>> 0) === record.mask;
   }
@@ -63,6 +65,7 @@ class BitManager {
   }
 
   set(name, packed, value) {
+    assert(_.isNumber(packed));
     assert(name in this.info);
     const record = this.info[name];
     assert(!(value & ~record.bits));
@@ -70,6 +73,7 @@ class BitManager {
   }
 
   setMask(name, packed, value) {
+    assert(_.isNumber(packed));
     assert(name in this.info);
     assert(_.isBoolean(value));
     const record = this.info[name];
