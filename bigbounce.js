@@ -2,7 +2,7 @@
 
 (function () {
   let bm;
-  const BALL_SIZE_BITS = 2;
+  const BALL_SIZE_BITS = 3;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
   const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
