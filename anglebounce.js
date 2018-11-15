@@ -142,9 +142,6 @@
     assert(false);
   }
 
-  window.addEventListener(
-    "load",
-    () => window.registerAnimation("angle bounce", initAngleBounce,
-                                   angleBounce));
+  registerAnimation("angle bounce", initAngleBounce, angleBounce);
 
 })();

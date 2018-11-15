@@ -2,10 +2,11 @@
 
 (function () {
   let bm;
-  const BALL_SIZE_BITS = 3;
+  const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
   const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
+  //const BALL_SIZE = 4;
   const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
@@ -57,7 +58,6 @@
     bm.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
     bm.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
     bm.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
-    console.log(bm.mask.toString(16));
   }
 
   function isWall (c) {
@@ -147,30 +147,87 @@
                BUFFER_SIZE, BUFFER_SIZE);
 
     // arbitrarily moving ball
-    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('FULL_BALL'));
     var left = Math.round(canvas.width / 2);
     var top = Math.round(canvas.height / 2);
-    var color = ms.nextColor();
+    const brightColor =
+      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('FULL_BALL')).nextColor();
+    const dimColor =
+      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('DIM_BALL')).nextColor();
+    const hiddenColor =
+      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('HIDDEN_BALL')).nextColor();
     if (BALL_SIZE === 7) {
-      const dimColor =
-        MotionState.create(bm, 1, 1, 7, 0, bm.getMask('DIM_BALL')).nextColor();
       c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
-      const hiddenColor =
-        MotionState.create(bm, 1, 1, 7, 0,
-                           bm.getMask('HIDDEN_BALL')).nextColor();
       c.fillRect(hiddenColor, left, top, 1, 1);
       c.fillRect(hiddenColor, left, top + BALL_SIZE - 1, 1, 1);
       c.fillRect(hiddenColor, left + BALL_SIZE - 1, top, 1, 1);
       c.fillRect(hiddenColor, left + BALL_SIZE - 1, top + BALL_SIZE - 1, 1, 1);
-      // TODO: This doesn't work.  If we move at a 45-degree angle, the leading
-      // rounded corner pixel can't see its neighbors, so it can't inherit their
-      // depth, and the ball breaks at bounce.  We'd need to fill out the square
-      // with darker-but-still-ball pixels to make that work.
-      c.fillRect(color, left + 2, top, BALL_SIZE - 4, BALL_SIZE);
-      c.fillRect(color, left, top + 2, BALL_SIZE, BALL_SIZE - 4);
-      c.fillRect(color, left + 1, top + 1, BALL_SIZE - 2, BALL_SIZE - 2);
+      c.fillRect(brightColor, left + 2, top, BALL_SIZE - 4, BALL_SIZE);
+      c.fillRect(brightColor, left, top + 2, BALL_SIZE, BALL_SIZE - 4);
+      c.fillRect(brightColor, left + 1, top + 1, BALL_SIZE - 2, BALL_SIZE - 2);
+    } else if (BALL_SIZE === 4) {
+      const CHOICE = 3
+      switch (CHOICE) {
+        case 0:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, BALL_SIZE - 2, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, BALL_SIZE - 2);
+          break;
+        case 1:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(dimColor, left + 1, top, BALL_SIZE - 2, BALL_SIZE);
+          c.fillRect(dimColor, left, top + 1, BALL_SIZE, BALL_SIZE - 2);
+          c.fillRect(brightColor, left + 1, top + 1, 2, 2);
+          break;
+        case 2:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, BALL_SIZE - 2, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, BALL_SIZE - 2);
+          break;
+        case 3:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top + 1, BALL_SIZE - 2, BALL_SIZE -
+                     2);
+          break;
+        default:
+          assert(false);
+      }
+
+    } else if (BALL_SIZE === 3) {
+      const CHOICE = 5
+      switch (CHOICE) {
+        case 0:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(dimColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(dimColor, left, top + 1, BALL_SIZE, 1);
+          c.fillRect(brightColor, left + 1, top + 1, 1, 1);
+          break;
+        case 1:
+          c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
+          break;
+        case 2:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top + 1, 1, 1);
+          break;
+        case 3:
+          c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(dimColor, left + 1, top + 1, 1, 1);
+          break;
+        case 4:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          c.fillRect(dimColor, left + 1, top + 1, 1, 1);
+          break;
+        case 5:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          break;
+        default:
+          assert(false);
+      }
     } else {
-      c.fillRect(color, left, top, BALL_SIZE, BALL_SIZE);
+      c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
     }
   }
 
@@ -264,9 +321,6 @@
     return nextColor;
   }
 
-  window.addEventListener(
-    "load",
-    () => window.registerAnimation("big bounce", initBigBounce,
-                                   bigBounce));
+  registerAnimation("big bounce", initBigBounce, bigBounce);
 
 })();

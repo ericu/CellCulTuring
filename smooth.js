@@ -19,8 +19,6 @@
      return (v[0] | v[1] << 8 | v[2] << 16 | v[3] << 24) >>> 0;
    }
 
-   window.addEventListener(
-     "load",
-     () => window.registerAnimation("smooth", initSmooth, smooth));
+   registerAnimation("smooth", initSmooth, smooth);
 
 })();

@@ -117,8 +117,6 @@
     assert(false);
   }
 
-  window.addEventListener(
-    "load",
-    () => window.registerAnimation("bounce", init, bounce));
+  registerAnimation("bounce", init, bounce);
 
 })();
