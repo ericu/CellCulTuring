@@ -201,7 +201,6 @@
             ms.decDepthY();
           }
           if (ms.getDepthX() >= BUFFER_SIZE) {
-            console.log('x reflect')
             assert(ms.getDepthX() <= BUFFER_SIZE);
             ms.reflect('x')
             ms.index = (ms.index + 1) % 8;
@@ -212,7 +211,6 @@
             }
           }
           if (ms.getDepthY() >= BUFFER_SIZE) {
-            console.log('y reflect')
             assert(ms.getDepthY() <= BUFFER_SIZE);
             ms.reflect('y')
             ms.index = ms.index + 1;
