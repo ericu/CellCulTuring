@@ -25,7 +25,8 @@
 
   In the buffered cases, how does this look?
 
-  simple buffer:
+  Simple buffer both-approaching-hit:
+
   b  b  b  .  .       .  .  .  .  . 
   b  b  b  .  .       .  b: b: b:  :
   b  b: b:  :  :      .  b: b: b:  :
@@ -34,12 +35,24 @@
   .   :  :  :  p      .   :  :  :  p
   .   :  :  :  p      .   :  :  : . 
 
-  All cells going into the simple buffer know it, since the buffer moves into
-  cells at 1 cell per cycle.  Ball cells can spread depth knowledge as well.
-  Hmm...but if they come from above, do they need to know depth-to-X as well as
-  depth-to-Y?  Probably.  Can they tell that?  In the special case of depth 3,
-  yes, because a cell can tell which buffer cell it is by its neighbors.  If
-  there were a 4+ thickness buffer, the inner cells would be indistinguishable.
+  All ball cells going into the simple buffer know it, since the buffer moves
+  into cells at the same 1 cell per cycle that the ball cells do.  Ball cells
+  can spread depth knowledge as well.  Hmm...but if they come from above, do
+  they need to know depth-to-X as well as depth-to-Y?  Probably.  Can they tell
+  that?  In the special case of depth 3, yes, because a cell can tell which
+  buffer cell it is by its neighbors.  If there were a 4+ thickness buffer, the
+  inner cells would be indistinguishable.
+
+  Simple buffer paddle-approaching barely-miss:
+  b  b  b  .  .       .  b  b  b   .
+  b  b  b  .  .       .  b: b: b:  :
+  b  b: b:  :  :      .  b: b: b:  :
+  .   :  :  :  :  ->  .   :  :  :  p
+  .   :  :  :  p      .   :  :  :  p
+  .   :  :  :  p      .   :  :  :  p
+  .   :  :  :  p      .   :  :  : . 
+
+  Here the y-depth is 2 and the x-depth 3, so it's a miss.
 
   depth buffer:
   b  b  b  .  .      .  .  .  .  .
@@ -50,6 +63,22 @@
   .   2  1  0  p      .   2  1  0  p
   .   2  1  0  p      .   2  1  0 . 
 
+  State in the paddle and buffer:
+    IsPaddle/IsPaddleBuffer
+    IsRightNotLeft
+    Where-am-I altitude
+    Where-am-I-going counter/altitude
+    Where-have-I-been-requested-to-go-next altitude
+    When-can-I-leave [counter for info to propagate through thickness of paddle]
+  All that state needs to get stored in the ball as well, since it needs to be
+  restored as the ball moves away.  Hmm...or can we just restore it from the
+  neighboring paddle cells?  That would save a lot of bits in the ball, which
+  probably has other uses for them.  Seems likely that we can do that; it's a
+  bit more complex, but worth it.  Umm...actually no, not without storing the
+  depth bits as well, otherwise the left edge of the right paddle buffer, coming
+  down out from under a ball, doesn't know where its top border is.  Still, we
+  can pull the counters from our paddle-cell neighbors, just not the single bit
+  for IsPaddleBuffer.
 
 */
 
