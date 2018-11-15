@@ -112,14 +112,18 @@
             return current; // There's only 1 ball; exit early.
           }
           // It's a hit; lets see if it's also bouncing.
-          ms = new MotionState(bm, ms.nextColor())
           if ((ms.dX > 0 && isWall(data[5])) ||
               (ms.dX < 0 && isWall(data[3]))) {
             ms.reflect('x');
+            ms.index = (ms.index + 1) % 8;
           }
           if ((ms.dY > 0 && isWall(data[7])) ||
               (ms.dY < 0 && isWall(data[1]))) {
             ms.reflect('y')
+            ms.index = ms.index + 1;
+            if (ms.index >=8) {
+              ms.index = 1; // Don't go horizontal from top or bottom bounce.
+            }
           }
           return ms.nextColor();
         }

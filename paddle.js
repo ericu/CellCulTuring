@@ -1,8 +1,62 @@
 "use strict";
 
+/*
+  Ball-paddle hits are tricky because both move.  Consider this case:
+
+  b b b . .     . . . . .
+  b b b . .     . b b b .
+  b b b . .     . b b b .
+  . . . . . ->  . b b b p
+  . . . . p     . . . . p
+  . . . . p     . . . . p
+  . . . . p     . . . . .
+
+  How does the top-left ball pixel know about the collision?  We'll need a
+  buffer around the paddle in 2 dimensions at a minimum; it may even need to
+  indicate its depth.
+
+  Simple buffer:    Depth buffer: [Or 1-3, with 0 meaning not-in-buffer].
+   . . . . .          . . . . .
+   . : : : :          . 2 1 1 1
+   . : : : :          . 2 1 0 0
+   . : : : p          . 2 1 0 p
+   . : : : p          . 2 1 0 p
+   . : : : p          . 2 1 0 p
+
+  In the buffered cases, how does this look?
+
+  simple buffer:
+  b  b  b  .  .       .  .  .  .  . 
+  b  b  b  .  .       .  b: b: b:  :
+  b  b: b:  :  :      .  b: b: b:  :
+  .   :  :  :  :  ->  .  b: b: b:  p
+  .   :  :  :  p      .   :  :  :  p
+  .   :  :  :  p      .   :  :  :  p
+  .   :  :  :  p      .   :  :  : . 
+
+  All cells going into the simple buffer know it, since the buffer moves into
+  cells at 1 cell per cycle.  Ball cells can spread depth knowledge as well.
+  Hmm...but if they come from above, do they need to know depth-to-X as well as
+  depth-to-Y?  Probably.  Can they tell that?  In the special case of depth 3,
+  yes, because a cell can tell which buffer cell it is by its neighbors.  If
+  there were a 4+ thickness buffer, the inner cells would be indistinguishable.
+
+  depth buffer:
+  b  b  b  .  .      .  .  .  .  .
+  b  b  b  .  .      .  b2 b1 b1  1
+  b  b2 b1  1  1      .  b2 b1 b0  0
+  .   2  1  0  0  ->  .  b2 b1 b0  p
+  .   2  1  0  p      .   2  1  0  p
+  .   2  1  0  p      .   2  1  0  p
+  .   2  1  0  p      .   2  1  0 . 
+
+
+*/
+
+// TODO: This is just bigBounce so far.
 (function () {
   let bm;
-  const BALL_SIZE_BITS = 3;
+  const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
   const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
@@ -145,7 +199,7 @@
                Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
   }
 
-  function bigBounce(data, x, y) {
+  function paddle(data, x, y) {
     const current = data[4];
 
     if (isWall(current)) {
@@ -223,7 +277,7 @@
 
   window.addEventListener(
     "load",
-    () => window.registerAnimation("big bounce", initBigBounce,
-                                   bigBounce));
+    () => window.registerAnimation("paddle", initPaddle,
+                                   paddle));
 
 })();
