@@ -223,7 +223,7 @@
                BUFFER_SIZE, BUFFER_SIZE);
 
     // arbitrarily moving ball
-    var ms = MotionState.create(bm, 1, 1, 7, 0);
+    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL_FLAG'));
     c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
                Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
   }

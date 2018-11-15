@@ -17,12 +17,18 @@
 
     // Sentinel bits that determine type:
     bm.declare('WALL_FLAG', 1, 7);
-    bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
+    bm.declare('HIDDEN_BALL_FLAG', 1, 24);
+    bm.declare('DIM_BALL_FLAG', 1, 14);
+    bm.declare('BRIGHT_BALL_FLAG', 1, 15);
+    bm.combine('FULL_BALL_FLAG',
+               ['DIM_BALL_FLAG', 'BRIGHT_BALL_FLAG', 'HIDDEN_BALL_FLAG']);
 
     bm.declare('FULL_ALPHA', 4, 28); // Leaves 4 low bits free.
 
     bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
+    bm.combine('HIDDEN_BALL', ['FULL_ALPHA', 'HIDDEN_BALL_FLAG']);
+    bm.combine('FULL_BALL', ['FULL_ALPHA', 'FULL_BALL_FLAG']);
+    bm.combine('DIM_BALL', ['FULL_ALPHA', 'DIM_BALL_FLAG']);
     bm.alias('BACKGROUND', 'FULL_ALPHA');
 
     // Used only by the ball.
@@ -37,10 +43,10 @@
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
-    bm.declare('BUFFER_X_MIN_FLAG', 1, 3);
-    bm.declare('BUFFER_Y_MIN_FLAG', 1, 4);
-    bm.declare('BUFFER_X_MAX_FLAG', 1, 5);
-    bm.declare('BUFFER_Y_MAX_FLAG', 1, 6);
+    bm.declare('BUFFER_X_MIN_FLAG', 1, 0);
+    bm.declare('BUFFER_Y_MIN_FLAG', 1, 1);
+    bm.declare('BUFFER_X_MAX_FLAG', 1, 2);
+    bm.declare('BUFFER_Y_MAX_FLAG', 1, 3);
     bm.combine('BUFFER_FLAGS', ['BUFFER_X_MIN_FLAG', 'BUFFER_Y_MIN_FLAG',
                                 'BUFFER_X_MAX_FLAG', 'BUFFER_Y_MAX_FLAG']);
     bm.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_MIN_FLAG']);
@@ -51,6 +57,7 @@
     bm.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
     bm.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
     bm.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
+    console.log(bm.mask.toString(16));
   }
 
   function isWall (c) {
@@ -62,7 +69,7 @@
   }
 
   function isBall (c) {
-    return bm.isSet('BALL_FLAG', c);
+    return bm.get('FULL_BALL_FLAG', c) !== 0;
   }
 
   let styleBm;
@@ -140,11 +147,21 @@
                BUFFER_SIZE, BUFFER_SIZE);
 
     // arbitrarily moving ball
-    var ms = MotionState.create(bm, 1, 1, 7, 0);
+    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('FULL_BALL'));
     var left = Math.round(canvas.width / 2);
     var top = Math.round(canvas.height / 2);
     var color = ms.nextColor();
     if (BALL_SIZE === 7) {
+      const dimColor =
+        MotionState.create(bm, 1, 1, 7, 0, bm.getMask('DIM_BALL')).nextColor();
+      c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+      const hiddenColor =
+        MotionState.create(bm, 1, 1, 7, 0,
+                           bm.getMask('HIDDEN_BALL')).nextColor();
+      c.fillRect(hiddenColor, left, top, 1, 1);
+      c.fillRect(hiddenColor, left, top + BALL_SIZE - 1, 1, 1);
+      c.fillRect(hiddenColor, left + BALL_SIZE - 1, top, 1, 1);
+      c.fillRect(hiddenColor, left + BALL_SIZE - 1, top + BALL_SIZE - 1, 1, 1);
       // TODO: This doesn't work.  If we move at a 45-degree angle, the leading
       // rounded corner pixel can't see its neighbors, so it can't inherit their
       // depth, and the ball breaks at bounce.  We'd need to fill out the square
@@ -194,45 +211,23 @@
           let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', current);
           let bufferFlags = bm.get('BUFFER_FLAGS', current);
 
-          let tempChangedDepth = false;
           if (ms.dX > 0 && bufferXMax) {
             ms.incDepthX();
-            tempChangedDepth = true;
           } else if (ms.dX < 0 && bufferXMin) {
             ms.incDepthX();
-            tempChangedDepth = true;
           } else if (ms.getDepthX() && ms.dX > 0 && !bufferXMax) {
             ms.decDepthX();
-            tempChangedDepth = true;
           } else if (ms.getDepthX() && ms.dX < 0 && !bufferXMin) {
             ms.decDepthX();
-            tempChangedDepth = true;
           }
           if (ms.dY > 0 && bufferYMax) {
             ms.incDepthY();
-            tempChangedDepth = true;
           } else if (ms.dY < 0 && bufferYMin) {
             ms.incDepthY();
-            tempChangedDepth = true;
           } else if (ms.getDepthY() && ms.dY > 0 && !bufferYMax) {
             ms.decDepthY();
-            tempChangedDepth = true;
           } else if (ms.getDepthY() && ms.dY < 0 && !bufferYMin) {
             ms.decDepthY();
-            tempChangedDepth = true;
-          }
-          if (maxDepthX || maxDepthY || tempChangedDepth) {
-            let output = ''
-            _.forEach(data, d => {
-                      if (isBall(d)) {
-                        let ms = new MotionState(bm, d)
-                        output += `(${ms.getDepthX()},${ms.getDepthY()})`
-                      } else {
-                        output += '(-,-)'
-                      }
-                      })
-            console.log(output)
-            console.log('depths after', ms.getDepthX(), ms.getDepthY());
           }
           if (ms.getDepthX() >= BUFFER_SIZE) {
             assert(ms.getDepthX() <= BUFFER_SIZE);
