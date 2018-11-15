@@ -116,6 +116,10 @@
               (ms.dX < 0 && isWall(data[3]))) {
             ms.reflect('x');
             ms.index = (ms.index + 1) % 8;
+            ms.nextState = 0;
+            while(Math.abs(new MotionState(bm, ms.nextColor()).dX) < 0.5) {
+              ++ms.nextState;
+            }
           }
           if ((ms.dY > 0 && isWall(data[7])) ||
               (ms.dY < 0 && isWall(data[1]))) {
@@ -123,6 +127,11 @@
             ms.index = ms.index + 1;
             if (ms.index >=8) {
               ms.index = 1; // Don't go horizontal from top or bottom bounce.
+            }
+            // when changing index, reset state to stay valid
+            ms.nextState = 0;
+            while(Math.abs(new MotionState(bm, ms.nextColor()).dY) < 0.5) {
+              ++ms.nextState;
             }
           }
           return ms.nextColor();

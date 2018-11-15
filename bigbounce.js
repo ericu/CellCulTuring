@@ -182,7 +182,6 @@
           let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', current);
           let bufferFlags = bm.get('BUFFER_FLAGS', current);
 
-          ms = new MotionState(bm, ms.nextColor())
           if (ms.dX > 0 && bufferXMax) {
             ms.incDepthX();
           } else if (ms.dX < 0 && bufferXMin) {
@@ -202,14 +201,31 @@
             ms.decDepthY();
           }
           if (ms.getDepthX() >= BUFFER_SIZE) {
+            console.log('x reflect')
             assert(ms.getDepthX() <= BUFFER_SIZE);
             ms.reflect('x')
+            ms.index = (ms.index + 1) % 8;
+            // when changing index, reset state to stay valid
+            ms.nextState = 0;
+            while(Math.abs(new MotionState(bm, ms.nextColor()).dX) < 0.5) {
+              ++ms.nextState;
+            }
           }
           if (ms.getDepthY() >= BUFFER_SIZE) {
+            console.log('y reflect')
             assert(ms.getDepthY() <= BUFFER_SIZE);
             ms.reflect('y')
+            ms.index = ms.index + 1;
+            if (ms.index >=8) {
+              ms.index = 1; // Don't go horizontal from top or bottom bounce.
+            }
+            // when changing index, reset state to stay valid
+            ms.nextState = 0;
+            while(Math.abs(new MotionState(bm, ms.nextColor()).dY) < 0.5) {
+              ++ms.nextState;
+            }
           }
-          let nextColor = ms.getColor();
+          let nextColor = ms.nextColor();
           nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
           return nextColor;
         }

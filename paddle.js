@@ -275,9 +275,9 @@
     return nextColor;
   }
 
-  window.addEventListener(
-    "load",
-    () => window.registerAnimation("paddle", initPaddle,
-                                   paddle));
+//  window.addEventListener(
+//    "load",
+//    () => window.registerAnimation("paddle", initPaddle,
+//                                   paddle));
 
 })();
