@@ -87,7 +87,7 @@
     c.fillRect(bm.getMask('BACKGROUND'), 0, 0, canvas.width, canvas.height);
     c.strokeRect(bm.getMask('WALL'), 0, 0, canvas.width - 1, canvas.height - 1);
 
-    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL_FLAG'));
+    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL'));
 
     c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
                Math.round(canvas.height / 2), 1, 1);
