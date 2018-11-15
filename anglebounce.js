@@ -39,23 +39,6 @@
     return bm.isSet('BALL_FLAG', c);
   }
 
-  let styleBm;
-  function styleFromUint(u) {
-    if (!styleBm) {
-      styleBm = new BitManager();
-      styleBm.declare('A', 8, 24);
-      styleBm.declare('B', 8, 16);
-      styleBm.declare('G', 8, 8);
-      styleBm.declare('R', 8, 0);
-    }
-
-    let a = styleBm.get('A', u);
-    let b = styleBm.get('B', u);
-    let g = styleBm.get('G', u);
-    let r = styleBm.get('R', u);
-    return `rgba(${r},${g},${b},${a})`
-  }
-
   function sourceDirectionFromIndex(i) {
     let dirBits;
     switch (i) {

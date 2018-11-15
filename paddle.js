@@ -78,63 +78,62 @@
   depth bits as well, otherwise the left edge of the right paddle buffer, coming
   down out from under a ball, doesn't know where its top border is.  Still, we
   can pull the counters from our paddle-cell neighbors, just not the single bit
-  for IsPaddleBuffer.
+  for IsPaddleBuffer.  Oops--that's problematic as well, with larger balls.  If
+  you've got a paddle buffer inside a ball, it needs to know its movement
+  parameters, and can't pull them from neighbors if it's deep inside the ball.
+
+  Example bit allocations for a 3-pixel ball and a height-64 [so 6 bits] board
+
+  Global: 2: type [isBall, isBackground, isPaddle, isWall]
+    Total: 2
+  Ball: 2:depthX, 2:depthY, 1:down, 1:right, 4:moveIndex, 2:moveState
+    Total: 12
+  Paddle/PaddleBuffer: 6:height, 6:dest, 6:nextDest, 2:moveSyncDelayCounter
+    Plus a bit to know that you're in the paddleBuffer.
+    Total: 21
+  Background/Buffer: 4:bufferFlags
+    Total: 4
+
+  If all paddle bits need to be in the ball as well, as they appear to, that's
+  already 37 bits.  So let's do a 1-pixel ball instead, and keep it easy, if
+  less exciting.  As a bonus, a 64-height board is effectively 3x as tall with a
+  1-pixel ball as it is with a 3-pixel ball.
+  
+  Global: 2: type [isBall, isBackground, isPaddle, isWall]
+    Total: 2
+  Ball: 1:down, 1:right, 4:moveIndex, 2:moveState
+    Total: 8
+  Paddle: 6:height, 6:dest, 6:nextDest
+    Total: 18
 
 */
 
-// TODO: This is just bigBounce so far.
 (function () {
   let bm;
-  const BALL_SIZE_BITS = 2;
-  // We need to keep the depth counter from overflowing, so the buffer can't be
-  // as deep as 1 << BALL_SIZE_BITS.
-  const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
-  const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
-  const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
-  const BUFFER_SIZE = BALL_SIZE;
 
   function initBitManager() {
     bm = new BitManager();
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
-    // Sentinel bits that determine type:
+    // TODO
     bm.declare('WALL_FLAG', 1, 7);
     bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
+    bm.declare('FULL_ALPHA', 4, 28);
 
-    bm.declare('FULL_ALPHA', 4, 28); // Leaves 4 low bits free.
-
-    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
-    bm.alias('BACKGROUND', 'FULL_ALPHA');
-
-    // Used only by the ball.
-    bm.declare('BUFFER_X_DEPTH_COUNTER', BUFFER_X_DEPTH_COUNTER_BITS,
-               28 - BUFFER_X_DEPTH_COUNTER_BITS); // Take over low alpha bits.
-    bm.declare('BUFFER_Y_DEPTH_COUNTER', BUFFER_Y_DEPTH_COUNTER_BITS,
-               20); // Steal mid-range wall bits for now.
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 4, 16); // Steal bits from wall.
+    bm.declare('MOVE_INDEX', 4, 16);
 
-    // Used by background and ball [since the ball has to replace the background
-    // bits it runs over].
-    bm.declare('BUFFER_X_MIN_FLAG', 1, 0);
-    bm.declare('BUFFER_Y_MIN_FLAG', 1, 1);
-    bm.declare('BUFFER_X_MAX_FLAG', 1, 2);
-    bm.declare('BUFFER_Y_MAX_FLAG', 1, 3);
-    bm.combine('BUFFER_FLAGS', ['BUFFER_X_MIN_FLAG', 'BUFFER_Y_MIN_FLAG',
-                                'BUFFER_X_MAX_FLAG', 'BUFFER_Y_MAX_FLAG']);
-    bm.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_MIN_FLAG']);
-    bm.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_MAX_FLAG']);
-    bm.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_MIN_FLAG']);
-    bm.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_MAX_FLAG']);
-    bm.combine('XY_MAX_BUFFER', ['X_MAX_BUFFER', 'Y_MAX_BUFFER']);
-    bm.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
-    bm.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
-    bm.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
+    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
+    bm.alias('BACKGROUND', 'FULL_ALPHA');
+    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
+
+    bm.declare('BUFFER_X_DEPTH_COUNTER', 1, 24);
+    bm.declare('BUFFER_Y_DEPTH_COUNTER', 1, 25);
   }
+
 
   function isWall (c) {
     return bm.isSet('WALL_FLAG', c);
@@ -146,23 +145,6 @@
 
   function isBall (c) {
     return bm.isSet('BALL_FLAG', c);
-  }
-
-  let styleBm;
-  function styleFromUint(u) {
-    if (!styleBm) {
-      styleBm = new BitManager();
-      styleBm.declare('A', 8, 24);
-      styleBm.declare('B', 8, 16);
-      styleBm.declare('G', 8, 8);
-      styleBm.declare('R', 8, 0);
-    }
-
-    let a = styleBm.get('A', u) / 255;
-    let b = styleBm.get('B', u);
-    let g = styleBm.get('G', u);
-    let r = styleBm.get('R', u);
-    return `rgba(${r},${g},${b},${a})`
   }
 
   function sourceDirectionFromIndex(i) {
@@ -190,118 +172,20 @@
     }
   }
 
-  function initBigBounce(c) {
+  function initPaddle(c) {
     initBitManager();
 
-    // We fill the whole canvas, then put a wall around that corresponds to the
-    // originX/originY/width/height sentinel frame.
-
-    c.fillRect(bm.getMask('BACKGROUND'), 0, 0, canvas.width, canvas.height);
-    c.strokeRect(bm.getMask('WALL'), 0, 0, canvas.width - 1, canvas.height - 1);
-
-    // Buffer regions
-    c.fillRect(bm.getMask('X_MIN_BUFFER'), originX, originY + BUFFER_SIZE,
-               BUFFER_SIZE, height - 2 * BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MAX_BUFFER'), originX + width - BUFFER_SIZE,
-               originY + BUFFER_SIZE, BUFFER_SIZE, height - 2 * BUFFER_SIZE);
-    c.fillRect(bm.getMask('Y_MIN_BUFFER'), originX + BUFFER_SIZE, originY,
-               width - 2 * BUFFER_SIZE, BUFFER_SIZE);
-
-
-    c.fillRect(bm.getMask('Y_MAX_BUFFER'), originX + BUFFER_SIZE,
-               originY + height - BUFFER_SIZE,
-               width - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('XY_MIN_BUFFER'), originX, originY,
-               BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('XY_MAX_BUFFER'), originX + width - BUFFER_SIZE,
-               originY + height - BUFFER_SIZE,
-               BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MAX_Y_MIN_BUFFER'), originX + width - BUFFER_SIZE,
-               originY, BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MIN_Y_MAX_BUFFER'), originX,
-               originY + height - BUFFER_SIZE,
-               BUFFER_SIZE, BUFFER_SIZE);
-
-    // arbitrarily moving ball
-    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL_FLAG'));
-    c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
-               Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
+    // TODO: Draw board.
   }
 
-  function paddle(data, x, y) {
+  function paddle(data) {
     const current = data[4];
 
     if (isWall(current)) {
       return current;
     }
-    // Both ball and background need to handle incoming ball pixels.
-    for (let i = 0; i < 9; ++i) {
-      let color = data[i];
-      if (isBall(color)) {
-        // With a diagonal entry to the buffer, a trailing ball pixel moving
-        // into the buffer for the first time [so no depth count] can hit a
-        // buffer pixel [so no depth count] even if it's time to bounce.  We
-        // need to check all neighboring ball pixels and take the highest depth
-        // on the way in; they'll all match on the way out.
-        let ms = new MotionState(bm, color);
-        let source = sourceDirectionFromIndex(i);
-        if (source.dX === ms.dX && source.dY === ms.dY) {
-          let allMotions = _(data)
-            .filter(d => isBall(d))
-            .map(b => new MotionState(bm, b))
-            .value();
-          let maxDepthX = _(allMotions)
-            .map(m => m.getDepthX())
-            .max();
-          let maxDepthY = _(allMotions)
-            .map(m => m.getDepthY())
-            .max();
-          ms.setDepthX(maxDepthX);
-          ms.setDepthY(maxDepthY);
-          // It's a hit; lets see if it's also bouncing or in a buffer.
-          let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', current);
-          let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', current);
-          let bufferYMin = bm.get('BUFFER_Y_MIN_FLAG', current);
-          let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', current);
-          let bufferFlags = bm.get('BUFFER_FLAGS', current);
-
-          ms = new MotionState(bm, ms.nextColor())
-          if (ms.dX > 0 && bufferXMax) {
-            ms.incDepthX();
-          } else if (ms.dX < 0 && bufferXMin) {
-            ms.incDepthX();
-          } else if (ms.getDepthX() && ms.dX > 0 && !bufferXMax) {
-            ms.decDepthX();
-          } else if (ms.getDepthX() && ms.dX < 0 && !bufferXMin) {
-            ms.decDepthX();
-          }
-          if (ms.dY > 0 && bufferYMax) {
-            ms.incDepthY();
-          } else if (ms.dY < 0 && bufferYMin) {
-            ms.incDepthY();
-          } else if (ms.getDepthY() && ms.dY > 0 && !bufferYMax) {
-            ms.decDepthY();
-          } else if (ms.getDepthY() && ms.dY < 0 && !bufferYMin) {
-            ms.decDepthY();
-          }
-          if (ms.getDepthX() >= BUFFER_SIZE) {
-            assert(ms.getDepthX() <= BUFFER_SIZE);
-            ms.reflect('x')
-          }
-          if (ms.getDepthY() >= BUFFER_SIZE) {
-            assert(ms.getDepthY() <= BUFFER_SIZE);
-            ms.reflect('y')
-          }
-          let nextColor = ms.getColor();
-          nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
-          return nextColor;
-        }
-      }
-    }
-    let bufferFlags = bm.get('BUFFER_FLAGS', current);
-    let background = bm.getMask('BACKGROUND')
-    let nextColor = bm.set('BUFFER_FLAGS', background, bufferFlags);
-    return nextColor;
+    // TODO
+    assert(false);
   }
 
 //  registerAnimation("paddle", initPaddle, paddle);
