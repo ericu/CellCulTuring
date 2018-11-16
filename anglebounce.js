@@ -16,7 +16,7 @@
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 4, 16);
+    bm.declare('MOVE_INDEX', 3, 16);
 
     bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
     bm.alias('BACKGROUND', 'FULL_ALPHA');

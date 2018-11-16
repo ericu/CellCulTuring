@@ -40,7 +40,7 @@
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 4, 16); // Steal bits from wall.
+    bm.declare('MOVE_INDEX', 3, 16); // Steal bits from wall.
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
