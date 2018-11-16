@@ -27,13 +27,13 @@
 
   Simple buffer both-approaching-hit:
 
-  b  b  b  .  .       .  .  .  .  . 
+  b  b  b  .  .       .  .  .  .  .
   b  b  b  .  .       .  b: b: b:  :
   b  b: b:  :  :      .  b: b: b:  :
   .   :  :  :  :  ->  .  b: b: b:  p
   .   :  :  :  p      .   :  :  :  p
   .   :  :  :  p      .   :  :  :  p
-  .   :  :  :  p      .   :  :  : . 
+  .   :  :  :  p      .   :  :  : .
 
   All ball cells going into the simple buffer know it, since the buffer moves
   into cells at the same 1 cell per cycle that the ball cells do.  Ball cells
@@ -50,7 +50,7 @@
   .   :  :  :  :  ->  .   :  :  :  p
   .   :  :  :  p      .   :  :  :  p
   .   :  :  :  p      .   :  :  :  p
-  .   :  :  :  p      .   :  :  : . 
+  .   :  :  :  p      .   :  :  : .
 
   Here the y-depth is 2 and the x-depth 3, so it's a miss.
 
@@ -61,7 +61,7 @@
   .   2  1  0  0  ->  .  b2 b1 b0  p
   .   2  1  0  p      .   2  1  0  p
   .   2  1  0  p      .   2  1  0  p
-  .   2  1  0  p      .   2  1  0 . 
+  .   2  1  0  p      .   2  1  0 .
 
   State in the paddle and buffer:
     IsPaddle/IsPaddleBuffer
@@ -84,10 +84,13 @@
 
   Example bit allocations for a 3-pixel ball and a height-64 [so 6 bits] board
 
-  Global: 2: type [isBall, isBackground, isPaddle, isWall]
+  Global: 2: type [isBall, isBackground, isAIPaddle, isWall]
+    We can use a lower bit from isBackground or isWall and use it for the non-AI
+    paddle.
     Total: 2
   Ball: 2:depthX, 2:depthY, 1:down, 1:right, 4:moveIndex, 2:moveState
-    Total: 12
+    Do we need another 2 bits for depthYIntoPaddleBuffer?  Probably.
+    Total: 12-14
   Paddle/PaddleBuffer: 6:height, 6:dest, 6:nextDest, 2:moveSyncDelayCounter
     Plus a bit to know that you're in the paddleBuffer.
     Total: 21
@@ -95,16 +98,36 @@
     Total: 4
 
   If all paddle bits need to be in the ball as well, as they appear to, that's
-  already 37 bits.  So let's do a 1-pixel ball instead, and keep it easy, if
-  less exciting.  As a bonus, a 64-height board is effectively 3x as tall with a
-  1-pixel ball as it is with a 3-pixel ball.
-  
+  already 37-39 bits.  Ah, but dest and nextDest can just the the top 3 bits,
+  since we don't need precision, and it'll make the game more interesting to
+  have random angle bounces.  [While we're at it, an N-pixel paddle really
+  defends N + 2 * (BALL_SIZE - 1) pixels, which is somewhat less in ball
+  positions] Still, that's 31-33 pixels...pretty tight, but maybe doable.
+  Hmm...
+
+  The ball needs to recognize where it's hit on the paddle in order to know what
+  angle to bounce off.  That indicates that we're going to need a marker in the
+  paddle and buffer to tell the ball how to bounce.  With a ball of only 3
+  pixels, each pixel should be able to tell which one it is, so at least the
+  ball knows itself.  But it implies another field, of at least
+  log(PADDLE_SIZE) bits, in both paddle field and ball.  And PADDLE_SIZE must be
+  at least 4 pixels [defending 6 positions] to be playable.  But perhaps we can
+  use depthYIntoPaddleBuffer for this?  If we're at full depth, it's a straight
+  bounce, otherwise it's one of two angles, and we can't tell if it should be up
+  or down.  Not good.
+
+  So let's do a 1-pixel ball instead, and keep it easy, if less exciting.  As a
+  bonus, a 64-height board is effectively 3x as tall with a 1-pixel ball as it
+  is with a 3-pixel ball.
+
   Global: 2: type [isBall, isBackground, isPaddle, isWall]
     Total: 2
   Ball: 1:down, 1:right, 4:moveIndex, 2:moveState
     Total: 8
-  Paddle: 6:height, 6:dest, 6:nextDest
-    Total: 18
+  Paddle: 6:height, 3:dest, 3:nextDest
+    Total: 12
+
+
 
 */
 
