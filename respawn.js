@@ -157,7 +157,7 @@
         if (bm.isSet('MESSAGE_PRESENT', data[3])) {
           assert(bm.get('MESSAGE_R_NOT_L', data[3]) === 1);
           let message = bm.get('MESSAGE_BITS', data[3]);
-          return current.set('MESSAGE_BITS', message);
+          return bm.set('MESSAGE_BITS', current, message);
         }
       } else if (bm.isSet('TOP_WALL_FLAG', current)) {
         if (bm.isSet('MESSAGE_PRESENT', data[5]) &&
@@ -168,7 +168,7 @@
         if (bm.isSet('MESSAGE_PRESENT', data[3]) &&
             bm.isSet('MESSAGE_R_NOT_L', data[3]) &&
             !bm.isSet('TOP_WALL_CENTER_FLAG', data[3])) {
-          return data[5];
+          return data[3];
         }
         if (bm.isSet('MESSAGE_PRESENT', data[7])) {
           let message = bm.get('MESSAGE_BITS', data[7]);
