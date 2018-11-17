@@ -2,7 +2,7 @@
 
 (function () {
   let bm;
-  const BALL_SIZE_BITS = 3;
+  const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
   const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
@@ -40,7 +40,7 @@
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 4, 16); // Steal bits from wall.
+    bm.declare('MOVE_INDEX', 3, 16); // Steal bits from wall.
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
@@ -70,23 +70,6 @@
 
   function isBall (c) {
     return bm.get('FULL_BALL_FLAG', c) !== 0;
-  }
-
-  let styleBm;
-  function styleFromUint(u) {
-    if (!styleBm) {
-      styleBm = new BitManager();
-      styleBm.declare('A', 8, 24);
-      styleBm.declare('B', 8, 16);
-      styleBm.declare('G', 8, 8);
-      styleBm.declare('R', 8, 0);
-    }
-
-    let a = styleBm.get('A', u) / 255;
-    let b = styleBm.get('B', u);
-    let g = styleBm.get('G', u);
-    let r = styleBm.get('R', u);
-    return `rgba(${r},${g},${b},${a})`
   }
 
   function sourceDirectionFromIndex(i) {
@@ -193,7 +176,7 @@
       }
 
     } else if (BALL_SIZE === 3) {
-      const CHOICE = 5
+      const CHOICE = 0
       switch (CHOICE) {
         case 0:
           c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
@@ -220,6 +203,11 @@
           break;
         case 5:
           c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          break;
+        case 6:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
           c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
           c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
           break;

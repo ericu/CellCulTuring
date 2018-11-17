@@ -16,12 +16,13 @@
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 4, 16);
+    bm.declare('MOVE_INDEX', 3, 16);
 
     bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
     bm.alias('BACKGROUND', 'FULL_ALPHA');
     bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
 
+    // These are just here to keep motionstate from complaining.
     bm.declare('BUFFER_X_DEPTH_COUNTER', 1, 24);
     bm.declare('BUFFER_Y_DEPTH_COUNTER', 1, 25);
   }
@@ -37,23 +38,6 @@
 
   function isBall (c) {
     return bm.isSet('BALL_FLAG', c);
-  }
-
-  let styleBm;
-  function styleFromUint(u) {
-    if (!styleBm) {
-      styleBm = new BitManager();
-      styleBm.declare('A', 8, 24);
-      styleBm.declare('B', 8, 16);
-      styleBm.declare('G', 8, 8);
-      styleBm.declare('R', 8, 0);
-    }
-
-    let a = styleBm.get('A', u);
-    let b = styleBm.get('B', u);
-    let g = styleBm.get('G', u);
-    let r = styleBm.get('R', u);
-    return `rgba(${r},${g},${b},${a})`
   }
 
   function sourceDirectionFromIndex(i) {
