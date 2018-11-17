@@ -116,16 +116,20 @@
   need at least some buffer after all, which brings back a lot of bits and their
   overlap.  But can it be fewer?
 
-  The ball needs to recognize where it's hit on the paddle in order to know what
-  angle to bounce off.  That indicates that we're going to need a marker in the
-  paddle and buffer to tell the ball how to bounce.  With a ball of only 3
-  pixels, each pixel should be able to tell which one it is, so at least the
-  ball knows itself.  But it implies another field, of at least
+  Unrelated: the ball needs to recognize where it's hit on the paddle in order
+  to know what angle to bounce off.  That indicates that we're going to need a
+  marker in the paddle and buffer to tell the ball how to bounce.  With a ball
+  of only 3 pixels, each pixel should be able to tell which one it is, so at
+  least the ball knows itself.  But it implies another field, of at least
   log(PADDLE_SIZE) bits, in both paddle field and ball.  And PADDLE_SIZE must be
   at least 4 pixels [defending 6 positions] to be playable.  But perhaps we can
   use depthYIntoPaddleBuffer for this?  If we're at full depth, it's a straight
   bounce, otherwise it's one of two angles, and we can't tell if it should be up
   or down.  Not good.
+
+  And let's not forget that the ball will have to hit the human-driven paddle on
+  the other side, which will move even more erratically, and will probably
+  require the buffer region.
 
   So let's do a 1-pixel ball instead, and keep it easy, if less exciting.  As a
   bonus, a 64-height board is effectively 3x as tall with a 1-pixel ball as it
@@ -133,13 +137,93 @@
 
   Global: 2: type [isBall, isBackground, isPaddle, isWall]
     Total: 2
-  Ball: 1:down, 1:right, 4:moveIndex, 2:moveState
-    Total: 8
+  Wall subtypes:
+    Top/bottom, which do nothing much, but the ball bounces off them.  The top
+    may need to relay messages.
+    Right/left which pass scoring messages and destroy/absorb the ball.
+  Background subtypes:
+    General, which just passes AI messages and the ball.
+    Spawn, which respond to some scoring stimulus to create a new ball.
+    Scoring background, used around the score digits.
+    Counter, used to form the score digits.
+    Message, which are like general, but then light up to declare GAME OVER like
+      Counter types.
+    MessageChannel, which pass the spawn message and the game over message to
+    the Spawn/Message types.
+  Ball: 1:down, 1:right, 3:moveIndex, 2:moveState
+    Total: 7
+    Ball subtypes: none.
   Paddle: 6:height, 3:dest, 3:nextDest, 3: where-on-the-paddle-are-you
-    Total: 15
+    Total: 15 [or up to 21 if we want exact dest and nextDest]
+    Paddle subtypes: AI vs. player
+
+  When the ball hits a paddle, it uses the paddle's knowledge of its height,
+  along with the ball's outgoing trajectory, to compute the AI message to send.
+  Then the cells above and below the ball, if each exists, both send the message
+  outward.  The messages spread left, left-up, and left-down in a spreading wave
+  1 pixel thick until they hit the left paddle and wall.
+
+  Message-passing: the background passes info for the AI sideways; it'll need
+  a direction indicator as well as the target offset.
+  The end walls pass scoring info outward to the scoreboard, and must also pass
+  the ball-spawn message to the respawn point.  Perhaps we should have 2 respawn
+  points, one on each side.  Pass the message up to the top, along the wall,
+  then down to the respawn point.  It would be good if the respawn happened
+  after the score increment.  It would also be good if the score on the left
+  corresponded to the paddle on the left, although if I want the score to count
+  up, which I do, that's tricky.  So scoring messages have to get across to a
+  scoreboard on the opposite side, then respawn the ball on the way back,
+  perhaps?
 
 
+        -----------------------------------------------------------
+   S S  |                                                         | S S
+        |                                                         |
+        |                                                        P|
+        |                                                        P|
+        |                                  B                     P|
+        |                                                         |
+        |P                                                        |
+        |P                                                        |
+        |P                                                        |
+        |                                                         |
+        |                                                         |
+        -----------------------------------------------------------
 
+
+Here the scores are at the top-center.  Let's make the message wave
+visible, so you can watch it move up the wall, to the center.  There it splits
+and sends a scoring message up to the scoreboard [saying which player to
+increment] and down to the respawn point.  We can either send the score the
+whole way there, in which case the walls have to know the score through their
+whole length, or we can just send an increment, in which case it's hard to know
+when the game ends before respawning.
+
+The respawn point can also be the center of a "game over" message if the message
+splitter at the top keeps track of when the game ends.
+
+                              | S S  |  S S  |                     
+        -----------------------------------------------------------
+        |                            |                            | 
+        |                            |                            |
+        |                            |                           P|
+        |                            |                           P|
+        |                            |     B                     P|
+        |                            r                            |
+        |P                                                        |
+        |P                                                        |
+        |P                                                        |
+        |                                                         |
+        |                                                         |
+        -----------------------------------------------------------
+
+Bits we want visible:
+  isBall, isWall, isPaddle, counter + message displays, the scoring message
+  moving up the wall from a ball impact.
+Bits we want invisible or at least unobtrusive:
+  The AI message.
+Bits I'm not sure about yet:
+  The ball respawn message coming down from the top.
 */
 
 (function () {
