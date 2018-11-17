@@ -192,7 +192,7 @@
             let rightNotL = bm.get('MESSAGE_R_NOT_L', data[1]);
             let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
             let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
-            var ms = MotionState.create(bm, rightNotL, 1, 4, 0, color);
+            var ms = MotionState.create(bm, rightNotL, 1, 5, 0, color);
             return ms.getColor();
           } else {
             let message = bm.get('MESSAGE_BITS', data[1]);
