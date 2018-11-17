@@ -22,6 +22,7 @@
     bm.alias('BACKGROUND', 'FULL_ALPHA');
     bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
 
+    // These are just here to keep motionstate from complaining.
     bm.declare('BUFFER_X_DEPTH_COUNTER', 1, 24);
     bm.declare('BUFFER_Y_DEPTH_COUNTER', 1, 25);
   }

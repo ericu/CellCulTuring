@@ -10,7 +10,16 @@ class BitManager {
     assert(!(name in this.info));
     let bits = ((1 << count) - 1) >>> 0;
     let mask = (bits << offset) >>> 0
-    assert(!(this.mask & mask));
+    if (this.mask & mask) {
+      for (let r in this.info) {
+        let record = this.info[r];
+        if (record.mask & mask) {
+          throw new Error(
+            `Declaration of "${name}" conflicts with "${r}".`)
+        }
+      }
+      assert(false);
+    }
     this.mask = (this.mask | mask) >>> 0;
     this.info[name] = {
       offset: offset,
