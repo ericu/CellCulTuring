@@ -13,6 +13,10 @@
     bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
     bm.declare('FULL_ALPHA', 4, 28);
 
+    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
+    bm.alias('BACKGROUND', 'FULL_ALPHA');
+    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
+
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
@@ -32,11 +36,8 @@
     bm.alias('TOP_WALL_CENTER_FLAG', 'SIGNAL_DOWN_CARRIER_FLAG');
 
     bm.combine('RETAINED_BACKGROUND_BITS', ['SIGNAL_DOWN_CARRIER_FLAG',
-               'RESPAWN_FLAG']);
+               'RESPAWN_FLAG', 'BACKGROUND']);
 
-    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.alias('BACKGROUND', 'FULL_ALPHA');
-    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
 
     // These are just here to keep motionstate from complaining.
     bm.declare('BUFFER_X_DEPTH_COUNTER', 1, 24);
@@ -103,20 +104,22 @@
     let halfWidth = Math.floor(width / 2);
     let halfHeight = Math.floor(height / 2);
     let color = bm.getMask('WALL');
-    c.fillRect(bm.set('SIDE_WALL_FLAG', color, 1), originX, originY,
+    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX, originY,
                1, height - 1);
-    c.fillRect(bm.set('SIDE_WALL_FLAG', color, 1), originX + width - 1,
+    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX + width - 1,
                originY, 1,
                height - 1);
-    c.fillRect(bm.set('TOP_WALL_FLAG', color, 1), originX, originY, width, 1);
-    c.fillRect(bm.set('TOP_WALL_CENTER_FLAG', color, 1), originX + halfWidth,
+    c.fillRect(bm.setMask('TOP_WALL_FLAG', color, true), originX, originY,
+               width, 1);
+    c.fillRect(bm.setMask('TOP_WALL_CENTER_FLAG', color, true),
+               originX + halfWidth,
                originY, 1, 1);
 
     color = bm.getMask('BACKGROUND');
-    c.fillRect(bm.set('SIGNAL_DOWN_CARRIER_FLAG', color, 1), originX +
+    c.fillRect(bm.setMask('SIGNAL_DOWN_CARRIER_FLAG', color, true), originX +
                halfWidth, originY + 1,
                1, halfHeight);
-    c.fillRect(bm.set('RESPAWN_FLAG', color, 1),
+    c.fillRect(bm.setMask('RESPAWN', color, true),
                originX + halfWidth, originY + halfHeight, 1, 1);
 
     var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL'));
@@ -125,7 +128,7 @@
                originX + halfWidth + 2, originY + halfHeight + 2, 1, 1);
   }
 
-  function respawn(data) {
+  function respawn(data, x, y) {
     const current = data[4];
 
     if (isWall(current)) {
@@ -141,32 +144,38 @@
             if (source.dX === ms.dX && source.dY === ms.dY) {
               // There's a ball hitting us.
               var next = bm.set('MESSAGE_PRESENT', current, 1);
-              next = bm.set('MESSAGE_R_NOT_L', next, source.dX < 0);
+              return bm.set('MESSAGE_R_NOT_L', next, source.dX < 0);
             }
           }
-        }
-      } else if (bm.isSet('TOP_WALL_FLAG', current)) {
-        if (bm.isSet('MESSAGE_PRESENT', data[5]) &&
-            !bm.isSet('MESSAGE_R_NOT_L', data[5])) {
-          return data[5];
-        }
-        if (bm.isSet('MESSAGE_PRESENT', data[3]) &&
-            bm.isSet('MESSAGE_R_NOT_L', data[3])) {
-          return data[5];
         }
       } else if (bm.isSet('TOP_WALL_CENTER_FLAG', current)) {
         if (bm.isSet('MESSAGE_PRESENT', data[5])) {
           assert(bm.get('MESSAGE_R_NOT_L', data[5]) === 0);
           let message = bm.get('MESSAGE_BITS', data[5]);
-          return current.set('MESSAGE_BITS', message);
+          return bm.set('MESSAGE_BITS', current, message);
         }
         if (bm.isSet('MESSAGE_PRESENT', data[3])) {
           assert(bm.get('MESSAGE_R_NOT_L', data[3]) === 1);
           let message = bm.get('MESSAGE_BITS', data[3]);
           return current.set('MESSAGE_BITS', message);
         }
+      } else if (bm.isSet('TOP_WALL_FLAG', current)) {
+        if (bm.isSet('MESSAGE_PRESENT', data[5]) &&
+            !bm.isSet('MESSAGE_R_NOT_L', data[5]) &&
+            !bm.isSet('TOP_WALL_CENTER_FLAG', data[5])) {
+          return data[5];
+        }
+        if (bm.isSet('MESSAGE_PRESENT', data[3]) &&
+            bm.isSet('MESSAGE_R_NOT_L', data[3]) &&
+            !bm.isSet('TOP_WALL_CENTER_FLAG', data[3])) {
+          return data[5];
+        }
+        if (bm.isSet('MESSAGE_PRESENT', data[7])) {
+          let message = bm.get('MESSAGE_BITS', data[7]);
+          return bm.set('MESSAGE_BITS', current, message);
+        }
       }
-      return current;
+      return bm.set('MESSAGE_BITS', current, 0);
     }
     if (isBall(current)) {
       let retainedBits = bm.get('RETAINED_BACKGROUND_BITS', current);
@@ -229,7 +238,7 @@
           return bm.set('RETAINED_BACKGROUND_BITS', ms.nextColor(), retained);
         }
       }
-      return current;
+      return bm.set('MESSAGE_BITS', current, 0);
     }
     assert(false);
   }
