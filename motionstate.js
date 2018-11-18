@@ -69,7 +69,7 @@ const motionTable = [
 // Don't access color directly; it may be out of date.
 class MotionState {
   constructor(bm, color) {
-    assert(bm.isSet('BALL_FLAG', color));
+//    assert(bm.isSet('BALL_FLAG', color));
     this.bm = bm;
     this.color = color;
     this.right = bm.get('MOVE_R_NOT_L', color);
@@ -115,7 +115,6 @@ class MotionState {
 
   static create(bm, right, down, index, state, baseColor) {
     let color = baseColor;
-    color = bm.setMask('BALL', color, true);
     color = bm.set('MOVE_R_NOT_L', color, right);
     color = bm.set('MOVE_D_NOT_U', color, down);
     color = bm.set('MOVE_INDEX', color, index);

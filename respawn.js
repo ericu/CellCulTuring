@@ -192,6 +192,7 @@
             let rightNotL = bm.get('MESSAGE_R_NOT_L', data[1]);
             let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
             let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
+            color = bm.setMask('BALL', color, true);
             var ms = MotionState.create(bm, rightNotL, 1, 5, 0, color);
             return ms.getColor();
           } else {
