@@ -28,15 +28,11 @@
     bm.declare('MESSAGE_PRESENT', 1, 6);
     bm.combine('MESSAGE_BITS', ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
 
-    bm.declare('SIGNAL_DOWN_CARRIER_FLAG', 1, 19);
+    bm.declare('TOP_WALL_CENTER_FLAG', 1, 19);
     bm.alias('SIGNAL_DOWN_ACTIVE_FLAG', 'MESSAGE_PRESENT');
     bm.declare('RESPAWN_FLAG', 1, 23);
-    bm.combine('RESPAWN', ['RESPAWN_FLAG', 'SIGNAL_DOWN_CARRIER_FLAG']);
 
-    bm.alias('TOP_WALL_CENTER_FLAG', 'SIGNAL_DOWN_CARRIER_FLAG');
-
-    bm.combine('RETAINED_BACKGROUND_BITS', ['SIGNAL_DOWN_CARRIER_FLAG',
-               'RESPAWN_FLAG', 'BACKGROUND']);
+    bm.combine('RETAINED_BACKGROUND_BITS', ['RESPAWN_FLAG', 'BACKGROUND']);
 
 
     // These are just here to keep motionstate from complaining.
@@ -45,24 +41,24 @@
   }
 
 
-  function isWall (c) {
+  function isWall(c) {
     return bm.isSet('WALL_FLAG', c);
   }
 
-  function isBackground (c) {
+  function isBackground(c) {
     return !isBall(c) && !isWall(c);
   }
 
-  function isBall (c) {
+  function isBall(c) {
     return bm.isSet('BALL_FLAG', c);
   }
 
-  function isSignalDownCarrier (c) {
-    return isBackground(c) && bm.isSet('SIGNAL_DOWN_CARRIER_FLAG', c);
+  function isRespawn(c) {
+    return isBackground(c) && bm.isSet('RESPAWN_FLAG', c);
   }
 
-  function isRespawn (c) {
-    return isBackground(c) && bm.isSet('RESPAWN_FLAG', c);
+  function isTopWallCenter(c) {
+    return isWall(c) && bm.isSet('TOP_WALL_CENTER_FLAG', c);
   }
 
   function sourceDirectionFromIndex(i) {
@@ -116,10 +112,7 @@
                originY, 1, 1);
 
     color = bm.getMask('BACKGROUND');
-    c.fillRect(bm.setMask('SIGNAL_DOWN_CARRIER_FLAG', color, true), originX +
-               halfWidth, originY + 1,
-               1, halfHeight);
-    c.fillRect(bm.setMask('RESPAWN', color, true),
+    c.fillRect(bm.setMask('RESPAWN_FLAG', color, true),
                originX + halfWidth, originY + halfHeight, 1, 1);
 
     var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL'));
@@ -185,7 +178,7 @@
     if (isBackground(current)) {
       // First deal with messages and respawns, then deal with the ball.
       // We won't receive a message and a ball in the same cycle.
-      if (isSignalDownCarrier(current)) {
+      if (isBackground(data[1]) || isTopWallCenter(data[1])) {
         let active = bm.get('SIGNAL_DOWN_ACTIVE_FLAG', data[1]);
         if (active) {
           if (isRespawn(current)) {
