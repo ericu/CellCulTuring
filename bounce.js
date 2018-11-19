@@ -25,14 +25,6 @@
   }
   window.C_BALL = C_BALL;
 
-  function styleFromUint(u) {
-    let a = u >>> 24 & 0xff;
-    let b = u >>> 16 & 0xff;
-    let g = u >>>  8 & 0xff;
-    let r = u >>>  0 & 0xff;
-    return `rgba(${r},${g},${b},${a})`
-  }
-
   function ballDirectionBitsFromColor(color) {
     return color & 0xf;
   }
@@ -117,8 +109,6 @@
     assert(false);
   }
 
-  window.addEventListener(
-    "load",
-    () => window.registerAnimation("bounce", init, bounce));
+  registerAnimation("bounce", init, bounce);
 
 })();

@@ -87,7 +87,7 @@ const originY = borderSize;
 
   var animations = {}
   function registerAnimation(name, init, f) {
-    animations[name] = { init: init, f: f }
+    animations[name] = { init: init, f: f, name: name }
     let select = document.getElementById('animation');
     let opt = document.createElement('option');
     opt.value = name;

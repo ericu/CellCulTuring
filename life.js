@@ -23,8 +23,6 @@
      return dead32
    }
 
-   window.addEventListener(
-     "load",
-     () => window.registerAnimation("life", init, lifeCell2));
+   registerAnimation("life", init, lifeCell2);
 
 })()

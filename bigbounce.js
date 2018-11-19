@@ -2,10 +2,11 @@
 
 (function () {
   let bm;
-  const BALL_SIZE_BITS = 3;
+  const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
   const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
+  //const BALL_SIZE = 4;
   const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
@@ -17,12 +18,18 @@
 
     // Sentinel bits that determine type:
     bm.declare('WALL_FLAG', 1, 7);
-    bm.declare('BALL_FLAG', 2, 14); // Could use 1 bit, but it's rather dim.
+    bm.declare('HIDDEN_BALL_FLAG', 1, 24);
+    bm.declare('DIM_BALL_FLAG', 1, 14);
+    bm.declare('BRIGHT_BALL_FLAG', 1, 15);
+    bm.combine('FULL_BALL_FLAG',
+               ['DIM_BALL_FLAG', 'BRIGHT_BALL_FLAG', 'HIDDEN_BALL_FLAG']);
 
     bm.declare('FULL_ALPHA', 4, 28); // Leaves 4 low bits free.
 
     bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
+    bm.combine('HIDDEN_BALL', ['FULL_ALPHA', 'HIDDEN_BALL_FLAG']);
+    bm.combine('FULL_BALL', ['FULL_ALPHA', 'FULL_BALL_FLAG']);
+    bm.combine('DIM_BALL', ['FULL_ALPHA', 'DIM_BALL_FLAG']);
     bm.alias('BACKGROUND', 'FULL_ALPHA');
 
     // Used only by the ball.
@@ -33,7 +40,7 @@
     bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
     bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
     bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 4, 16); // Steal bits from wall.
+    bm.declare('MOVE_INDEX', 3, 16); // Steal bits from wall.
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
@@ -62,24 +69,7 @@
   }
 
   function isBall (c) {
-    return bm.isSet('BALL_FLAG', c);
-  }
-
-  let styleBm;
-  function styleFromUint(u) {
-    if (!styleBm) {
-      styleBm = new BitManager();
-      styleBm.declare('A', 8, 24);
-      styleBm.declare('B', 8, 16);
-      styleBm.declare('G', 8, 8);
-      styleBm.declare('R', 8, 0);
-    }
-
-    let a = styleBm.get('A', u) / 255;
-    let b = styleBm.get('B', u);
-    let g = styleBm.get('G', u);
-    let r = styleBm.get('R', u);
-    return `rgba(${r},${g},${b},${a})`
+    return bm.get('FULL_BALL_FLAG', c) !== 0;
   }
 
   function sourceDirectionFromIndex(i) {
@@ -140,9 +130,93 @@
                BUFFER_SIZE, BUFFER_SIZE);
 
     // arbitrarily moving ball
-    var ms = MotionState.create(bm, 1, 1, 7, 0);
-    c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
-               Math.round(canvas.height / 2), BALL_SIZE, BALL_SIZE);
+    var left = Math.round(canvas.width / 2);
+    var top = Math.round(canvas.height / 2);
+    const brightColor =
+      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('FULL_BALL')).nextColor();
+    const dimColor =
+      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('DIM_BALL')).nextColor();
+    const hiddenColor =
+      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('HIDDEN_BALL')).nextColor();
+    if (BALL_SIZE === 7) {
+      c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+      c.fillRect(hiddenColor, left, top, 1, 1);
+      c.fillRect(hiddenColor, left, top + BALL_SIZE - 1, 1, 1);
+      c.fillRect(hiddenColor, left + BALL_SIZE - 1, top, 1, 1);
+      c.fillRect(hiddenColor, left + BALL_SIZE - 1, top + BALL_SIZE - 1, 1, 1);
+      c.fillRect(brightColor, left + 2, top, BALL_SIZE - 4, BALL_SIZE);
+      c.fillRect(brightColor, left, top + 2, BALL_SIZE, BALL_SIZE - 4);
+      c.fillRect(brightColor, left + 1, top + 1, BALL_SIZE - 2, BALL_SIZE - 2);
+    } else if (BALL_SIZE === 4) {
+      const CHOICE = 3
+      switch (CHOICE) {
+        case 0:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, BALL_SIZE - 2, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, BALL_SIZE - 2);
+          break;
+        case 1:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(dimColor, left + 1, top, BALL_SIZE - 2, BALL_SIZE);
+          c.fillRect(dimColor, left, top + 1, BALL_SIZE, BALL_SIZE - 2);
+          c.fillRect(brightColor, left + 1, top + 1, 2, 2);
+          break;
+        case 2:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, BALL_SIZE - 2, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, BALL_SIZE - 2);
+          break;
+        case 3:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top + 1, BALL_SIZE - 2, BALL_SIZE -
+                     2);
+          break;
+        default:
+          assert(false);
+      }
+
+    } else if (BALL_SIZE === 3) {
+      const CHOICE = 0
+      switch (CHOICE) {
+        case 0:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(dimColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(dimColor, left, top + 1, BALL_SIZE, 1);
+          c.fillRect(brightColor, left + 1, top + 1, 1, 1);
+          break;
+        case 1:
+          c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
+          break;
+        case 2:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top + 1, 1, 1);
+          break;
+        case 3:
+          c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(dimColor, left + 1, top + 1, 1, 1);
+          break;
+        case 4:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          c.fillRect(dimColor, left + 1, top + 1, 1, 1);
+          break;
+        case 5:
+          c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          break;
+        case 6:
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          break;
+        default:
+          assert(false);
+      }
+    } else {
+      c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
+    }
   }
 
   function bigBounce(data, x, y) {
@@ -235,9 +309,6 @@
     return nextColor;
   }
 
-  window.addEventListener(
-    "load",
-    () => window.registerAnimation("big bounce", initBigBounce,
-                                   bigBounce));
+  registerAnimation("big bounce", initBigBounce, bigBounce);
 
 })();

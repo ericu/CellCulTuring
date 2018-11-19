@@ -4,20 +4,12 @@
 <script src="util.js"></script>
 <script src="bitmanager.js"></script>
 <script src="canvaswrapper.js"></script>
-<script src="main.js"></script>
-<script src="motionstate.js"></script>
-<script src="counter.js"></script>
-<script src="bigbounce.js"></script>
-<script src="anglebounce.js"></script>
-<script src="bounce.js"></script>
-<script src="life.js"></script>
-<script src="smooth.js"></script>
 <link href="main.css" rel="stylesheet" type="text/css">
 </head>
 <body onload="init()">
   <div id="container">
     <div id="background">
-      <canvas id="canvas" width="50" height="70"></canvas>
+      <canvas id="canvas" width="64" height="66"></canvas>
     </div>
     <div id="controls">
       <select id="animation" onchange="onSelectAnimation()">
@@ -28,5 +20,14 @@
     </div>
     <span>FPS: <span id="fps">0.0</span></span>
   </div>
+  <script src="main.js"></script>
+  <script src="motionstate.js"></script>
+  <script src="respawn.js"></script>
+  <script src="bigbounce.js"></script>
+  <script src="counter.js"></script>
+  <script src="anglebounce.js"></script>
+  <script src="bounce.js"></script>
+  <script src="life.js"></script>
+  <script src="smooth.js"></script>
 </body>
 </html>

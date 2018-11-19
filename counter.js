@@ -122,8 +122,6 @@
     }
   }
 
-  window.addEventListener(
-    "load",
-    () => window.registerAnimation("counter", initCounter, counter));
+  registerAnimation("counter", initCounter, counter);
 
 })();
