@@ -133,11 +133,11 @@
     var left = Math.round(canvas.width / 2);
     var top = Math.round(canvas.height / 2);
     const brightColor =
-      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('FULL_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 7, 0, bm.getMask('FULL_BALL')).nextColor();
     const dimColor =
-      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('DIM_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 7, 0, bm.getMask('DIM_BALL')).nextColor();
     const hiddenColor =
-      MotionState.create(bm, 1, 1, 7, 0, bm.getMask('HIDDEN_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 7, 0, bm.getMask('HIDDEN_BALL')).nextColor();
     if (BALL_SIZE === 7) {
       c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
       c.fillRect(hiddenColor, left, top, 1, 1);
@@ -176,7 +176,7 @@
       }
 
     } else if (BALL_SIZE === 3) {
-      const CHOICE = 0
+      const CHOICE = 2
       switch (CHOICE) {
         case 0:
           c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
@@ -234,12 +234,12 @@
         // buffer pixel [so no depth count] even if it's time to bounce.  We
         // need to check all neighboring ball pixels and take the highest depth
         // on the way in; they'll all match on the way out.
-        let ms = new MotionState(bm, color);
+        let bs = new BallState(bm, color);
         let source = sourceDirectionFromIndex(i);
-        if (source.dX === ms.dX && source.dY === ms.dY) {
+        if (source.dX === bs.dX && source.dY === bs.dY) {
           let allMotions = _(data)
             .filter(d => isBall(d))
-            .map(b => new MotionState(bm, b))
+            .map(b => new BallState(bm, b))
             .value();
           let maxDepthX = _(allMotions)
             .map(m => m.getDepthX())
@@ -247,8 +247,8 @@
           let maxDepthY = _(allMotions)
             .map(m => m.getDepthY())
             .max();
-          ms.setDepthX(maxDepthX);
-          ms.setDepthY(maxDepthY);
+          bs.setDepthX(maxDepthX);
+          bs.setDepthY(maxDepthY);
           // It's a hit; lets see if it's also bouncing or in a buffer.
           let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', current);
           let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', current);
@@ -256,48 +256,48 @@
           let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', current);
           let bufferFlags = bm.get('BUFFER_FLAGS', current);
 
-          if (ms.dX > 0 && bufferXMax) {
-            ms.incDepthX();
-          } else if (ms.dX < 0 && bufferXMin) {
-            ms.incDepthX();
-          } else if (ms.getDepthX() && ms.dX > 0 && !bufferXMax) {
-            ms.decDepthX();
-          } else if (ms.getDepthX() && ms.dX < 0 && !bufferXMin) {
-            ms.decDepthX();
+          if (bs.dX > 0 && bufferXMax) {
+            bs.incDepthX();
+          } else if (bs.dX < 0 && bufferXMin) {
+            bs.incDepthX();
+          } else if (bs.getDepthX() && bs.dX > 0 && !bufferXMax) {
+            bs.decDepthX();
+          } else if (bs.getDepthX() && bs.dX < 0 && !bufferXMin) {
+            bs.decDepthX();
           }
-          if (ms.dY > 0 && bufferYMax) {
-            ms.incDepthY();
-          } else if (ms.dY < 0 && bufferYMin) {
-            ms.incDepthY();
-          } else if (ms.getDepthY() && ms.dY > 0 && !bufferYMax) {
-            ms.decDepthY();
-          } else if (ms.getDepthY() && ms.dY < 0 && !bufferYMin) {
-            ms.decDepthY();
+          if (bs.dY > 0 && bufferYMax) {
+            bs.incDepthY();
+          } else if (bs.dY < 0 && bufferYMin) {
+            bs.incDepthY();
+          } else if (bs.getDepthY() && bs.dY > 0 && !bufferYMax) {
+            bs.decDepthY();
+          } else if (bs.getDepthY() && bs.dY < 0 && !bufferYMin) {
+            bs.decDepthY();
           }
-          if (ms.getDepthX() >= BUFFER_SIZE) {
-            assert(ms.getDepthX() <= BUFFER_SIZE);
-            ms.reflect('x')
-            ms.index = (ms.index + 1) % 8;
+          if (bs.getDepthX() >= BUFFER_SIZE) {
+            assert(bs.getDepthX() <= BUFFER_SIZE);
+            bs.reflect('x')
+            bs.index = (bs.index + 1) % 8;
             // when changing index, reset state to stay valid
-            ms.nextState = 0;
-            while(Math.abs(new MotionState(bm, ms.nextColor()).dX) < 0.5) {
-              ++ms.nextState;
+            bs.nextState = 0;
+            while(Math.abs(new BallState(bm, bs.nextColor()).dX) < 0.5) {
+              ++bs.nextState;
             }
           }
-          if (ms.getDepthY() >= BUFFER_SIZE) {
-            assert(ms.getDepthY() <= BUFFER_SIZE);
-            ms.reflect('y')
-            ms.index = ms.index + 1;
-            if (ms.index >=8) {
-              ms.index = 1; // Don't go horizontal from top or bottom bounce.
+          if (bs.getDepthY() >= BUFFER_SIZE) {
+            assert(bs.getDepthY() <= BUFFER_SIZE);
+            bs.reflect('y')
+            bs.index = bs.index + 1;
+            if (bs.index >=8) {
+              bs.index = 1; // Don't go horizontal from top or bottom bounce.
             }
             // when changing index, reset state to stay valid
-            ms.nextState = 0;
-            while(Math.abs(new MotionState(bm, ms.nextColor()).dY) < 0.5) {
-              ++ms.nextState;
+            bs.nextState = 0;
+            while(Math.abs(new BallState(bm, bs.nextColor()).dY) < 0.5) {
+              ++bs.nextState;
             }
           }
-          let nextColor = ms.nextColor();
+          let nextColor = bs.nextColor();
           nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
           return nextColor;
         }

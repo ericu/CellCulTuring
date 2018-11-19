@@ -17,8 +17,8 @@
     bm.alias('BACKGROUND', 'FULL_ALPHA');
     bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
 
-    bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
-    bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
+    bm.declare('MOVE_R_NOT_L', 1, 8);
+    bm.declare('MOVE_D_NOT_U', 1, 9);
     bm.declare('MOVE_STATE', 2, 10);
     bm.declare('MOVE_INDEX', 3, 16);
 
@@ -33,11 +33,6 @@
     bm.declare('RESPAWN_FLAG', 1, 23);
 
     bm.combine('RETAINED_BACKGROUND_BITS', ['RESPAWN_FLAG', 'BACKGROUND']);
-
-
-    // These are just here to keep motionstate from complaining.
-    bm.declare('BUFFER_X_DEPTH_COUNTER', 1, 24);
-    bm.declare('BUFFER_Y_DEPTH_COUNTER', 1, 25);
   }
 
 
@@ -115,9 +110,9 @@
     c.fillRect(bm.setMask('RESPAWN_FLAG', color, true),
                originX + halfWidth, originY + halfHeight, 1, 1);
 
-    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL'));
+    var bs = BallState.create(bm, 1, 1, 7, 0, bm.getMask('BALL'));
 
-    c.fillRect(ms.nextColor(),
+    c.fillRect(bs.nextColor(),
                originX + halfWidth + 2, originY + halfHeight + 2, 1, 1);
   }
 
@@ -132,9 +127,9 @@
         for (let i = 0; i < 9; ++i) {
           let color = data[i];
           if (isBall(color)) {
-            let ms = new MotionState(bm, color);
+            let bs = new BallState(bm, color);
             let source = sourceDirectionFromIndex(i);
-            if (source.dX === ms.dX && source.dY === ms.dY) {
+            if (source.dX === bs.dX && source.dY === bs.dY) {
               // There's a ball hitting us.
               var next = bm.set('MESSAGE_PRESENT', current, 1);
               return bm.set('MESSAGE_R_NOT_L', next, source.dX < 0);
@@ -186,50 +181,37 @@
             let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
             let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
             color = bm.setMask('BALL', color, true);
-            var ms = MotionState.create(bm, rightNotL, 1, 5, 0, color);
-            return ms.getColor();
+            var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
+            return bs.getColor();
           } else {
             let message = bm.get('MESSAGE_BITS', data[1]);
             return bm.set('MESSAGE_BITS', current, message);
           }
         }
       }
-      // TODO
       for (let i = 0; i < 9; ++i) {
         let color = data[i];
         if (isBall(color)) {
-          let ms = new MotionState(bm, color);
+          let bs = new BallState(bm, color);
           let source = sourceDirectionFromIndex(i);
-          if (source.dX !== ms.dX || source.dY !== ms.dY) {
+          if (source.dX !== bs.dX || source.dY !== bs.dY) {
             return current; // There's only 1 ball; exit early.
           }
-          /*
-          // It's a hit; lets see if it's also bouncing.
-          if ((ms.dX > 0 && isWall(data[5])) ||
-              (ms.dX < 0 && isWall(data[3]))) {
-            ms.reflect('x');
-            ms.index = (ms.index + 1) % 8;
-            ms.nextState = 0;
-            while(Math.abs(new MotionState(bm, ms.nextColor()).dX) < 0.5) {
-              ++ms.nextState;
-            }
-          }
-          */
-          if ((ms.dY > 0 && isWall(data[7])) ||
-              (ms.dY < 0 && isWall(data[1]))) {
-            ms.reflect('y')
-            ms.index = ms.index + 1;
-            if (ms.index >=8) {
-              ms.index = 1; // Don't go horizontal from top or bottom bounce.
+          if ((bs.dY > 0 && isWall(data[7])) ||
+              (bs.dY < 0 && isWall(data[1]))) {
+            bs.reflect('y')
+            bs.index = bs.index + 1;
+            if (bs.index >=8) {
+              bs.index = 1; // Don't go horizontal from top or bottom bounce.
             }
             // when changing index, reset state to stay valid
-            ms.nextState = 0;
-            while(Math.abs(new MotionState(bm, ms.nextColor()).dY) < 0.5) {
-              ++ms.nextState;
+            bs.nextState = 0;
+            while(Math.abs(new BallState(bm, bs.nextColor()).dY) < 0.5) {
+              ++bs.nextState;
             }
           }
           let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
-          return bm.set('RETAINED_BACKGROUND_BITS', ms.nextColor(), retained);
+          return bm.set('RETAINED_BACKGROUND_BITS', bs.nextColor(), retained);
         }
       }
       return bm.set('MESSAGE_BITS', current, 0);

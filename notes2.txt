@@ -167,12 +167,12 @@ function getIncomingBall(data) {
   for (let i = 0; i < 9; ++i) {
     let color = data[i];
     if (isBall(color)) {
-      let ms = new MotionState(bm, color);
+      let bs = new BallState(bm, color);
       let source = sourceDirectionFromIndex(i);
-      if (source.dX !== ms.dX || source.dY !== ms.dY) {
+      if (source.dX !== bs.dX || source.dY !== bs.dY) {
         return null; // There's only 1 ball; exit early.
       }
-      return { index: i, ms: ms } // Is index needed?
+      return { index: i, bs: bs } // Is index needed?
     }
   }
 }
@@ -199,18 +199,18 @@ function paddleBounce(data) {
     for (let index of [0, 2, 6, 8]) {
       let color = data[index];
       if (isBall(color)) {
-        let ms = new MotionState(bm, color);
+        let bs = new BallState(bm, color);
         let paddleAbove = isPaddle(data[1]);
         let paddleBelow = isPaddle(data[7]);
         let ballOnLeft = index === 0 || index === 6;
         let ballAbove = index === 0 || index === 2;
         let ballApproaching =
-          (ballOnLeft && ms.dX > 0) || (!ballOnLeft && ms.dX < 0);
+          (ballOnLeft && bs.dX > 0) || (!ballOnLeft && bs.dX < 0);
 
         if (ballApproaching &&
             ((ballAbove && paddleAbove) || (ballBelow && paddleBelow))) {
           // TODO Set the message flag, with direction based on paddleCellIndex
-          // and ms.
+          // and bs.
         }
       }
     }

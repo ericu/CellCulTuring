@@ -21,10 +21,6 @@
     bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
     bm.alias('BACKGROUND', 'FULL_ALPHA');
     bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
-
-    // These are just here to keep motionstate from complaining.
-    bm.declare('BUFFER_X_DEPTH_COUNTER', 1, 24);
-    bm.declare('BUFFER_Y_DEPTH_COUNTER', 1, 25);
   }
 
 
@@ -71,9 +67,9 @@
     c.fillRect(bm.getMask('BACKGROUND'), 0, 0, canvas.width, canvas.height);
     c.strokeRect(bm.getMask('WALL'), 0, 0, canvas.width - 1, canvas.height - 1);
 
-    var ms = MotionState.create(bm, 1, 1, 7, 0, bm.getMask('BALL'));
+    var bs = BallState.create(bm, 1, 1, 7, 0, bm.getMask('BALL'));
 
-    c.fillRect(ms.nextColor(), Math.round(canvas.width / 2),
+    c.fillRect(bs.nextColor(), Math.round(canvas.width / 2),
                Math.round(canvas.height / 2), 1, 1);
   }
 
@@ -90,35 +86,35 @@
       for (let i = 0; i < 9; ++i) {
         let color = data[i];
         if (isBall(color)) {
-          let ms = new MotionState(bm, color);
+          let bs = new BallState(bm, color);
           let source = sourceDirectionFromIndex(i);
-          if (source.dX !== ms.dX || source.dY !== ms.dY) {
+          if (source.dX !== bs.dX || source.dY !== bs.dY) {
             return current; // There's only 1 ball; exit early.
           }
           // It's a hit; lets see if it's also bouncing.
-          if ((ms.dX > 0 && isWall(data[5])) ||
-              (ms.dX < 0 && isWall(data[3]))) {
-            ms.reflect('x');
-            ms.index = (ms.index + 1) % 8;
-            ms.nextState = 0;
-            while(Math.abs(new MotionState(bm, ms.nextColor()).dX) < 0.5) {
-              ++ms.nextState;
+          if ((bs.dX > 0 && isWall(data[5])) ||
+              (bs.dX < 0 && isWall(data[3]))) {
+            bs.reflect('x');
+            bs.index = (bs.index + 1) % 8;
+            bs.nextState = 0;
+            while(Math.abs(new BallState(bm, bs.nextColor()).dX) < 0.5) {
+              ++bs.nextState;
             }
           }
-          if ((ms.dY > 0 && isWall(data[7])) ||
-              (ms.dY < 0 && isWall(data[1]))) {
-            ms.reflect('y')
-            ms.index = ms.index + 1;
-            if (ms.index >=8) {
-              ms.index = 1; // Don't go horizontal from top or bottom bounce.
+          if ((bs.dY > 0 && isWall(data[7])) ||
+              (bs.dY < 0 && isWall(data[1]))) {
+            bs.reflect('y')
+            bs.index = bs.index + 1;
+            if (bs.index >=8) {
+              bs.index = 1; // Don't go horizontal from top or bottom bounce.
             }
             // when changing index, reset state to stay valid
-            ms.nextState = 0;
-            while(Math.abs(new MotionState(bm, ms.nextColor()).dY) < 0.5) {
-              ++ms.nextState;
+            bs.nextState = 0;
+            while(Math.abs(new BallState(bm, bs.nextColor()).dY) < 0.5) {
+              ++bs.nextState;
             }
           }
-          return ms.nextColor();
+          return bs.nextColor();
         }
       }
       return current;

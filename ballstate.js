@@ -25,41 +25,49 @@ const motionTable = [
     dir: 'x',
     bInc: 0,
     bMax: 0,
+    slope: 0,
   },
   {
     dir: 'x',
     bInc: 1,
     bMax: 3,
+    slope: 1/3,
   },
   {
     dir: 'x',
     bInc: 1,
     bMax: 2,
+    slope: 1/2,
   },
   {
     dir: 'x',
     bInc: 2,
     bMax: 3,
+    slope: 2/3,
   },
   {
     dir: 'y', // whichever
     bInc: 1,
     bMax: 1,
+    slope: 1,
   },
   {
     dir: 'y',
     bInc: 2,
     bMax: 3,
+    slope: 3/2,
   },
   {
     dir: 'y',
     bInc: 1,
     bMax: 2,
+    slope: 2,
   },
   {
     dir: 'y',
     bInc: 1,
     bMax: 3,
+    slope: 3,
   },
 ]
 
@@ -67,7 +75,7 @@ const motionTable = [
 // bigbounce.js.
 
 // Don't access color directly; it may be out of date.
-class MotionState {
+class BallState {
   constructor(bm, color) {
 //    assert(bm.isSet('BALL_FLAG', color));
     this.bm = bm;
@@ -76,8 +84,11 @@ class MotionState {
     this.down = bm.get('MOVE_D_NOT_U', color);
     this.state = bm.get('MOVE_STATE', color);
     this.index = bm.get('MOVE_INDEX', color);
-    this.depthX = bm.get('BUFFER_X_DEPTH_COUNTER', color);
-    this.depthY = bm.get('BUFFER_Y_DEPTH_COUNTER', color);
+    this.decimator = bm.get('DECIMATOR', color);
+    if (this.bm.hasKey('BUFFER_X_DEPTH_COUNTER')) {
+      this.depthX = bm.get('BUFFER_X_DEPTH_COUNTER', color);
+      this.depthY = bm.get('BUFFER_Y_DEPTH_COUNTER', color);
+    }
     assert(this.index >= 0 && this.index < motionTable.length);
 
     let dX = 0, dY = 0;
@@ -113,16 +124,84 @@ class MotionState {
     this.nextState = nextState;
   }
 
+  isMotionCycle() {
+    return this.decimator;
+  }
+
   static create(bm, right, down, index, state, baseColor) {
     let color = baseColor;
     color = bm.set('MOVE_R_NOT_L', color, right);
     color = bm.set('MOVE_D_NOT_U', color, down);
     color = bm.set('MOVE_INDEX', color, index);
     color = bm.set('MOVE_STATE', color, state);
-    return new MotionState(bm, color);
+    return new BallState(bm, color);
   }
 
-  reflect(axis) {
+  reflect(axis, paddlePixel, edgeBounce) {
+    let setIndex = false;
+    if (edgeBounce) {
+      if (!paddlePixel) {
+        paddlePixel = -1;
+      } else {
+        paddlePixel = 8;
+      }
+    }
+    if (!this.index) {
+      // It's level, so pretend the slope matches the paddle direction.
+      this.down = paddlePixel > 3;
+    }
+    if (paddlePixel !== undefined) {
+      switch (paddlePixel) {
+        case -1:
+        case 8:
+          if ((this.down !== 0) !== (paddlePixel === 8)) {
+            this.down = !this.down;
+          }
+          this.index = 7;
+          setIndex = true;
+          break;
+        case 0:
+        case 7:
+          if ((this.down !== 0) === (paddlePixel === 7)) {
+            this.index = Math.min(this.index + 3, 7);
+          } else {
+            this.index = this.index - 3;
+            if (this.index < 0) {
+              this.index = -this.index;
+              this.down = !this.down;
+            }
+          }
+        case 1:
+        case 6:
+          if ((this.down !== 0) === (paddlePixel === 6)) {
+            this.index = Math.min(this.index + 2, 7);
+          } else {
+            this.index = this.index - 2;
+            if (this.index < 0) {
+              this.index = -this.index;
+              this.down = !this.down;
+            }
+          }
+          setIndex = true;
+          break;
+        case 2:
+        case 5:
+          if ((this.down !== 0) === (paddlePixel === 5)) {
+            this.index = Math.min(this.index + 1, 7);
+          } else {
+            this.index = this.index - 1;
+            if (this.index < 0) {
+              this.index = -this.index;
+              this.down = !this.down;
+            }
+          }
+          setIndex = true;
+          break;
+        case 3: // natural reflection
+        case 4:
+          break;
+      }
+    }
     if (axis === 'x') {
       this.right = !this.right;
     }
@@ -130,6 +209,13 @@ class MotionState {
       this.down = !this.down;
     } else {
       assert(false);
+    }
+    // Why were we doing setIndex again?
+    if (axis === 'x') {
+      this.nextState = 0;
+      while(Math.abs(new BallState(this.bm, this.nextColor()).dX) < 0.5) {
+        ++this.nextState;
+      }
     }
   }
 
@@ -167,12 +253,18 @@ class MotionState {
     --this.depthY;
   }
 
+  getSlope() {
+    return motionTable[this.index].slope;
+  }
+
   getColor() {
     let color = this.color;
     color = this.bm.set('MOVE_R_NOT_L', color, this.right);
     color = this.bm.set('MOVE_D_NOT_U', color, this.down);
-    color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
-    color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
+    if (this.bm.hasKey('BUFFER_X_DEPTH_COUNTER')) {
+      color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
+      color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
+    }
     color = this.bm.set('MOVE_INDEX', color, this.index);
     return color;
   }
@@ -184,5 +276,5 @@ class MotionState {
   }
 }
 
-window.MotionState = MotionState
+window.BallState = BallState
 })();

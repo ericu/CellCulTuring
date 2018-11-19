@@ -9,7 +9,7 @@
 <body onload="init()">
   <div id="container">
     <div id="background">
-      <canvas id="canvas" width="64" height="66"></canvas>
+      <canvas id="canvas" width="68" height="68"></canvas>
     </div>
     <div id="controls">
       <select id="animation" onchange="onSelectAnimation()">
@@ -21,9 +21,12 @@
     <span>FPS: <span id="fps">0.0</span></span>
   </div>
   <script src="main.js"></script>
-  <script src="motionstate.js"></script>
-  <script src="respawn.js"></script>
+  <script src="ballstate.js"></script>
+  <script src="paddlestate.js"></script>
+
+  <script src="paddle.js"></script>
   <script src="bigbounce.js"></script>
+  <script src="respawn.js"></script>
   <script src="counter.js"></script>
   <script src="anglebounce.js"></script>
   <script src="bounce.js"></script>

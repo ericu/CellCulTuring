@@ -12,6 +12,10 @@ How does the top-left ball pixel know about the collision?  We'll need a
 buffer around the paddle in 2 dimensions at a minimum; it may even need to
 indicate its depth.
 
+[Update: since the ball moves at C/2, if the paddle does also, but alternates
+duty cycle with the ball, they never move at the same time, and that simplifies
+the logic.]
+
 Simple buffer:    Depth buffer: [Or 1-3, with 0 meaning not-in-buffer].
  . . . . .          . . . . .
  . : : : :          . 2 1 1 1
@@ -78,6 +82,10 @@ can pull the counters from our paddle-cell neighbors, just not the single bit
 for IsPaddleBuffer.  Oops--that's problematic as well, with larger balls.  If
 you've got a paddle buffer inside a ball, it needs to know its movement
 parameters, and can't pull them from neighbors if it's deep inside the ball.
+Note that movement parameters don't change when there's a ball around, though,
+nor will an AI paddle reverse directions while we're near it.  And the non-AI
+paddle will get special treatment that should make things easier and not require
+extra bits.
 
 Example bit allocations for a 3-pixel ball and a height-64 [so 6 bits] board
 
@@ -100,6 +108,20 @@ since we don't need precision, and it'll make the game more interesting to
 have random angle bounces.  [While we're at it, an N-pixel paddle really
 defends N + 2 * (BALL_SIZE - 1) pixels, which is somewhat less in ball
 positions] Still, that's 30-32 bits...pretty tight, but maybe doable.
+
+[Update: we don't need nextDest, since we won't get another dest request before
+getting there.  Either we got there in time, and we've satisfied the previous
+request, or we missed the ball, and had time to finish the move during the
+respawn.  So that saves 3 more bits.  So shared Paddle/Ball bits are 6:height,
+3:dest, 2:moveSyncDelayCounter, 1:isPaddleBuffer (, 2 more for
+paddleBufferDepth?), 3:paddlePixel/paddleBufferYDepth => 15-17 minimum.  Ball
+bits are 11-13, so total 26-30, which seems doable.]
+
+[Update: depthX and depthXIntoPaddleBuffer would be different, since the paddle
+is 1 pixel in from the wall, but we could cheat that by making the paddle
+collinear with the wall, and then just keeping track of the single bit of
+whether we're in the paddle buffer or not, which might possibly be shared with
+the depthYIntoPaddleBuffer].
 
 Hmm...what if we just got rid of all these buffer regions, the ball just kept
 track of its absolute position, just like the paddle?  Then the ball would
