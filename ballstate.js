@@ -84,7 +84,9 @@ class BallState {
     this.down = bm.get('MOVE_D_NOT_U', color);
     this.state = bm.get('MOVE_STATE', color);
     this.index = bm.get('MOVE_INDEX', color);
-    this.decimator = bm.get('DECIMATOR', color);
+    if (this.bm.hasKey('DECIMATOR')) {
+      this.decimator = bm.get('DECIMATOR', color);
+    }
     if (this.bm.hasKey('BUFFER_X_DEPTH_COUNTER')) {
       this.depthX = bm.get('BUFFER_X_DEPTH_COUNTER', color);
       this.depthY = bm.get('BUFFER_Y_DEPTH_COUNTER', color);
@@ -137,8 +139,18 @@ class BallState {
     return new BallState(bm, color);
   }
 
-  reflect(axis, paddlePixel, edgeBounce) {
-    let setIndex = false;
+  reflect(axis) {
+    if (axis === 'x') {
+      this.right = !this.right;
+    }
+    else if (axis === 'y') {
+      this.down = !this.down;
+    } else {
+      assert(false);
+    }
+  }
+
+  bounce(axis, paddlePixel, edgeBounce) {
     if (edgeBounce) {
       if (!paddlePixel) {
         paddlePixel = -1;
@@ -150,6 +162,7 @@ class BallState {
       // It's level, so pretend the slope matches the paddle direction.
       this.down = paddlePixel > 3;
     }
+    let setIndex = false;
     if (paddlePixel !== undefined) {
       switch (paddlePixel) {
         case -1:
@@ -171,6 +184,8 @@ class BallState {
               this.down = !this.down;
             }
           }
+          setIndex = true;
+          break;
         case 1:
         case 6:
           if ((this.down !== 0) === (paddlePixel === 6)) {
@@ -195,7 +210,6 @@ class BallState {
               this.down = !this.down;
             }
           }
-          setIndex = true;
           break;
         case 3: // natural reflection
         case 4:
@@ -210,8 +224,11 @@ class BallState {
     } else {
       assert(false);
     }
-    // Why were we doing setIndex again?
-    if (axis === 'x') {
+    if (setIndex || axis === 'x') {
+      // Any time you change index, you may have to update state to a value
+      // legal for the new index.  Since we want the ball to come off the paddle
+      // the cycle after it hits to avoid duplicate AI messages, we pick a state
+      // that forces that.
       this.nextState = 0;
       while(Math.abs(new BallState(this.bm, this.nextColor()).dX) < 0.5) {
         ++this.nextState;

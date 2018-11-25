@@ -180,7 +180,7 @@ let bm;  // TODO: For debugging
     c.fillRect(bm.setMask('RESPAWN_FLAG', color, true),
                originX + halfWidth, originY + halfHeight, 1, 1);
 
-    var bs = BallState.create(bm, 1, 0, 3, 0, bm.getMask('BALL'));
+    var bs = BallState.create(bm, 0, 0, 3, 0, bm.getMask('BALL'));
     c.fillRect(bs.nextColor(), originX + 4, 27, 1, 1);
   }
 
@@ -262,6 +262,12 @@ let bm;  // TODO: For debugging
         }
         return next;
       } else {
+        // Here we get stomped on by a paddle, which we just missed.
+        // TODO: Is this necessary?  It seems like it would create an extra
+        // message, as the wall should already have seen the ball, but perhaps
+        // the DECIMATOR takes care of that.  If so we could also handle it by
+        // making the ball not decimate as it hits the wall, so it goes away a
+        // cycle faster.
         for (let index of [1, 7]) {
           let color = data[index];
           if (isPaddle(color) && isPaddleMotionCycle(color)) {
@@ -310,12 +316,12 @@ let bm;  // TODO: For debugging
             break; // There's only 1 ball; exit early.
           }
           // It's a hit; lets see if it's also bouncing.
-          // Do the y reflection first, so that when the x reflect resets the
+          // Do the y reflection first, so that when the x bounce resets the
           // state, it sticks.  We use the reset state to know when the ball has
           // just bounced, so as to send the AI message only once.
           if ((bs.dY > 0 && isWall(data[7])) ||
               (bs.dY < 0 && isWall(data[1]))) {
-            bs.reflect('y')
+            bs.bounce('y')
           }
           let regularBounce, edgeBounce;
 
@@ -334,7 +340,7 @@ let bm;  // TODO: For debugging
               let paddleColor = data[index];
               if (isPaddle(paddleColor)) {
                 paddlePixel = bm.get('PADDLE_PIXEL', paddleColor)
-                bs.reflect('x', paddlePixel, edgeBounce);
+                bs.bounce('x', paddlePixel, edgeBounce);
                 break;
               }
             }
@@ -355,7 +361,6 @@ let bm;  // TODO: For debugging
         }
       }
       // Handle the paddle and creating AI messages.
-      // TODO: known bug.  Straight-across message at 22 instead of 25ish.
       for (let index of [1, 7]) {
         let color = data[index];
         if (isPaddle(color) && isPaddleMotionCycle(color)) {

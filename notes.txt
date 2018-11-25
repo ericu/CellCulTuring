@@ -1,40 +1,21 @@
-Ball-paddle hits are tricky because both move.  Consider this case:
-
-b b b . .     . . . . .
-b b b . .     . b b b .
-b b b . .     . b b b .
-. . . . . ->  . b b b p
-. . . . p     . . . . p
-. . . . p     . . . . p
-. . . . p     . . . . .
-
-How does the top-left ball pixel know about the collision?  We'll need a
-buffer around the paddle in 2 dimensions at a minimum; it may even need to
-indicate its depth.
-
-[Update: since the ball moves at C/2, if the paddle does also, but alternates
-duty cycle with the ball, they never move at the same time, and that simplifies
-the logic.]
-
 Simple buffer:    Depth buffer: [Or 1-3, with 0 meaning not-in-buffer].
  . . . . .          . . . . .
- . : : : :          . 2 1 1 1
- . : : : :          . 2 1 0 0
+ . : : : .          . 2 1 1 .
+ . : : : .          . 2 1 0 .
  . : : : p          . 2 1 0 p
  . : : : p          . 2 1 0 p
  . : : : p          . 2 1 0 p
 
 In the buffered cases, how does this look?
 
-Simple buffer both-approaching-hit:
+Simple buffer hit:
 
 b  b  b  .  .       .  .  .  .  .
-b  b  b  .  .       .  b: b: b:  :
-b  b: b:  :  :      .  b: b: b:  :
-.   :  :  :  :  ->  .  b: b: b:  p
+b  b: b:  :  .      .  b: b: b:  .
+b  b: b:  :  .      .  b: b: b:  .
+.   :  :  :  p  ->  .  b: b: b:  p
 .   :  :  :  p      .   :  :  :  p
 .   :  :  :  p      .   :  :  :  p
-.   :  :  :  p      .   :  :  : .
 
 All ball cells going into the simple buffer know it, since the buffer moves
 into cells at the same 1 cell per cycle that the ball cells do.  Ball cells
@@ -44,33 +25,32 @@ that?  In the special case of depth 3, yes, because a cell can tell which
 buffer cell it is by its neighbors.  If there were a 4+ thickness buffer, the
 inner cells would be indistinguishable.
 
-Simple buffer paddle-approaching barely-miss:
-b  b  b  .  .       .  b  b  b   .
-b  b  b  .  .       .  b: b: b:  :
+OK, review: how do we know Y depth in the simple case above?  The buffer region
+will have to have the same PADDLE_PIXEL, extended to the whole region, in order
+to have the correct bounce angle, so we'll use that.  So it'll really be a depth
+buffer, at least in Y, automatically.  We could use a 4-pixel paddle with a
+2-pixel buffer top and bottom, and that'd be the same 3 bits and 8 rows of
+coverage.
+
+Simple buffer barely-miss:
+b  b  b  .  .       .  b  b  b  .
 b  b: b:  :  :      .  b: b: b:  :
-.   :  :  :  :  ->  .   :  :  :  p
+b  b: b:  :  :      .  b: b: b:  :
+.   :  :  :  p  ->  .   :  :  :  p
 .   :  :  :  p      .   :  :  :  p
 .   :  :  :  p      .   :  :  :  p
-.   :  :  :  p      .   :  :  : .
 
 Here the y-depth is 2 and the x-depth 3, so it's a miss.
 
-depth buffer:
-b  b  b  .  .      .  .  .  .  .
-b  b  b  .  .      .  b2 b1 b1  1
-b  b2 b1  1  1      .  b2 b1 b0  0
-.   2  1  0  0  ->  .  b2 b1 b0  p
-.   2  1  0  p      .   2  1  0  p
-.   2  1  0  p      .   2  1  0  p
-.   2  1  0  p      .   2  1  0 .
-
 State in the paddle and buffer:
-  IsPaddle/IsPaddleBuffer
-  IsRightNotLeft
-  Where-am-I altitude
-  Where-am-I-going counter/altitude
-  Where-have-I-been-requested-to-go-next altitude
-  When-can-I-leave [counter for info to propagate through thickness of paddle]
+  IsPaddle/IsPaddleBuffer:
+    2 global ID bits, 2 for buffers, 1 for paddle buffer
+  IsRightNotLeft:1
+  paddlePixel pixel:3-4, depending on size
+  Where-am-I location:6
+  Where-am-I-going counter/altitude:3
+  When-can-I-leave [counter for info to propagate through thickness of paddle]:3
+
 All that state needs to get stored in the ball as well, since it needs to be
 restored as the ball moves away.  Hmm...or can we just restore it from the
 neighboring paddle cells?  That would save a lot of bits in the ball, which
@@ -90,50 +70,41 @@ extra bits.
 Example bit allocations for a 3-pixel ball and a height-64 [so 6 bits] board
 
 Global: 2: type [isBall, isBackground, isAIPaddle, isWall]
-  We can use a lower bit from isBackground or isWall and use it for the non-AI
-  paddle.
+  We can possibly use a lower bit from isBackground or isWall and use it for the
+  non-AI paddle.
   Total: 2
-Ball: 2:depthX, 2:depthY, 1:down, 1:right, 3:moveIndex, 2:moveState
-  Do we need another 2 bits for depthYIntoPaddleBuffer?  Probably.
-  Total: 11-13
-Paddle/PaddleBuffer: 6:height, 6:dest, 6:nextDest, 2:moveSyncDelayCounter
-  Plus a bit to know that you're in the paddleBuffer.
-  Total: 21
+Ball: 2:depthX, 2:depthY, 1:down, 1:right, 3:moveIndex, 2:moveState, 1:decimator
+  [shared with paddle]. Do we need another 2 bits for depthYIntoPaddleBuffer?
+  Probably.
+  Total: 12-14
+Paddle/PaddleBuffer: 6:height, 3:dest, 2:moveSyncDelayCounter, 3:pixel [assumes
+  a 4-pixel paddle with 8-pixel-tall containing buffer], 1:paddleBallSignal [is
+  that needed with a big ball?  Not if the paddle is flush with the wall.],
+  1:decimator, 1:isBuffer.  We'll either have to save/restore the Y buffer or
+  we'll have to figure it out from height and pixel...yeah, we can do that, and
+  save the bit.
+  Total: 16-17 [1 shared with ball]
 Background/Buffer: 4:bufferFlags
   Total: 4
 
-If all paddle bits need to be in the ball as well, as they appear to, that's
-already 36-38 bits.  Ah, but dest and nextDest can just the the top 3 bits,
-since we don't need precision, and it'll make the game more interesting to
-have random angle bounces.  [While we're at it, an N-pixel paddle really
-defends N + 2 * (BALL_SIZE - 1) pixels, which is somewhat less in ball
-positions] Still, that's 30-32 bits...pretty tight, but maybe doable.
+The ball needs to hold all the paddle buffer bits as it goes through, otherwise
+a corner of the buffer, coming out from under the ball, won't have anywhere to
+grab them from.  So 14 ball bits plus 16 - 1 is 29 shared bits, plus 2 ID bits,
+so it's doable with maybe a bit to spare.
 
-[Update: we don't need nextDest, since we won't get another dest request before
-getting there.  Either we got there in time, and we've satisfied the previous
-request, or we missed the ball, and had time to finish the move during the
-respawn.  So that saves 3 more bits.  So shared Paddle/Ball bits are 6:height,
-3:dest, 2:moveSyncDelayCounter, 1:isPaddleBuffer (, 2 more for
-paddleBufferDepth?), 3:paddlePixel/paddleBufferYDepth => 15-17 minimum.  Ball
-bits are 11-13, so total 26-30, which seems doable.]
+What about the AI message?  It should get generated from a background cell that
+sees 3 ball cells stacked vertically to its side, newly-bounced, with the full
+paddle depths set.  And the respawn message gets generated by a wall cell that
+sees wall above and below and 3 ball cells next to it.
 
-[Update: depthX and depthXIntoPaddleBuffer would be different, since the paddle
+DepthX and depthXIntoPaddleBuffer would be different, since the paddle
 is 1 pixel in from the wall, but we could cheat that by making the paddle
 collinear with the wall, and then just keeping track of the single bit of
 whether we're in the paddle buffer or not, which might possibly be shared with
-the depthYIntoPaddleBuffer].
-
-Hmm...what if we just got rid of all these buffer regions, the ball just kept
-track of its absolute position, just like the paddle?  Then the ball would
-need the old 7 for motion plus say 6 + 6 for a 64x64 board => 19 total.  The
-paddle would need 6 + 3 + 3 => 12 total.  And the paddle bits don't need to
-get stored in a buffer, so they don't all need to fit into the ball.  There
-would be no bufferFlags.  But then how does the ball know if it's hitting the
-paddle?  The paddle needs to announce its position and maybe its direction;
-when we get close, we'll hear it in time, right?  But what if it changes just
-as we get there?  How will the left-side pixels of the ball know?  So we may
-need at least some buffer after all, which brings back a lot of bits and their
-overlap.  But can it be fewer?
+the depthYIntoPaddleBuffer.  Hmm...if we've got a separate bit for
+depthXIsInPaddleBuffer somehow, then we count up to 3 for depth and then bounce,
+or overflow the 2 bits to 4, meaning we missed.  That could work even without
+flush paddle.  However, flush paddle saves us from needing PADDLE_BALL_SIGNAL.
 
 Unrelated: the ball needs to recognize where it's hit on the paddle in order
 to know what angle to bounce off.  That indicates that we're going to need a
@@ -149,38 +120,6 @@ or down.  Not good.
 And let's not forget that the ball will have to hit the human-driven paddle on
 the other side, which will move even more erratically, and will probably
 require the buffer region.
-
-So let's do a 1-pixel ball instead, and keep it easy, if less exciting.  As a
-bonus, a 64-height board is effectively 3x as tall with a 1-pixel ball as it
-is with a 3-pixel ball.
-
-Global: 2: type [isBall, isBackground, isPaddle, isWall]
-  Total: 2
-Wall subtypes:
-  Top/bottom, which do nothing much, but the ball bounces off them.  The top
-  may need to relay messages.
-  Right/left which pass scoring messages and destroy/absorb the ball.
-Background subtypes:
-  General, which just passes AI messages and the ball.
-  Spawn, which respond to some scoring stimulus to create a new ball.
-  Scoring background, used around the score digits.
-  Counter, used to form the score digits.
-  Message, which are like general, but then light up to declare GAME OVER like
-    Counter types.
-  MessageChannel, which pass the spawn message and the game over message to
-  the Spawn/Message types.
-Ball: 1:down, 1:right, 3:moveIndex, 2:moveState
-  Total: 7
-  Ball subtypes: none.
-Paddle: 6:height, 3:dest, 3: where-on-the-paddle-are-you
-  Total: 12 [or up to 15 if we want exact dest]
-  Paddle subtypes: AI vs. player
-
-When the ball hits a paddle, it uses the paddle's knowledge of its height,
-along with the ball's outgoing trajectory, to compute the AI message to send.
-Then the cells above and below the ball, if each exists, both send the message
-outward.  The messages spread left, left-up, and left-down in a spreading wave
-1 pixel thick until they hit the left paddle and wall.
 
 Message-passing: the background passes info for the AI sideways; it'll need
 a direction indicator as well as the target offset.
@@ -244,16 +183,49 @@ The AI message.
 Bits I'm not sure about yet:
 The ball respawn message coming down from the top.
 
-Paddle bounce reactions:
+Counter messages through the counter region:
+  Direction bit for routing: No, all directions.
+  Spread: all directions
+  Payload: score counter, likely 4 bits.
 
-a: increase angle to max
-b: increase angle 2 indices
-c: increase angle 1 index
-d: angle unchanged
-d: angle unchanged
-c: increase angle 1 index
-b: increase angle 2 indices
-a: increase angle to max
+Board layout:
 
-It would be nice to have a larger 'd' region, but 8 pixels is aleady quite big
-enough for a paddle.
+We'll need to interpret the ball-hit message before the respawn, so that we
+don't respawn on game over.  We can do that at the top-wall-center pixel.  If it
+keeps track of the score of each player, it can decide when the game is over and
+either send the respawn message or not.  It can also initiate the game-over
+message, wherever we want to display that.
+
+So top-wall-center needs, in addition to 2 type bits, 1 subtype bit, and 2
+message bits [present + direction] a counter for each score, say at least 4 bits
+with game going to 15.  Messages will always go up, and will only go down on
+score less than the max, so we'll need a separate signal for up messages vs.
+down, so at least 1 more bit there for message and a second for game-over.
+That's still only 15 or so, so no problem there.
+
+----------------------------------------------------------------
+|       1 4         |   G A M E   O V E R   |       0 3        |
+----------------------------------------------------------------
+|                                                              |
+|                                                              |
+|                                                              |
+|                                                              |
+|                                                              |
+|                                                              |
+|                                                              |
+----------------------------------------------------------------
+
+Here the GAME OVER is in the middle, which looks good, but if the message comes
+from the middle, it would naturally appear before the final score increment.  
+We can put a delay in there by using the counter display for the game over; just
+have the whole message trigger on a high number, and have the message trigger a
+single-cell counter that counts up to it and then stops there.
+
+Another option for game-over and score/respawn messages: the message comes up
+from the paddle, across all the way to the opposite score [as its direction
+tells the fork under each score whether to grab it or not], up into the score,
+and then spreads out, hitting the border of game-over.  game-over looks for a
+score increment, and lights up on the final score.  There's a cell at its bottom
+center that sees an increment that's not the final score, and triggers a
+straight-down respawn message with LR in it.  We'd just need a few wall subtypes
+to deal with the routing.
