@@ -101,25 +101,14 @@ DepthX and depthXIntoPaddleBuffer would be different, since the paddle
 is 1 pixel in from the wall, but we could cheat that by making the paddle
 collinear with the wall, and then just keeping track of the single bit of
 whether we're in the paddle buffer or not, which might possibly be shared with
-the depthYIntoPaddleBuffer.  Hmm...if we've got a separate bit for
-depthXIsInPaddleBuffer somehow, then we count up to 3 for depth and then bounce,
-or overflow the 2 bits to 4, meaning we missed.  That could work even without
-flush paddle.  However, flush paddle saves us from needing PADDLE_BALL_SIGNAL.
-
-Unrelated: the ball needs to recognize where it's hit on the paddle in order
-to know what angle to bounce off.  That indicates that we're going to need a
-marker in the paddle and buffer to tell the ball how to bounce.  With a ball
-of only 3 pixels, each pixel should be able to tell which one it is, so at
-least the ball knows itself.  But it implies another field, of at least
-log(PADDLE_SIZE) bits, in both paddle field and ball.  And PADDLE_SIZE must be
-at least 4 pixels [defending 6 positions] to be playable.  But perhaps we can
-use depthYIntoPaddleBuffer for this?  If we're at full depth, it's a straight
-bounce, otherwise it's one of two angles, and we can't tell if it should be up
-or down.  Not good.
-
-And let's not forget that the ball will have to hit the human-driven paddle on
-the other side, which will move even more erratically, and will probably
-require the buffer region.
+the depthYIntoPaddleBuffer [== if it's nonzero].  Hmm...if we've got a separate
+bit for depthXIsInPaddleBuffer somehow, then we count up to 3 for depth and then
+bounce, or overflow the 2 bits to 4, meaning we missed.  That could work even
+without flush paddle.  However, flush paddle saves us from needing
+PADDLE_BALL_SIGNAL.  And at the overflow we'd need to have a bit to indicate
+that so that we could tell the ball to vanish once it hit the wall; if it
+vanished the cycle before that, the wall would never know to send the respawn
+message.  So flush seems to be the way to go.
 
 Message-passing: the background passes info for the AI sideways; it'll need
 a direction indicator as well as the target offset.
