@@ -29,8 +29,19 @@ OK, review: how do we know Y depth in the simple case above?  The buffer region
 will have to have the same PADDLE_PIXEL, extended to the whole region, in order
 to have the correct bounce angle, so we'll use that.  So it'll really be a depth
 buffer, at least in Y, automatically.  We could use a 4-pixel paddle with a
-2-pixel buffer top and bottom, and that'd be the same 3 bits and 8 rows of
-coverage.
+2-pixel buffer top and bottom, and that'd be the same 3 bits, but only 6 pixels
+of coverage.  So we'd need to make the board 48 pixels high instead of 64 to use
+the same 3-bit destination height.  Better: a 6-pixel paddle with 2 pixel
+buffer, for 8 pixels of coverage over 10 pixels, allowing a 64-pixel board.  Use
+PADDLE_PIXEL for the inner 8 pixels of paddle plus buffer.  Then the outermost
+pixels repeat the PADDLE_PIXEL values, so they're 0, 0, 1, 2, 3, 4, 5, 6, 7, 7.
+Ball pixels coming in can look at neighbors to see which 0 or 7 it is.
+Hmm...really, since PADDLE_PIXEL is used for bounce angle, and the middle 2 or
+so will share the same angle, perhaps we should do 0, 1, 2, 3, 3, 4, 4, 5, 6, 7
+instead.  We will need to make sure that we add 2 pixels of space at the top and
+bottom so that the buffer never actually hits the wall; we can't lose a ball in
+the gap anyway.
+
 
 Simple buffer barely-miss:
 b  b  b  .  .       .  b  b  b  .
@@ -40,16 +51,16 @@ b  b: b:  :  :      .  b: b: b:  :
 .   :  :  :  p      .   :  :  :  p
 .   :  :  :  p      .   :  :  :  p
 
-Here the y-depth is 2 and the x-depth 3, so it's a miss.
+Here the y-depth [from PADDLE_PIXEL] is 2 and the x-depth 3, so it's a miss.
 
 State in the paddle and buffer:
   IsPaddle/IsPaddleBuffer:
-    2 global ID bits, 2 for buffers, 1 for paddle buffer
-  IsRightNotLeft:1
-  paddlePixel pixel:3-4, depending on size
+    2 global ID bits, 2 [4?] for buffers, 1 for paddle buffer
+  IsRightNotLeft:0 [reuse global buffer bits for that]
+  paddlePixel pixel:3
   Where-am-I location:6
   Where-am-I-going counter/altitude:3
-  When-can-I-leave [counter for info to propagate through thickness of paddle]:3
+  When-can-I-leave [counter for info to propagate through thickness of paddle]:2
 
 All that state needs to get stored in the ball as well, since it needs to be
 restored as the ball moves away.  Hmm...or can we just restore it from the
@@ -68,29 +79,56 @@ paddle will get special treatment that should make things easier and not require
 extra bits.
 
 Example bit allocations for a 3-pixel ball and a height-64 [so 6 bits] board
+with flush paddle [so no paddleBallSignal].
 
 Global: 2: type [isBall, isBackground, isAIPaddle, isWall]
   We can possibly use a lower bit from isBackground or isWall and use it for the
   non-AI paddle.
   Total: 2
-Ball: 2:depthX, 2:depthY, 1:down, 1:right, 3:moveIndex, 2:moveState, 1:decimator
-  [shared with paddle]. Do we need another 2 bits for depthYIntoPaddleBuffer?
-  Probably.
-  Total: 12-14
-Paddle/PaddleBuffer: 6:height, 3:dest, 2:moveSyncDelayCounter, 3:pixel [assumes
-  a 4-pixel paddle with 8-pixel-tall containing buffer], 1:paddleBallSignal [is
-  that needed with a big ball?  Not if the paddle is flush with the wall.],
+Ball: 2:depthX, 2:depthY, 2 depthYIntoPaddleBuffer, 1:down, 1:right, 3:moveIndex, 2:moveState, 1:decimator [shared with paddle].
+  Total: 14
+Paddle/PaddleBuffer: 6:height, 3:dest, 2:moveSyncDelayCounter, 3:pixel,
   1:decimator, 1:isBuffer.  We'll either have to save/restore the Y buffer or
   we'll have to figure it out from height and pixel...yeah, we can do that, and
   save the bit.
-  Total: 16-17 [1 shared with ball]
+  Total: 16 [1 shared with ball]
 Background/Buffer: 4:bufferFlags
-  Total: 4
+  Total: 4 [update--can reduce this to 3 or maybe 2.  See * below]
 
 The ball needs to hold all the paddle buffer bits as it goes through, otherwise
 a corner of the buffer, coming out from under the ball, won't have anywhere to
-grab them from.  So 14 ball bits plus 16 - 1 is 29 shared bits, plus 2 ID bits,
-so it's doable with maybe a bit to spare.
+grab them from.  So 14 ball bits plus 16 - 1 is 29 shared bits, plus 2 ID bits
+is 31, plus 4 buffer bits puts us over at 35.
+
+Where can we shave bits?  Cut down the choices of move angle from 30 to 15 to
+save 2 bits [1 state, 1 index].  Cut down paddlePixel to 2 bits to save 1,
+reducing bounce angle choices to 6 from 10.  That's 3 bits right there, which
+*might* just fit.
+
+Is there anything we can do to drop 1 of the y buffer bits and reuse the other?
+The top and bottom rows of the y buffer can tell which they are by their
+neighbors.  The middle row doesn't...but does it need to?  Probably.  A ball
+moving in can't tell whether to count up or down...except that it knows its
+count!  [*] So if I'm a middle cell, and a ball's coming in from below, and it's
+got depth 1, it must be entering rather than leaving.  If it has depth 3, it
+must be leaving.  OK, so that's another bit saved.  Can we do the same thing
+with the x bits?  I don't see why not.  2 more bits saved.  TODO: implement this
+on bigbounce.js.
+
+Even better: we can shave paddlePixel down to 1 bit without losing any
+resolution.  Each pixel can see up to 3 paddle pixels, or can see that the
+paddle ends.  In the end case, you know exactly where you are, at the end of the
+paddle.  For pixels in between, we'll use a bit pattern that lets us know our
+position.  For example, the pattern 0100011101 has no repeating 3-bit sequence,
+so each starting location is uniquely identified.  That's 10 pixel locations
+plus a 2-space buffer at each end, should we want a paddle that big.  Coverage
+of 14 pixels would let us have a 112-pixel height with 6 bit altitude, or a
+56-pixel height with 5-bit altitude, for another potential bit saving.  It would
+make the board look a little tiny, though, since it would be just 5.6 visible
+paddles high.  Current testing with an 8-pixel paddle on a 64-pixel board is 8
+visible paddles high.  We could of course use any paddle smaller than 10 pixels,
+but then we must reduce board height to ensure full coverage.
+Summary: 2 more bits saved.  TODO: Test this on paddle.js.
 
 What about the AI message?  It should get generated from a background cell that
 sees 3 ball cells stacked vertically to its side, newly-bounced, with the full
