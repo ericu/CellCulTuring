@@ -84,7 +84,7 @@ class BallState {
     this.down = bm.get('MOVE_D_NOT_U', color);
     this.state = bm.get('MOVE_STATE', color);
     this.index = bm.get('MOVE_INDEX', color);
-    if (this.bm.hasKey('DECIMATOR')) {
+    if (this.bm.hasKey('DECIMATOR', 'BALL')) {
       this.decimator = bm.get('DECIMATOR', color);
     }
     if (this.bm.hasKey('BUFFER_X_DEPTH_COUNTER')) {
