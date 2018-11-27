@@ -11,6 +11,7 @@ let bm;  // TODO: For debugging
 
   function initBitManager() {
     bm = new BitManager();
+    PaddleState.init(bm);
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
@@ -57,7 +58,7 @@ let bm;  // TODO: For debugging
     bm.declare('TOP_WALL_CENTER_FLAG', 1, 0, 'WALL');
 
     // Paddle fields
-    bm.declare('PADDLE_PIXEL', 3, 0, 'PADDLE');
+    bm.declare('PADDLE_PIXEL', 1, 0, 'PADDLE');
     bm.declare('PADDLE_BALL_SIGNAL', 1, 15, 'PADDLE');
     bm.declare('PADDLE_POSITION', 6, 16, 'PADDLE');
     bm.declare('PADDLE_DEST', 3, 8, 'PADDLE');
@@ -184,13 +185,14 @@ let bm;  // TODO: For debugging
     c.fillRect(bs.nextColor(), originX + 4, 27, 1, 1);
   }
 
+  const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1];
   function drawPaddle(c, left, topInPaddleCoords, dest) {
     let color = bm.getMask('PADDLE');
     // top + 2 for black border plus wall
     color = bm.set('PADDLE_POSITION', color, topInPaddleCoords);
     color = bm.set('PADDLE_DEST', color, dest);
     for (let pixel = 0; pixel < 8; ++pixel) {
-      let pixelColor = bm.set('PADDLE_PIXEL', color, pixel);
+      let pixelColor = bm.set('PADDLE_PIXEL', color, pixelEncoding[pixel]);
       // originY + 1 because there's a 1-pixel border at the top
       c.fillRect(pixelColor, left, topInPaddleCoords + originY + 1 + pixel, 1,
                  1);
@@ -271,7 +273,7 @@ let bm;  // TODO: For debugging
         for (let index of [1, 7]) {
           let color = data[index];
           if (isPaddle(color) && isPaddleMotionCycle(color)) {
-            let ps = new PaddleState(bm, color);
+            let ps = new PaddleState(color);
             if ((ps.getDY() > 0 && index === 1) ||
                 (ps.getDY() < 0 && index === 7)) {
               return bm.set('PADDLE_BALL_SIGNAL', ps.nextColor(), 1);
@@ -323,27 +325,21 @@ let bm;  // TODO: For debugging
               (bs.dY < 0 && isWall(data[1]))) {
             bs.bounce('y')
           }
-          let regularBounce, edgeBounce;
-
           if ((bs.dX > 0 && isPaddle(data[5])) ||
-              (bs.dX < 0 && isPaddle(data[3]))) {
-            regularBounce = true;
-          } else if ((bs.right && bs.down && isPaddle(data[8])) ||
-                     (!bs.right && bs.down && isPaddle(data[6])) ||
-                     (!bs.right && !bs.down && isPaddle(data[0])) ||
-                     (bs.right && !bs.down && isPaddle(data[2]))) {
-            edgeBounce = true;
-          }
-          if (regularBounce || edgeBounce) {
+              (bs.dX < 0 && isPaddle(data[3])) ||
+              (bs.right && bs.down && isPaddle(data[8])) ||
+              (!bs.right && bs.down && isPaddle(data[6])) ||
+              (!bs.right && !bs.down && isPaddle(data[0])) ||
+              (bs.right && !bs.down && isPaddle(data[2]))) {
             let paddlePixel;
-            for (let index of [3, 5, 0, 2, 6, 8]) {
-              let paddleColor = data[index];
-              if (isPaddle(paddleColor)) {
-                paddlePixel = bm.get('PADDLE_PIXEL', paddleColor)
-                bs.bounce('x', paddlePixel, edgeBounce);
-                break;
-              }
+            if (bs.right) {
+              paddlePixel = 
+                PaddleState.getPaddlePixel(data[2], data[5], data[8]);
+            } else {
+              paddlePixel = 
+                PaddleState.getPaddlePixel(data[0], data[3], data[6]);
             }
+            bs.bounce('x', paddlePixel);
           }
           let next = bm.set('RESPAWN_FLAG', bs.nextColor(), isRespawn(current));
           return bm.setMask('DECIMATOR', next, false);
@@ -364,7 +360,7 @@ let bm;  // TODO: For debugging
       for (let index of [1, 7]) {
         let color = data[index];
         if (isPaddle(color) && isPaddleMotionCycle(color)) {
-          let ps = new PaddleState(bm, color);
+          let ps = new PaddleState(color);
           if ((ps.getDY() > 0 && index === 1) ||
               (ps.getDY() < 0 && index === 7)) {
             // the paddle is moving onto us and there's no ball here
@@ -381,15 +377,22 @@ let bm;  // TODO: For debugging
             for (let i of [0, 3, 6, 2, 5, 8]) {
               if (isPaddle(data[i])) {
                 paddleIndex = i;
-                ps = new PaddleState(bm, data[i]);
-                leftPaddle = i in { 0:0, 3:0, 6:0 };
+                ps = new PaddleState(data[i]);
+                leftPaddle = i % 3 === 0 ? 1 : 0;
                 break;
               }
             }
-            if (ps && (!leftPaddle === !bs.right)) {
-              let paddleOffset = Math.floor(paddleIndex / 3) - 1;
+            if (ps && (leftPaddle === bs.right)) {
+              let paddlePixel;
+              if (leftPaddle) {
+                paddlePixel =
+                  PaddleState.getPaddlePixel(data[0], data[3], data[6]);
+              } else {
+                paddlePixel =
+                  PaddleState.getPaddlePixel(data[2], data[5], data[8]);
+              }
               let ballOffset = (index === 1) ? -1 : 1;
-              let start = ps.position + ps.pixel + ballOffset - paddleOffset;
+              let start = ps.position + paddlePixel + ballOffset;
               let dY = bs.getSlope() * paddleToPaddleDistance;
               if (!bs.down) {
                 dY = -dY
@@ -439,16 +442,16 @@ let bm;  // TODO: For debugging
           }
         }
       }
-      let ps = new PaddleState(bm, current);
+      let ps = new PaddleState(current);
       if (ps.isMotionCycle()) {
         if ((ps.getDY() > 0 && !isPaddle(data[1])) ||
             (ps.getDY() < 0 && !isPaddle(data[7]))) {
           return bm.getMask('BACKGROUND');
         }
         if (ps.getDY() > 0) {
-          ps = new PaddleState(bm, data[1]);
+          ps = new PaddleState(data[1]);
         } else if (ps.getDY() < 0) {
-          ps = new PaddleState(bm, data[7]);
+          ps = new PaddleState(data[7]);
         }
       }
       let leftWall = isWall(data[3]);

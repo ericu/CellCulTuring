@@ -141,26 +141,19 @@ class BallState {
 
   reflect(axis) {
     if (axis === 'x') {
-      this.right = !this.right;
+      this.right = this.right ^ 1;
     }
     else if (axis === 'y') {
-      this.down = !this.down;
+      this.down = this.down ^ 1;
     } else {
       assert(false);
     }
   }
 
-  bounce(axis, paddlePixel, edgeBounce) {
-    if (edgeBounce) {
-      if (!paddlePixel) {
-        paddlePixel = -1;
-      } else {
-        paddlePixel = 8;
-      }
-    }
+  bounce(axis, paddlePixel) {
     if (!this.index) {
       // It's level, so pretend the slope matches the paddle direction.
-      this.down = paddlePixel > 3;
+      this.down = paddlePixel > 3 ? 1 : 0;
     }
     let setIndex = false;
     if (paddlePixel !== undefined) {
@@ -168,7 +161,7 @@ class BallState {
         case -1:
         case 8:
           if ((this.down !== 0) !== (paddlePixel === 8)) {
-            this.down = !this.down;
+            this.down = this.down ^ 1;
           }
           this.index = 7;
           setIndex = true;
@@ -181,7 +174,7 @@ class BallState {
             this.index = this.index - 3;
             if (this.index < 0) {
               this.index = -this.index;
-              this.down = !this.down;
+              this.down = this.down ^ 1;
             }
           }
           setIndex = true;
@@ -194,7 +187,7 @@ class BallState {
             this.index = this.index - 2;
             if (this.index < 0) {
               this.index = -this.index;
-              this.down = !this.down;
+              this.down = this.down ^ 1;
             }
           }
           setIndex = true;
@@ -207,7 +200,7 @@ class BallState {
             this.index = this.index - 1;
             if (this.index < 0) {
               this.index = -this.index;
-              this.down = !this.down;
+              this.down = this.down ^ 1;
             }
           }
           break;
@@ -217,10 +210,10 @@ class BallState {
       }
     }
     if (axis === 'x') {
-      this.right = !this.right;
+      this.right = this.right ^ 1;
     }
     else if (axis === 'y') {
-      this.down = !this.down;
+      this.down = this.down ^ 1;
     } else {
       assert(false);
     }

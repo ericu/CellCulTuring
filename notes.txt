@@ -1,3 +1,8 @@
+KNOWN BUGS:
+
+Doubled message on ball bounce.
+Paddle stopping 1 pixel short of the top.
+
 Simple buffer:    Depth buffer: [Or 1-3, with 0 meaning not-in-buffer].
  . . . . .          . . . . .
  . : : : .          . 2 1 1 .
@@ -87,11 +92,12 @@ Global: 2: type [isBall, isBackground, isAIPaddle, isWall]
   Total: 2
 Ball: 2:depthX, 2:depthY, 2 depthYIntoPaddleBuffer, 1:down, 1:right, 3:moveIndex, 2:moveState, 1:decimator [shared with paddle].
   Total: 14
-Paddle/PaddleBuffer: 6:height, 3:dest, 2:moveSyncDelayCounter, 3:pixel,
+Paddle/PaddleBuffer: 6:position, 3:dest, 2:moveSyncDelayCounter, 3:pixel,
   1:decimator, 1:isBuffer.  We'll either have to save/restore the Y buffer or
-  we'll have to figure it out from height and pixel...yeah, we can do that, and
-  save the bit.
-  Total: 16 [1 shared with ball]
+  we'll have to figure it out from position and pixel...yeah, we can do that,
+  and save the bit...unless it's wasted saving because the ball and background
+  need to store it, but it may not be.
+  Total: 16-17 [1-2 shared with ball]
 Background/Buffer: 4:bufferFlags
   Total: 4 [update--can reduce this to 3 or maybe 2.  See * below]
 
