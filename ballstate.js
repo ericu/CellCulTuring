@@ -71,6 +71,38 @@ const motionTable = [
   },
 ]
 
+function processState(bs) {
+  let dX = 0, dY = 0;
+  let record = motionTable[bs.index];
+
+  let nextState = bs.state + record.bInc;
+  let overflow = false;
+  if (record.bMax && nextState >= record.bMax) {
+    overflow = true;
+    nextState -= record.bMax;
+  }
+  if (record.dir == 'x') {
+    dX = 1;
+    if (overflow) {
+      dY = 1;
+    }
+  } else {
+    dY = 1;
+    if (overflow) {
+      dX = 1;
+    }
+  }
+  if (!bs.right) {
+    dX = -dX;
+  }
+  if (!bs.down) {
+    dY = -dY;
+  }
+  bs.dX = dX;
+  bs.dY = dY;
+  bs.nextState = nextState;
+}
+
 // Note that these bit assignments are currently specific to anglebounce.js and
 // bigbounce.js.
 
@@ -93,37 +125,7 @@ class BallState {
     }
     assert(this.index >= 0 && this.index < motionTable.length);
 
-    let dX = 0, dY = 0;
-    let record = motionTable[this.index];
-
-    let nextState = this.state + record.bInc;
-    let overflow = false;
-    if (record.bMax && nextState >= record.bMax) {
-      overflow = true;
-      nextState -= record.bMax;
-    }
-    if (record.dir == 'x') {
-      dX = 1;
-      if (overflow) {
-        dY = 1;
-      }
-    } else {
-      dY = 1;
-      if (overflow) {
-        dX = 1;
-      }
-    }
-    if (!this.right) {
-      dX = -dX;
-    }
-    if (!this.down) {
-      dY = -dY;
-    }
-    this.dX = dX;
-    this.dY = dY;
-//    assert(this.dX >= 0);
-//    assert(this.dY >= 0);
-    this.nextState = nextState;
+    processState(this);
   }
 
   isMotionCycle() {
@@ -150,6 +152,8 @@ class BallState {
     }
   }
 
+  // TODO: Bounce should update state as well as nextState, and should update dX
+  // and dY using code refactored out of the constructor.
   bounce(axis, paddlePixel) {
     if (!this.index) {
       // It's level, so pretend the slope matches the paddle direction.
@@ -157,6 +161,7 @@ class BallState {
     }
     let setIndex = false;
     if (paddlePixel !== undefined) {
+      assert(axis === 'x');
       switch (paddlePixel) {
         case -1:
         case 8:
@@ -214,6 +219,7 @@ class BallState {
     }
     else if (axis === 'y') {
       this.down = this.down ^ 1;
+      processState(this);
     } else {
       assert(false);
     }
@@ -222,9 +228,11 @@ class BallState {
       // legal for the new index.  Since we want the ball to come off the paddle
       // the cycle after it hits to avoid duplicate AI messages, we pick a state
       // that forces that.
-      this.nextState = 0;
-      while(Math.abs(new BallState(this.bm, this.nextColor()).dX) < 0.5) {
-        ++this.nextState;
+      this.state = 0;
+      processState(this);
+      while(Math.abs(this.dX) < 0.5) {
+        ++this.state;
+        processState(this);
       }
     }
   }
@@ -275,6 +283,7 @@ class BallState {
       color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
       color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
     }
+    color = this.bm.set('MOVE_STATE', color, this.state);
     color = this.bm.set('MOVE_INDEX', color, this.index);
     return color;
   }

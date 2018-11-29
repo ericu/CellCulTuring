@@ -1,6 +1,11 @@
 KNOWN BUGS:
 
-Paddle stopping 1 pixel short of the top.
+* Paddle stopping 1 pixel short of the top.
+* Ball getting eaten at the bottom edge, when the paddle stopped short.  Looks
+like it bounced twice, but should have bounced 3 times!  May be fixed, but we
+haven't reproduced the case perfectly yet.  Must test the new bouncing logic
+thoroughly.
+* The ball/paddle timing issue now documented with a TODO in paddle.js.
 
 Simple buffer:    Depth buffer: [Or 1-3, with 0 meaning not-in-buffer].
  . . . . .          . . . . .

@@ -175,14 +175,14 @@ let bm;  // TODO: For debugging
     // Subtract 2 from height for top + bottom walls, then another to get below
     // the power of 2.
     drawPaddle(c, originX + 1, 16, 3);
-    drawPaddle(c, originX + width - 2, 5, 1);
+    drawPaddle(c, originX + width - 2, 52, 7);
 
     color = bm.getMask('BACKGROUND');
     c.fillRect(bm.setMask('RESPAWN_FLAG', color, true),
                originX + halfWidth, originY + halfHeight, 1, 1);
 
-    var bs = BallState.create(bm, 0, 0, 3, 0, bm.getMask('BALL'));
-    c.fillRect(bs.nextColor(), originX + 4, 27, 1, 1);
+    var bs = BallState.create(bm, 1, 1, 4, 0, bm.getMask('BALL'));
+    c.fillRect(bs.nextColor(), 61, 62, 1, 1);
   }
 
   const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1];
@@ -317,6 +317,7 @@ let bm;  // TODO: For debugging
           if (source.dX !== bs.dX || source.dY !== bs.dY) {
             break; // There's only 1 ball; exit early.
           }
+          bs = new BallState(bm, bs.nextColor());
           // It's a hit; lets see if it's also bouncing.
           // Do the y reflection first, so that when the x bounce resets the
           // state, it sticks.  We use the reset state to know when the ball has
@@ -324,6 +325,8 @@ let bm;  // TODO: For debugging
           if ((bs.dY > 0 && isWall(data[7])) ||
               (bs.dY < 0 && isWall(data[1]))) {
             bs.bounce('y')
+            assert(!((bs.dY > 0 && isWall(data[7])) ||
+                     (bs.dY < 0 && isWall(data[1]))));
           }
           if ((bs.dX > 0 && isPaddle(data[5])) ||
               (bs.dX < 0 && isPaddle(data[3])) ||
@@ -341,7 +344,14 @@ let bm;  // TODO: For debugging
             }
             bs.bounce('x', paddlePixel);
           }
-          let next = bm.set('RESPAWN_FLAG', bs.nextColor(), isRespawn(current));
+          // It may bounce again, if pinned between the edge of the paddle and
+          // the wall, so you get bounces off e.g. bottom wall, bottom corner of
+          // paddle, bottom wall; in a single cycle.
+          if ((bs.dY > 0 && isWall(data[7])) ||
+              (bs.dY < 0 && isWall(data[1]))) {
+            bs.bounce('y')
+          }
+          let next = bm.set('RESPAWN_FLAG', bs.getColor(), isRespawn(current));
           return bm.setMask('DECIMATOR', next, false);
         }
       }
@@ -424,8 +434,11 @@ let bm;  // TODO: For debugging
       // while we're moving.
 
       // A ball may penetrate from below or above.  In that case, we say that
-      // the paddle missed the ball, and signal the neighboring wall.
-      for (let i of [1, 7]) {
+      // the paddle missed the ball, and signal the neighboring wall.  We also
+      // do this if the ball thought it was missing us, and so didn't bounce,
+      // and then we jumped in front of it.  That'll look like a ball still
+      // aimed at us despite being next to us.
+      for (let i of [0, 1, 2, 3, 5, 6, 7, 8]) {
         let color = data[i];
         if (isBall(color)) {
           if (isBallMotionCycle(color)) {
