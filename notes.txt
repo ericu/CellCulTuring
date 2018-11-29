@@ -1,7 +1,3 @@
-KNOWN BUGS:
-
-* Paddle stopping 1 pixel short of the top.
-
 Simple buffer:    Depth buffer: [Or 1-3, with 0 meaning not-in-buffer].
  . . . . .          . . . . .
  . : : : .          . 2 1 1 .

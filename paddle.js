@@ -372,9 +372,6 @@ let bm;  // TODO: For debugging
           if ((ps.getDY() > 0 && index === 1) ||
               (ps.getDY() < 0 && index === 7)) {
             // the paddle is moving onto us and there's no ball here
-            console.log('paddle edge moving',
-                        bm.get('PADDLE_POSITION', color),
-                        bm.get('PADDLE_POSITION', ps.nextColor()));
             return bm.set('PADDLE_BALL_SIGNAL', ps.nextColor(), 0);
           }
         }
@@ -470,15 +467,14 @@ let bm;  // TODO: For debugging
       }
       let leftWall = isWall(data[3]);
       let color = leftWall ? data[5] : data[3];
+      let nextColor = ps.nextColor();
       if (isBackground(color) && bm.isSet('MESSAGE_PRESENT', color) &&
           bm.isSet('MESSAGE_H_NOT_V', color) &&
           (bm.isSet('MESSAGE_R_NOT_L', color) !== leftWall)) {
-        ps.dest = bm.get('MESSAGE_PADDLE_POSITION', color);
+        nextColor = bm.set('PADDLE_DEST', nextColor,
+                           bm.get('MESSAGE_PADDLE_POSITION', color));
       }
-      console.log('paddle middle moving',
-                  bm.get('PADDLE_POSITION', current),
-                  bm.get('PADDLE_POSITION', ps.nextColor()));
-      return bm.set('PADDLE_BALL_SIGNAL', ps.nextColor(), 0);
+      return bm.set('PADDLE_BALL_SIGNAL', nextColor, 0);
     }
     assert(false);
   }
