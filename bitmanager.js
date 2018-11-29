@@ -15,9 +15,11 @@ class BitManager {
   }
 
   hasKey(name, namespace) {
-    assert(namespace in this.namespacesByName);
-    let ns = this.namespacesByName[namespace];
-    return name in ns.info;
+    if (namespace in this.namespacesByName) {
+      let ns = this.namespacesByName[namespace];
+      return name in ns.info;
+    }
+    return false;
   }
 
   // This takes a 32-bit mask and a 32-bit value for that mask [so does no
