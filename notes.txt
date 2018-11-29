@@ -87,24 +87,22 @@ Global: 2: type [isBall, isBackground, isAIPaddle, isWall]
   Total: 2
 Ball: 2:depthX, 2:depthY, 2 depthYIntoPaddleBuffer, 1:down, 1:right, 3:moveIndex, 2:moveState, 1:decimator [shared with paddle].
   Total: 14
-Paddle/PaddleBuffer: 6:position, 3:dest, 2:moveSyncDelayCounter, 3:pixel,
+Paddle/PaddleBuffer: 6:position, 3:dest, 2:moveSyncDelayCounter, 1:pixel,
   1:decimator, 1:isBuffer.  We'll either have to save/restore the Y buffer or
   we'll have to figure it out from position and pixel...yeah, we can do that,
   and save the bit...unless it's wasted saving because the ball and background
   need to store it, but it may not be.
-  Total: 16-17 [1-2 shared with ball]
+  Total: 14-15 [decimator shared with ball]
 Background/Buffer: 4:bufferFlags
   Total: 4 [update--can reduce this to 3 or maybe 2.  See * below]
 
 The ball needs to hold all the paddle buffer bits as it goes through, otherwise
 a corner of the buffer, coming out from under the ball, won't have anywhere to
-grab them from.  So 14 ball bits plus 16 - 1 is 29 shared bits, plus 2 ID bits
-is 31, plus 4 buffer bits puts us over at 35.
+grab them from.  So 14 ball bits plus 14 - 1 is 27 shared bits, plus 2 ID bits
+is 29, plus 4 buffer bits puts us over at 33.
 
 Where can we shave bits?  Cut down the choices of move angle from 30 to 15 to
-save 2 bits [1 state, 1 index].  Cut down paddlePixel to 2 bits to save 1,
-reducing bounce angle choices to 6 from 10.  That's 3 bits right there, which
-*might* just fit.
+save 2 bits [1 state, 1 index].
 
 Is there anything we can do to drop 1 of the y buffer bits and reuse the other?
 The top and bottom rows of the y buffer can tell which they are by their
@@ -113,23 +111,8 @@ moving in can't tell whether to count up or down...except that it knows its
 count!  [*] So if I'm a middle cell, and a ball's coming in from below, and it's
 got depth 1, it must be entering rather than leaving.  If it has depth 3, it
 must be leaving.  OK, so that's another bit saved.  Can we do the same thing
-with the x bits?  I don't see why not.  2 more bits saved.  TODO: implement this
-on bigbounce.js.
-
-Even better: we can shave paddlePixel down to 1 bit without losing any
-resolution.  Each pixel can see up to 3 paddle pixels, or can see that the
-paddle ends.  In the end case, you know exactly where you are, at the end of the
-paddle.  For pixels in between, we'll use a bit pattern that lets us know our
-position.  For example, the pattern 0100011101 has no repeating 3-bit sequence,
-so each starting location is uniquely identified.  That's 10 pixel locations
-plus a 2-space buffer at each end, should we want a paddle that big.  Coverage
-of 14 pixels would let us have a 112-pixel height with 6 bit altitude, or a
-56-pixel height with 5-bit altitude, for another potential bit saving.  It would
-make the board look a little tiny, though, since it would be just 5.6 visible
-paddles high.  Current testing with an 8-pixel paddle on a 64-pixel board is 8
-visible paddles high.  We could of course use any paddle smaller than 10 pixels,
-but then we must reduce board height to ensure full coverage.
-Summary: 2 more bits saved.  TODO: Test this on paddle.js.
+with the x bits?  I don't see why not.  2 bits saved.  TODO: implement this on
+bigbounce.js.
 
 What about the AI message?  It should get generated from a background cell that
 sees 3 ball cells stacked vertically to its side, newly-bounced, with the full
