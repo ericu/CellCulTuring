@@ -9,6 +9,39 @@ let bm;  // TODO: For debugging
   const paddleToPaddleDistance = width - 5; // walls, paddles, ball width
   const topWallToBottomWallHeight = height - 3; // walls, ball height
 
+  function initPaddle(c) {
+    initBitManager();
+
+    c.fillRect(bm.getMask('BACKGROUND'), originX, originY, width, height);
+    c.strokeRect(bm.getMask('WALL'), originX, originY, width - 1, height - 1);
+
+    let halfWidth = Math.floor(width / 2);
+    let halfHeight = Math.floor(height / 2);
+    let color = bm.getMask('WALL');
+    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX, originY,
+               1, height - 1);
+    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX + width - 1,
+               originY, 1,
+               height - 1);
+    c.fillRect(bm.setMask('TOP_WALL_FLAG', color, true), originX, originY,
+               width, 1);
+    c.fillRect(bm.setMask('TOP_WALL_CENTER_FLAG', color, true),
+               originX + halfWidth,
+               originY, 1, 1);
+
+    // Subtract 2 from height for top + bottom walls, then another to get below
+    // the power of 2.
+    drawPaddle(c, originX + 1, 16, 3);
+    drawPaddle(c, originX + width - 2, 52, 7);
+
+    color = bm.getMask('BACKGROUND');
+    c.fillRect(bm.setMask('RESPAWN_FLAG', color, true),
+               originX + halfWidth, originY + halfHeight, 1, 1);
+
+    var bs = BallState.create(bm, 1, 1, 4, 0, bm.getMask('BALL'));
+    c.fillRect(bs.nextColor(), 61, 62, 1, 1);
+  }
+
   function initBitManager() {
     bm = new BitManager();
     PaddleState.init(bm);
@@ -91,7 +124,6 @@ let bm;  // TODO: For debugging
     bm.dumpStatus();
   }
 
-
   function isWall(c) {
     return bm.isSet('WALL_FLAG', c) && !bm.isSet('ID_1', c);
   }
@@ -149,40 +181,6 @@ let bm;  // TODO: For debugging
         return { dX: -1, dY: -1 };
       default: assert(false);
     }
-  }
-
-  function initPaddle(c) {
-    initBitManager();
-
-    c.fillRect(bm.getMask('BACKGROUND'), originX, originY,
-               canvas.width, canvas.height);
-    c.strokeRect(bm.getMask('WALL'), originX, originY, width - 1, height - 1);
-
-    let halfWidth = Math.floor(width / 2);
-    let halfHeight = Math.floor(height / 2);
-    let color = bm.getMask('WALL');
-    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX, originY,
-               1, height - 1);
-    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX + width - 1,
-               originY, 1,
-               height - 1);
-    c.fillRect(bm.setMask('TOP_WALL_FLAG', color, true), originX, originY,
-               width, 1);
-    c.fillRect(bm.setMask('TOP_WALL_CENTER_FLAG', color, true),
-               originX + halfWidth,
-               originY, 1, 1);
-
-    // Subtract 2 from height for top + bottom walls, then another to get below
-    // the power of 2.
-    drawPaddle(c, originX + 1, 16, 3);
-    drawPaddle(c, originX + width - 2, 52, 7);
-
-    color = bm.getMask('BACKGROUND');
-    c.fillRect(bm.setMask('RESPAWN_FLAG', color, true),
-               originX + halfWidth, originY + halfHeight, 1, 1);
-
-    var bs = BallState.create(bm, 1, 1, 4, 0, bm.getMask('BALL'));
-    c.fillRect(bs.nextColor(), 61, 62, 1, 1);
   }
 
   const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1];
@@ -374,6 +372,9 @@ let bm;  // TODO: For debugging
           if ((ps.getDY() > 0 && index === 1) ||
               (ps.getDY() < 0 && index === 7)) {
             // the paddle is moving onto us and there's no ball here
+            console.log('paddle edge moving',
+                        bm.get('PADDLE_POSITION', color),
+                        bm.get('PADDLE_POSITION', ps.nextColor()));
             return bm.set('PADDLE_BALL_SIGNAL', ps.nextColor(), 0);
           }
         }
@@ -474,6 +475,9 @@ let bm;  // TODO: For debugging
           (bm.isSet('MESSAGE_R_NOT_L', color) !== leftWall)) {
         ps.dest = bm.get('MESSAGE_PADDLE_POSITION', color);
       }
+      console.log('paddle middle moving',
+                  bm.get('PADDLE_POSITION', current),
+                  bm.get('PADDLE_POSITION', ps.nextColor()));
       return bm.set('PADDLE_BALL_SIGNAL', ps.nextColor(), 0);
     }
     assert(false);

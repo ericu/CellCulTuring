@@ -152,8 +152,6 @@ class BallState {
     }
   }
 
-  // TODO: Bounce should update state as well as nextState, and should update dX
-  // and dY using code refactored out of the constructor.
   bounce(axis, paddlePixel) {
     if (!this.index) {
       // It's level, so pretend the slope matches the paddle direction.

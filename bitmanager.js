@@ -24,8 +24,7 @@ class BitManager {
 
   // This takes a 32-bit mask and a 32-bit value for that mask [so does no
   // shifting].  It lets namespace masks overlap, so different values for the
-  // same mask can be used.  TODO: How can we protect against namespacED bits
-  // conflicting with namespace bits?
+  // same mask can be used.
   // The idea is that if pixel & mask === value, then you can safely use the
   // namespace.
   declareNamespace(name, value) {
