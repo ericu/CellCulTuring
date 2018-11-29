@@ -39,7 +39,7 @@ let bm;  // TODO: For debugging
                originX + halfWidth, originY + halfHeight, 1, 1);
 
     var bs = BallState.create(bm, 1, 1, 4, 0, bm.getMask('BALL'));
-    c.fillRect(bs.nextColor(), 61, 62, 1, 1);
+    c.fillRect(bs.nextColor(), 62, 62, 1, 1);
   }
 
   function initBitManager() {

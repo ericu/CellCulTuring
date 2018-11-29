@@ -21,6 +21,10 @@ const originY = borderSize;
   let outputView;
 
   function init() {
+    // TODO: Ensure that the proportions of the canvas are safe.  In particular,
+    // the width must be at least one greater than the height for the AI message
+    // to be safe, otherwise a corner-sourced message might not reach all pixels
+    // of the paddle, leading to it tearing in half.
     canvas = document.getElementById('canvas');
     canvas.style.width = 8 * canvas.width + 'px';
     canvas.style.height = 8 * canvas.height + 'px';
