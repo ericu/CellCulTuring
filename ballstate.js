@@ -152,6 +152,36 @@ class BallState {
     }
   }
 
+  reflectAngleInc(axis) {
+    let d;
+    if (axis === 'x') {
+      this.right = this.right ^ 1;
+      d = 'dX';
+    }
+    else if (axis === 'y') {
+      this.down = this.down ^ 1;
+      d = 'dY';
+    } else {
+      assert(false);
+    }
+    this.index = (this.index + 1) % 8;
+    if (axis === 'y' && this.index === 0) {
+      // Don't go horizontal from a Y bounce.
+      this.index = 1;
+    }
+    // when changing index, reset state to stay valid
+    this.state = 0;
+    processState(this);
+    // Here we want the *next* state to be the one moving off the wall, not the
+    // current one, since that's the one we'll be returning.
+    let nextBs = new BallState(this.bm, this.nextColor());
+    while(Math.abs(nextBs[d]) < 0.5) {
+      ++this.state;
+      processState(this);
+      nextBs = new BallState(this.bm, this.nextColor());
+    }
+  }
+
   bounce(axis, paddlePixel) {
     if (!this.index) {
       // It's level, so pretend the slope matches the paddle direction.
@@ -212,11 +242,14 @@ class BallState {
           break;
       }
     }
+    let d;
     if (axis === 'x') {
       this.right = this.right ^ 1;
+      d = 'dX'
     }
     else if (axis === 'y') {
       this.down = this.down ^ 1;
+      d = 'dY'
       processState(this);
     } else {
       assert(false);
@@ -228,9 +261,13 @@ class BallState {
       // that forces that.
       this.state = 0;
       processState(this);
-      while(Math.abs(this.dX) < 0.5) {
+      // Here we want the *next* state to be the one moving off the wall, not
+      // the current one, since that's the one we'll be returning.
+      let nextBs = new BallState(this.bm, this.nextColor());
+      while(Math.abs(nextBs[d]) < 0.5) {
         ++this.state;
         processState(this);
+        nextBs = new BallState(this.bm, this.nextColor());
       }
     }
   }

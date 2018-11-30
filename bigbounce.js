@@ -133,11 +133,11 @@
     var left = Math.round(canvas.width / 2);
     var top = Math.round(canvas.height / 2);
     const brightColor =
-      BallState.create(bm, 1, 1, 7, 0, bm.getMask('FULL_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, bm.getMask('FULL_BALL')).nextColor();
     const dimColor =
-      BallState.create(bm, 1, 1, 7, 0, bm.getMask('DIM_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, bm.getMask('DIM_BALL')).nextColor();
     const hiddenColor =
-      BallState.create(bm, 1, 1, 7, 0, bm.getMask('HIDDEN_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, bm.getMask('HIDDEN_BALL')).nextColor();
     if (BALL_SIZE === 7) {
       c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
       c.fillRect(hiddenColor, left, top, 1, 1);
@@ -219,6 +219,17 @@
     }
   }
 
+  function getBufferBits(data, bs, ballIndex) {
+    let current = data[4];
+    // bs is the ball at pixel ballIndex which is going to land where we are.
+    // If we're in a buffer of any kind, we need to know which, to be able to
+    // tell if we need to increment or decrement our depth counters, bounce,
+    // etc.
+    let bufferX = bm.get('BUFFER_X_FLAG', current);
+    let bufferY = bm.get('BUFFER_Y_FLAG', current);
+    // TODO
+  }
+
   function bigBounce(data, x, y) {
     const current = data[4];
 
@@ -276,26 +287,11 @@
           }
           if (bs.getDepthX() >= BUFFER_SIZE) {
             assert(bs.getDepthX() <= BUFFER_SIZE);
-            bs.reflect('x')
-            bs.index = (bs.index + 1) % 8;
-            // when changing index, reset state to stay valid
-            bs.nextState = 0;
-            while(Math.abs(new BallState(bm, bs.nextColor()).dX) < 0.5) {
-              ++bs.nextState;
-            }
+            bs.reflectAngleInc('x')
           }
           if (bs.getDepthY() >= BUFFER_SIZE) {
             assert(bs.getDepthY() <= BUFFER_SIZE);
-            bs.reflect('y')
-            bs.index = bs.index + 1;
-            if (bs.index >=8) {
-              bs.index = 1; // Don't go horizontal from top or bottom bounce.
-            }
-            // when changing index, reset state to stay valid
-            bs.nextState = 0;
-            while(Math.abs(new BallState(bm, bs.nextColor()).dY) < 0.5) {
-              ++bs.nextState;
-            }
+            bs.reflectAngleInc('y')
           }
           let nextColor = bs.nextColor();
           nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);

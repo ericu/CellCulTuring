@@ -1,5 +1,7 @@
 "use strict";
 
+// TODO: Bug where the respawn point's getting destroyed.
+
 let bm;  // TODO: For debugging
 (function () {
   const originX = 1;
@@ -197,6 +199,9 @@ let bm;  // TODO: For debugging
 
   }
 
+  // TODO: Identify any parts of this which could be refactored out as reusable
+  // functions.  Then break it up, reusable or not; it's just too big.  It'd
+  // also get us more granular resolution in the profiler.
   function paddle(data, x, y) {
     const current = data[4];
 
