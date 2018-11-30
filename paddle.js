@@ -288,21 +288,22 @@ let bm;  // TODO: For debugging
       // and a ball in the same cycle, and the ball must win.
 
       // Here's the respawn message coming down.
-      if (isBackground(data[1]) || isTopWallCenter(data[1])) {
-        let active = bm.isSet('MESSAGE_PRESENT', data[1]);
-        if (active && (isTopWallCenter(data[1]) || 
-                       !nsBackground.MESSAGE_H_NOT_V.isSet(data[1]))) {
-          if (isRespawn(current)) {
-            let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(data[1]);
-            let color = bm.setMask('BALL', 0, true);
-            color = nsBall.RESPAWN_FLAG.set(color, 1);
-            var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
-            let decimator = nsBackground.DECIMATOR.isSet(current);
-            return nsBall.DECIMATOR.set(bs.getColor(), !decimator);
-          } else {
-            let message = bm.get('RESPAWN_MESSAGE_BITS', data[1]);
-            return nsBackground.RESPAWN_MESSAGE_BITS.set(current, message);
-          }
+      let activeRespawnMessage =
+        (isBackground(data[1]) &&
+         nsBackground.MESSAGE_PRESENT.isSet(data[1]) &&
+         !nsBackground.MESSAGE_H_NOT_V.isSet(data[1])) ||
+        (isTopWallCenter(data[1]) && nsWall.MESSAGE_PRESENT.isSet(data[1]))
+      if (activeRespawnMessage) {
+        if (isRespawn(current)) {
+          let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(data[1]);
+          let color = bm.setMask('BALL', 0, true);
+          color = nsBall.RESPAWN_FLAG.set(color, 1);
+          var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
+          let decimator = nsBackground.DECIMATOR.isSet(current);
+          return nsBall.DECIMATOR.set(bs.getColor(), !decimator);
+        } else {
+          let message = bm.get('RESPAWN_MESSAGE_BITS', data[1]);
+          return nsBackground.RESPAWN_MESSAGE_BITS.set(current, message);
         }
       }
       // Handle the ball entering the pixel.
