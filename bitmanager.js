@@ -9,6 +9,23 @@ class BitManager {
     this.declareNamespace(undefined, undefined);
   }
 
+  getIsSetFunction(nameOrMask, nameOrValue, namespace) {
+    let mask = nameOrMask;
+    if (_.isString(nameOrMask)) {
+      const maskRecord = this.findRecord(nameOrMask, namespace);
+      assert(maskRecord);
+      mask = maskRecord.mask;
+    }
+    let value = nameOrValue;
+    if (_.isString(nameOrValue)) {
+      const valueRecord = this.findRecord(nameOrValue, namespace);
+      assert(valueRecord);
+      value = valueRecord.mask;
+    }
+    assert(_.isNumber(value));
+    return data => (data & mask) === value;
+  }
+
   setNamespaceBits(bits) {
     assert(this.namespaceBits === null);
     this.namespaceBits = bits;

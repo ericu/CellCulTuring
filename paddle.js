@@ -42,6 +42,9 @@ let bm;  // TODO: For debugging
     c.fillRect(bs.nextColor(), 62, 62, 1, 1);
   }
 
+  let isWall, isBackground, isBall, isPaddle, isRespawn, isTopWallCenter;
+  let isBallMotionCycleHelper, isPaddleMotionCycleHelper;
+
   function initBitManager() {
     bm = new BitManager();
     PaddleState.init(bm);
@@ -63,6 +66,7 @@ let bm;  // TODO: For debugging
     bm.alias('BALL_FLAG', 'ID_1');
     bm.combine('ID_BITS', ['ID_0', 'ID_1']);
     bm.alias('PADDLE_FLAG', 'ID_BITS');
+    bm.declare('BACKGROUND_FLAG', 0, 0);
 
     bm.setNamespaceBits(bm.getMask('ID_BITS'));
     bm.declareNamespace('BALL', bm.getMask('BALL_FLAG'));
@@ -122,40 +126,33 @@ let bm;  // TODO: For debugging
                 'MESSAGE_PADDLE_POSITION'],
                 'BACKGROUND');
     bm.dumpStatus();
-  }
 
-  function isWall(c) {
-    return bm.isSet('WALL_FLAG', c) && !bm.isSet('ID_1', c);
-  }
-
-  function isBackground(c) {
-    return !bm.isSet('ID_0', c) && !bm.isSet('ID_1', c);
-  }
-
-  function isBall(c) {
-    return bm.isSet('BALL_FLAG', c) && !bm.isSet('ID_0', c);
-  }
-
-  function isPaddle(c) {
-    return bm.isSet('PADDLE_FLAG', c);
+    isWall = bm.getIsSetFunction('ID_BITS', 'WALL_FLAG');
+    isPaddle = bm.getIsSetFunction('ID_BITS', 'PADDLE_FLAG');
+    isBackground = bm.getIsSetFunction('ID_BITS', 'BACKGROUND_FLAG');
+    isBall = bm.getIsSetFunction('ID_BITS', 'BALL_FLAG');
+    isBallMotionCycleHelper = bm.getIsSetFunction('DECIMATOR', 'DECIMATOR',
+                                                  'BALL');
+    isPaddleMotionCycleHelper = bm.getIsSetFunction('DECIMATOR', 0, 'PADDLE');
+    isRespawn = bm.getIsSetFunction(bm.getMask('ID_BITS') |
+                                    bm.getMask('RESPAWN_FLAG', 'BACKGROUND'),
+                                    bm.getMask('BACKGROUND') |
+                                    bm.getMask('RESPAWN_FLAG', 'BACKGROUND'))
+    isTopWallCenter =
+      bm.getIsSetFunction(bm.getMask('ID_BITS') |
+                          bm.getMask('TOP_WALL_CENTER_FLAG', 'WALL'),
+                          bm.getMask('WALL_FLAG') |
+                          bm.getMask('TOP_WALL_CENTER_FLAG', 'WALL'))
   }
 
   function isBallMotionCycle(c) {
     assert(isBall(c));
-    return bm.isSet('DECIMATOR', c);
+    return isBallMotionCycleHelper(c);
   }
 
   function isPaddleMotionCycle(c) {
     assert(isPaddle(c));
-    return !bm.isSet('DECIMATOR', c);
-  }
-
-  function isRespawn(c) {
-    return isBackground(c) && bm.isSet('RESPAWN_FLAG', c);
-  }
-
-  function isTopWallCenter(c) {
-    return isWall(c) && bm.isSet('TOP_WALL_CENTER_FLAG', c);
+    return isPaddleMotionCycleHelper(c);
   }
 
   function sourceDirectionFromIndex(i) {
