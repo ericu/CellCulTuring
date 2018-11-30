@@ -1,8 +1,7 @@
 "use strict";
 
-// TODO: Bug where the respawn point's getting destroyed.
-
 let bm;  // TODO: For debugging
+let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
 (function () {
   const originX = 1;
   const originY = 1;
@@ -46,7 +45,6 @@ let bm;  // TODO: For debugging
 
   let isWall, isBackground, isBall, isPaddle, isRespawn, isTopWallCenter;
   let isBallMotionCycleHelper, isPaddleMotionCycleHelper;
-  let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
 
   function initBitManager() {
     bm = new BitManager();
@@ -140,7 +138,7 @@ let bm;  // TODO: For debugging
     isPaddleMotionCycleHelper = bm.getIsSetFunction('DECIMATOR', 0, 'PADDLE');
     isRespawn = bm.getIsSetFunction(nsGlobal.ID_BITS.getMask() |
                                     nsBackground.RESPAWN_FLAG.getMask(),
-                                    nsGlobal.BACKGROUND.getMask() |
+                                    nsGlobal.BACKGROUND_FLAG.getMask() |
                                     nsBackground.RESPAWN_FLAG.getMask())
     isTopWallCenter =
       bm.getIsSetFunction(nsGlobal.ID_BITS.getMask() |
