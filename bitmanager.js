@@ -48,7 +48,7 @@ class BitManager {
     assert(!(value in this.namespacesByValue));
     const record = {
       name: name, // unused; for debugging
-      id: value, // unused; for debugging
+      id: value,
       mask: 0,
       info: {}
     };
@@ -113,12 +113,14 @@ class BitManager {
     }
     assert(!(name in ns.info));
     ns.mask = (ns.mask | mask) >>> 0;
-    ns.info[name] = {
+    let record = {
       offset: offset,
       bits: bits,
       mask: mask,
       count: count
-    };
+    }
+    ns.info[name] = record;
+    return new FastBM(this, record, namespace ? ns : null)
   }
 
   // internal
@@ -154,26 +156,29 @@ class BitManager {
     let mask = 0;
     let offset = 32;
     for (var name of oldNames) {
-      let record = this.findRecord(name, namespace);
-      assert(record);
-      mask = (mask | record.mask) >>> 0;
-      offset = Math.min(offset, record.offset);
+      let oldRecord = this.findRecord(name, namespace);
+      assert(oldRecord);
+      mask = (mask | oldRecord.mask) >>> 0;
+      offset = Math.min(offset, oldRecord.offset);
     }
     let bits = mask >>> offset;
-    ns.info[newName] = {
+    let record = {
       offset: offset,
       bits: bits,
       mask: mask
-    }
+    };
+    ns.info[newName] = record;
+    return new FastBM(this, record, namespace ? ns : null);
   }
 
   // NOTE: Only works within a single namespace.
   alias(newName, name, namespace) {
     assert(!this.findRecord(newName, namespace));
-    let record = this.findRecord(name, namespace);
+    let oldRecord = this.findRecord(name, namespace);
     assert(namespace in this.namespacesByName);
     let ns = this.namespacesByName[namespace];
-    ns.info[newName] = record;
+    ns.info[newName] = oldRecord;
+    return new FastBM(bm, oldRecord, namespace ? ns : null);
   }
 
   getMask(name, namespaceName) {
@@ -208,4 +213,55 @@ class BitManager {
   }
 }
 
+class FastBM {
+  constructor (bm, record, namespace) {
+    this.bm = bm;
+    this.record = record;
+    this.namespaceValue = 0;
+    this.namespaceBits = 0;
+    if (namespace) {
+      this.namespaceValue = namespace.id;
+      this.namespaceMask = this.bm.namespaceBits;
+    }
+  }
 
+  isSet(packed) {
+    assert(_.isNumber(packed));
+    assert(packed & this.namespaceBits === this.namespaceValue);
+    return ((packed & this.record.mask) >>> 0) === this.record.mask;
+  }
+
+  get(packed) {
+    assert(_.isNumber(packed));
+    assert(packed & this.namespaceBits === this.namespaceValue);
+    return (packed & this.record.mask) >>> this.record.offset;
+  }
+
+
+  getMask() {
+    return this.record.mask;
+  }
+
+  set(packed, value) {
+    assert(_.isNumber(packed));
+    assert(packed & this.namespaceBits === this.namespaceValue);
+    if (!_.isNumber(value)) {
+      assert(_.isBoolean(value));
+      assert(this.record.count === 1);
+      value = value ? 1 : 0;
+    }
+    assert(!(value & ~this.record.bits));
+    return ((packed & ~this.record.mask) | (value << this.record.offset)) >>> 0;
+  }
+
+  setMask(name, packed, value, namespace) {
+    assert(_.isNumber(packed));
+    assert(_.isBoolean(value));
+    assert(packed & this.namespaceBits === this.namespaceValue);
+    if (value) {
+      return (packed | this.record.mask) >>> 0;
+    } else {
+      return (packed & ~this.record.mask) >>> 0;
+    }
+  }
+}

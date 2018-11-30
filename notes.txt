@@ -240,3 +240,30 @@ score increment, and lights up on the final score.  There's a cell at its bottom
 center that sees an increment that's not the final score, and triggers a
 straight-down respawn message with LR in it.  We'd just need a few wall subtypes
 to deal with the routing.
+
+--------------------------------------------------------------------------------
+
+Optimization: it turns out we were spending something like 2/3 of our time in
+BitManager.getRecordInternal, with many of those calls from isPaddle, isBall,
+etc.  I made some dedicated functions to replace those, and that improved things
+from 15-25fps on my home laptop to 45-60fps [inconsistent and with a slow,
+jittery startup].  On my work laptop it'd been a fairly consistent 55-60fps
+before optimization, but that's a much newer machine.  To improve further, I'd
+like to remove the need for that function entirely.  Some thoughts:
+
+When registering a bitfield, return its record, either as something to pass to
+BitManager functions instead of the string, or as a class object that holds the
+BitManager methods.  This would remove the namespace validation that the current
+functions do, though, so we should have each record keep track of its namespace,
+and do the mask check before carrying out the requested function.
+
+That check too could be turned off as asserts could be, but if we can afford to
+keep it on indefinitely, that'd be nice.  We don't currently ever turn off
+asserts, and even if we did, we have no preprocessor [yet], so it won't save all
+that much.  A JS compiler could take care of that for us.
+
+It'll be easiest to implement the new functions without breaking the old if we
+make a new class and methods for the new objects, although there may be some
+duplication.  The new methods should be a lot smaller, though, and maybe they
+can share some core code.  All the declare/combine/alias core will be shared,
+since the central database will still be the same.
