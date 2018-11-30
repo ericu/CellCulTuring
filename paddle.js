@@ -12,20 +12,20 @@ let bm;  // TODO: For debugging
   function initPaddle(c) {
     initBitManager();
 
-    c.fillRect(bm.getMask('BACKGROUND'), originX, originY, width, height);
-    c.strokeRect(bm.getMask('WALL'), originX, originY, width - 1, height - 1);
+    c.fillRect(nsGlobal.BACKGROUND.getMask(), originX, originY, width, height);
+    c.strokeRect(nsGlobal.WALL.getMask(), originX, originY, width - 1, height - 1);
 
     let halfWidth = Math.floor(width / 2);
     let halfHeight = Math.floor(height / 2);
-    let color = bm.getMask('WALL');
-    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX, originY,
+    let color = nsGlobal.WALL.getMask();
+    c.fillRect(nsWall.SIDE_WALL_FLAG.setMask(color, true), originX, originY,
                1, height - 1);
-    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX + width - 1,
+    c.fillRect(nsWall.SIDE_WALL_FLAG.setMask(color, true), originX + width - 1,
                originY, 1,
                height - 1);
-    c.fillRect(bm.setMask('TOP_WALL_FLAG', color, true), originX, originY,
+    c.fillRect(nsWall.TOP_WALL_FLAG.setMask(color, true), originX, originY,
                width, 1);
-    c.fillRect(bm.setMask('TOP_WALL_CENTER_FLAG', color, true),
+    c.fillRect(nsWall.TOP_WALL_CENTER_FLAG.setMask(color, true),
                originX + halfWidth,
                originY, 1, 1);
 
@@ -34,16 +34,17 @@ let bm;  // TODO: For debugging
     drawPaddle(c, originX + 1, 16, 3);
     drawPaddle(c, originX + width - 2, 52, 7);
 
-    color = bm.getMask('BACKGROUND');
-    c.fillRect(bm.setMask('RESPAWN_FLAG', color, true),
+    color = nsGlobal.BACKGROUND.getMask();
+    c.fillRect(nsBackground.RESPAWN_FLAG.setMask(color, true),
                originX + halfWidth, originY + halfHeight, 1, 1);
 
-    var bs = BallState.create(bm, 1, 1, 4, 0, bm.getMask('BALL'));
+    var bs = BallState.create(bm, 1, 1, 4, 0, nsGlobal.BALL.getMask());
     c.fillRect(bs.nextColor(), 62, 62, 1, 1);
   }
 
   let isWall, isBackground, isBall, isPaddle, isRespawn, isTopWallCenter;
   let isBallMotionCycleHelper, isPaddleMotionCycleHelper;
+  let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
 
   function initBitManager() {
     bm = new BitManager();
@@ -68,11 +69,12 @@ let bm;  // TODO: For debugging
     bm.alias('PADDLE_FLAG', 'ID_BITS');
     bm.declare('BACKGROUND_FLAG', 0, 0);
 
-    bm.setNamespaceBits(bm.getMask('ID_BITS'));
-    bm.declareNamespace('BALL', bm.getMask('BALL_FLAG'));
-    bm.declareNamespace('WALL', bm.getMask('WALL_FLAG'));
-    bm.declareNamespace('PADDLE', bm.getMask('PADDLE_FLAG'));
-    bm.declareNamespace('BACKGROUND', 0);
+    nsGlobal = bm.global;
+    bm.setNamespaceBits(nsGlobal.ID_BITS.getMask());
+    nsBall = bm.declareNamespace('BALL', nsGlobal.BALL_FLAG.getMask());
+    nsWall = bm.declareNamespace('WALL', nsGlobal.WALL_FLAG.getMask());
+    nsPaddle = bm.declareNamespace('PADDLE', nsGlobal.PADDLE_FLAG.getMask());
+    nsBackground = bm.declareNamespace('BACKGROUND', 0);
 
 
     bm.declare('FULL_ALPHA', 4, 28);
@@ -134,15 +136,15 @@ let bm;  // TODO: For debugging
     isBallMotionCycleHelper = bm.getIsSetFunction('DECIMATOR', 'DECIMATOR',
                                                   'BALL');
     isPaddleMotionCycleHelper = bm.getIsSetFunction('DECIMATOR', 0, 'PADDLE');
-    isRespawn = bm.getIsSetFunction(bm.getMask('ID_BITS') |
-                                    bm.getMask('RESPAWN_FLAG', 'BACKGROUND'),
-                                    bm.getMask('BACKGROUND') |
-                                    bm.getMask('RESPAWN_FLAG', 'BACKGROUND'))
+    isRespawn = bm.getIsSetFunction(nsGlobal.ID_BITS.getMask() |
+                                    nsBackground.RESPAWN_FLAG.getMask(),
+                                    nsGlobal.BACKGROUND.getMask() |
+                                    nsBackground.RESPAWN_FLAG.getMask())
     isTopWallCenter =
-      bm.getIsSetFunction(bm.getMask('ID_BITS') |
-                          bm.getMask('TOP_WALL_CENTER_FLAG', 'WALL'),
-                          bm.getMask('WALL_FLAG') |
-                          bm.getMask('TOP_WALL_CENTER_FLAG', 'WALL'))
+      bm.getIsSetFunction(nsGlobal.ID_BITS.getMask() |
+                          nsWall.TOP_WALL_CENTER_FLAG.getMask(),
+                          nsGlobal.WALL_FLAG.getMask() |
+                          nsWall.TOP_WALL_CENTER_FLAG.getMask())
   }
 
   function isBallMotionCycle(c) {
@@ -182,12 +184,12 @@ let bm;  // TODO: For debugging
 
   const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1];
   function drawPaddle(c, left, topInPaddleCoords, dest) {
-    let color = bm.getMask('PADDLE');
+    let color = nsGlobal.PADDLE.getMask();
     // top + 2 for black border plus wall
-    color = bm.set('PADDLE_POSITION', color, topInPaddleCoords);
-    color = bm.set('PADDLE_DEST', color, dest);
+    color = nsPaddle.PADDLE_POSITION.set(color, topInPaddleCoords);
+    color = nsPaddle.PADDLE_DEST.set(color, dest);
     for (let pixel = 0; pixel < 8; ++pixel) {
-      let pixelColor = bm.set('PADDLE_PIXEL', color, pixelEncoding[pixel]);
+      let pixelColor = nsPaddle.PADDLE_PIXEL.set(color, pixelEncoding[pixel]);
       // originY + 1 because there's a 1-pixel border at the top
       c.fillRect(pixelColor, left, topInPaddleCoords + originY + 1 + pixel, 1,
                  1);
@@ -199,8 +201,8 @@ let bm;  // TODO: For debugging
     const current = data[4];
 
     if (isWall(current)) {
-      if (bm.isSet('SIDE_WALL_FLAG', current)) {
-        if (bm.isSet('MESSAGE_PRESENT', data[7])) {
+      if (nsWall.SIDE_WALL_FLAG.isSet(current)) {
+        if (nsWall.MESSAGE_PRESENT.isSet(data[7])) {
           return data[7];
         }
         for (let i = 0; i < 9; ++i) {
@@ -210,52 +212,52 @@ let bm;  // TODO: For debugging
             let source = sourceDirectionFromIndex(i);
             if (source.dX === bs.dX && source.dY === bs.dY) {
               // There's a ball hitting us.
-              var next = bm.set('MESSAGE_PRESENT', current, 1);
-              return bm.set('MESSAGE_R_NOT_L', next, source.dX < 0);
+              var next = nsWall.MESSAGE_PRESENT.set(current, 1);
+              return nsWall.MESSAGE_R_NOT_L.set(next, source.dX < 0);
             }
           }
           if ((i === 3 || i === 5) && isPaddle(color) &&
-              bm.isSet('PADDLE_BALL_SIGNAL', color)) {
-            var next = bm.set('MESSAGE_PRESENT', current, 1);
-            return bm.set('MESSAGE_R_NOT_L', next, i === 5);
+              nsPaddle.PADDLE_BALL_SIGNAL.isSet(color)) {
+            var next = nsWall.MESSAGE_PRESENT.set(current, 1);
+            return nsWall.MESSAGE_R_NOT_L.set(next, i === 5);
           }
         }
-      } else if (bm.isSet('TOP_WALL_CENTER_FLAG', current)) {
-        if (bm.isSet('MESSAGE_PRESENT', data[5])) {
-          assert(bm.get('MESSAGE_R_NOT_L', data[5]) === 0);
-          let message = bm.get('RESPAWN_MESSAGE_BITS', data[5]);
-          return bm.set('RESPAWN_MESSAGE_BITS', current, message);
+      } else if (nsWall.TOP_WALL_CENTER_FLAG.isSet(current)) {
+        if (nsWall.MESSAGE_PRESENT.isSet(data[5])) {
+          assert(nsWall.MESSAGE_R_NOT_L.get(data[5]) === 0);
+          let message = nsWall.RESPAWN_MESSAGE_BITS.get(data[5]);
+          return nsWall.RESPAWN_MESSAGE_BITS.set(current, message);
         }
-        if (bm.isSet('MESSAGE_PRESENT', data[3])) {
-          assert(bm.get('MESSAGE_R_NOT_L', data[3]) === 1);
-          let message = bm.get('RESPAWN_MESSAGE_BITS', data[3]);
-          return bm.set('RESPAWN_MESSAGE_BITS', current, message);
+        if (nsWall.MESSAGE_PRESENT.isSet(data[3])) {
+          assert(nsWall.MESSAGE_R_NOT_L.get(data[3]) === 1);
+          let message = nsWall.RESPAWN_MESSAGE_BITS.get(data[3]);
+          return nsWall.RESPAWN_MESSAGE_BITS.set(current, message);
         }
-      } else if (bm.isSet('TOP_WALL_FLAG', current)) {
-        if (bm.isSet('MESSAGE_PRESENT', data[5]) &&
-            !bm.isSet('MESSAGE_R_NOT_L', data[5]) &&
-            !bm.isSet('TOP_WALL_CENTER_FLAG', data[5])) {
+      } else if (nsWall.TOP_WALL_FLAG.isSet(current)) {
+        if (isWall(data[5]) && nsWall.MESSAGE_PRESENT.isSet(data[5]) &&
+            !nsWall.MESSAGE_R_NOT_L.isSet(data[5]) &&
+            !nsWall.TOP_WALL_CENTER_FLAG.isSet(data[5])) {
           return data[5];
         }
-        if (bm.isSet('MESSAGE_PRESENT', data[3]) &&
-            bm.isSet('MESSAGE_R_NOT_L', data[3]) &&
-            !bm.isSet('TOP_WALL_CENTER_FLAG', data[3])) {
+        if (isWall(data[3]) && nsWall.MESSAGE_PRESENT.isSet(data[3]) &&
+            nsWall.MESSAGE_R_NOT_L.isSet(data[3]) &&
+            !nsWall.TOP_WALL_CENTER_FLAG.isSet(data[3])) {
           return data[3];
         }
-        if (isWall(data[7]) && bm.isSet('MESSAGE_PRESENT', data[7])) {
-          let message = bm.get('RESPAWN_MESSAGE_BITS', data[7]);
-          return bm.set('RESPAWN_MESSAGE_BITS', current, message);
+        if (isWall(data[7]) && nsWall.MESSAGE_PRESENT.isSet(data[7])) {
+          let message = nsWall.RESPAWN_MESSAGE_BITS.get(data[7]);
+          return nsWall.RESPAWN_MESSAGE_BITS.set(current, message);
         }
       }
-      return bm.set('RESPAWN_MESSAGE_BITS', current, 0);
+      return nsWall.RESPAWN_MESSAGE_BITS.set(current, 0);
     } else if (isBall(current)) {
       if (isBallMotionCycle(current)) {
-        let next = bm.getMask('BACKGROUND');
-        let respawn = bm.isSet('RESPAWN_FLAG', current);
-        let decimator = bm.isSet('DECIMATOR', current);
+        let next = nsGlobal.BACKGROUND.getMask();
+        let respawn = nsBall.RESPAWN_FLAG.isSet(current);
+        let decimator = nsBall.DECIMATOR.isSet(current);
         if (respawn) {
-          next = bm.set('RESPAWN_FLAG', next, true);
-          next = bm.set('DECIMATOR', next, !decimator);
+          next = nsBackground.RESPAWN_FLAG.set(next, true);
+          next = nsBackground.DECIMATOR.set(next, !decimator);
         }
         return next;
       } else {
@@ -271,11 +273,11 @@ let bm;  // TODO: For debugging
             let ps = new PaddleState(color);
             if ((ps.getDY() > 0 && index === 1) ||
                 (ps.getDY() < 0 && index === 7)) {
-              return bm.set('PADDLE_BALL_SIGNAL', ps.nextColor(), 1);
+              return nsPaddle.PADDLE_BALL_SIGNAL.set(ps.nextColor(), 1);
             }
           }
         }
-        return bm.set('DECIMATOR', current, 1);
+        return nsBall.DECIMATOR.set(current, 1);
       }
     } else if (isBackground(current)) {
       // First deal with messages and respawns, then deal with the ball and
@@ -289,17 +291,17 @@ let bm;  // TODO: For debugging
       if (isBackground(data[1]) || isTopWallCenter(data[1])) {
         let active = bm.isSet('MESSAGE_PRESENT', data[1]);
         if (active && (isTopWallCenter(data[1]) || 
-                       !bm.isSet('MESSAGE_H_NOT_V', data[1]))) {
+                       !nsBackground.MESSAGE_H_NOT_V.isSet(data[1]))) {
           if (isRespawn(current)) {
-            let rightNotL = bm.get('MESSAGE_R_NOT_L', data[1]);
+            let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(data[1]);
             let color = bm.setMask('BALL', 0, true);
-            color = bm.set('RESPAWN_FLAG', color, 1);
+            color = nsBall.RESPAWN_FLAG.set(color, 1);
             var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
-            let decimator = bm.isSet('DECIMATOR', current);
-            return bm.set('DECIMATOR', bs.getColor(), !decimator);
+            let decimator = nsBackground.DECIMATOR.isSet(current);
+            return nsBall.DECIMATOR.set(bs.getColor(), !decimator);
           } else {
             let message = bm.get('RESPAWN_MESSAGE_BITS', data[1]);
-            return bm.set('RESPAWN_MESSAGE_BITS', current, message);
+            return nsBackground.RESPAWN_MESSAGE_BITS.set(current, message);
           }
         }
       }
@@ -346,19 +348,20 @@ let bm;  // TODO: For debugging
               (bs.dY < 0 && isWall(data[1]))) {
             bs.bounce('y')
           }
-          let next = bm.set('RESPAWN_FLAG', bs.getColor(), isRespawn(current));
-          return bm.setMask('DECIMATOR', next, false);
+          let next = nsBall.RESPAWN_FLAG.set(bs.getColor(), isRespawn(current));
+          return nsBall.DECIMATOR.setMask(next, false);
         }
       }
       // Here's the horizontal AI message passing through.
       for (let i of [0, 2, 3, 5, 6, 8]) {
         let color = data[i];
         let active = isBackground(color) &&
-                     bm.isSet('MESSAGE_PRESENT', color) &&
-                     bm.isSet('MESSAGE_H_NOT_V', color);
-        if (active && (bm.isSet('MESSAGE_R_NOT_L', color) === (i % 3 === 0))) {
-          let bits = bm.get('ALL_MESSAGE_BITS', color);
-          return bm.set('ALL_MESSAGE_BITS', current, bits);
+                     nsBackground.MESSAGE_PRESENT.isSet(color) &&
+                     nsBackground.MESSAGE_H_NOT_V.isSet(color);
+        if (active &&
+            (nsBackground.MESSAGE_R_NOT_L.isSet(color) === (i % 3 === 0))) {
+          let bits = nsBackground.ALL_MESSAGE_BITS.get(color);
+          return nsBackground.ALL_MESSAGE_BITS.set(current, bits);
         }
       }
       // Handle the paddle and creating AI messages.
@@ -369,7 +372,7 @@ let bm;  // TODO: For debugging
           if ((ps.getDY() > 0 && index === 1) ||
               (ps.getDY() < 0 && index === 7)) {
             // the paddle is moving onto us and there's no ball here
-            return bm.set('PADDLE_BALL_SIGNAL', ps.nextColor(), 0);
+            return nsPaddle.PADDLE_BALL_SIGNAL.set(ps.nextColor(), 0);
           }
         }
         if (isBall(color)) {
@@ -411,17 +414,20 @@ let bm;  // TODO: For debugging
               if (Math.floor(y / topWallToBottomWallHeight) % 2) {
                 clippedY = topWallToBottomWallHeight - clippedY
               }
-              let next = bm.set('MESSAGE_PRESENT', current, 1);
-              next = bm.set('MESSAGE_R_NOT_L', next, bs.right);
-              next = bm.set('MESSAGE_H_NOT_V', next, 1);
-              return bm.set('MESSAGE_PADDLE_POSITION', next, clippedY >>> 3);
+              let next = nsBackground.MESSAGE_PRESENT.set(current, 1);
+              next = nsBackground.MESSAGE_R_NOT_L.set(next, bs.right);
+              next = nsBackground.MESSAGE_H_NOT_V.set(next, 1);
+              return nsBackground.MESSAGE_PADDLE_POSITION.set(next,
+                                                              clippedY >>> 3);
             }
           }
         }
       }
-      let next = bm.set('ALL_MESSAGE_BITS', current, 0);
+      let next = nsBackground.ALL_MESSAGE_BITS.set(current, 0);
       if (isRespawn(current)) {
-        next = bm.set('DECIMATOR', next, !bm.isSet('DECIMATOR', current));
+        next =
+          nsBackground.DECIMATOR.set(next,
+                                     !nsBackground.DECIMATOR.isSet(current));
       }
       return next;
     } else if (isPaddle(current)) {
@@ -442,9 +448,10 @@ let bm;  // TODO: For debugging
             if (source.dX !== bs.dX || source.dY !== bs.dY) {
               break; // There's only 1 ball; exit early.
             }
-            let next = bm.set('DECIMATOR', current,
-                              !bm.isSet('DECIMATOR', current));
-            return bm.set('PADDLE_BALL_SIGNAL', next, 1);
+            let next =
+              nsPaddle.DECIMATOR.set(current,
+                                     !nsPaddle.DECIMATOR.isSet(current));
+            return nsPaddle.PADDLE_BALL_SIGNAL.set(next, 1);
           } else {
             break; // There's only 1 ball; exit early.
           }
@@ -454,7 +461,7 @@ let bm;  // TODO: For debugging
       if (ps.isMotionCycle()) {
         if ((ps.getDY() > 0 && !isPaddle(data[1])) ||
             (ps.getDY() < 0 && !isPaddle(data[7]))) {
-          return bm.getMask('BACKGROUND');
+          return nsGlobal.BACKGROUND.getMask();
         }
         if (ps.getDY() > 0) {
           ps = new PaddleState(data[1]);
@@ -465,13 +472,14 @@ let bm;  // TODO: For debugging
       let leftWall = isWall(data[3]);
       let color = leftWall ? data[5] : data[3];
       let nextColor = ps.nextColor();
-      if (isBackground(color) && bm.isSet('MESSAGE_PRESENT', color) &&
-          bm.isSet('MESSAGE_H_NOT_V', color) &&
-          (bm.isSet('MESSAGE_R_NOT_L', color) !== leftWall)) {
-        nextColor = bm.set('PADDLE_DEST', nextColor,
-                           bm.get('MESSAGE_PADDLE_POSITION', color));
+      if (isBackground(color) && nsBackground.MESSAGE_PRESENT.isSet(color) &&
+          nsBackground.MESSAGE_H_NOT_V.isSet(color) &&
+          (nsBackground.MESSAGE_R_NOT_L.isSet(color) !== leftWall)) {
+        nextColor =
+          nsPaddle.PADDLE_DEST.set(
+            nextColor, nsBackground.MESSAGE_PADDLE_POSITION.get(color));
       }
-      return bm.set('PADDLE_BALL_SIGNAL', nextColor, 0);
+      return nsPaddle.PADDLE_BALL_SIGNAL.set(nextColor, 0);
     }
     assert(false);
   }
