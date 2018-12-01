@@ -44,16 +44,13 @@
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
-    bm.declare('BUFFER_X_MIN_FLAG', 1, 0);
-    bm.declare('BUFFER_Y_MIN_FLAG', 1, 1);
-    bm.declare('BUFFER_X_MAX_FLAG', 1, 2);
-    bm.declare('BUFFER_Y_MAX_FLAG', 1, 3);
-    bm.combine('BUFFER_FLAGS', ['BUFFER_X_MIN_FLAG', 'BUFFER_Y_MIN_FLAG',
-                                'BUFFER_X_MAX_FLAG', 'BUFFER_Y_MAX_FLAG']);
-    bm.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_MIN_FLAG']);
-    bm.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_MAX_FLAG']);
-    bm.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_MIN_FLAG']);
-    bm.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_MAX_FLAG']);
+    bm.declare('BUFFER_X_FLAG', 1, 0);
+    bm.declare('BUFFER_Y_FLAG', 1, 1);
+    bm.combine('BUFFER_FLAGS', ['BUFFER_X_FLAG', 'BUFFER_Y_FLAG']);
+    bm.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
+    bm.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
+    bm.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
+    bm.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
     bm.combine('XY_MAX_BUFFER', ['X_MAX_BUFFER', 'Y_MAX_BUFFER']);
     bm.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
     bm.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
@@ -219,15 +216,49 @@
     }
   }
 
-  function getBufferBits(data, bs, ballIndex) {
-    let current = data[4];
-    // bs is the ball at pixel ballIndex which is going to land where we are.
+  function getBufferBits(data, bs) {
+    function testBounds(lower, current, higher, flag,
+                        bsDepth, bsDir) {
+      assert(BUFFER_SIZE === 3);
+      if (isWall(lower) || !bm.get(flag, higher)) {
+        return 'min';
+      }
+      if (isWall(higher) || !bm.get(flag, lower)) {
+        return 'max';
+      }
+      // The only ball pixels that land on the middle buffer cell are:
+      // 1) the pixel that just bounced off the wall;
+      // 2) the leading pixel on its way in;
+      // 3) the second pixel on its way in.
+      if (bsDepth === BUFFER_SIZE) {
+        return bsDir > 0 ? 'min' : 'max';
+      }
+      return bsDir > 0 ? 'max' : 'min';
+    }
+
+    // bs is the ball which is going to land where we are.
     // If we're in a buffer of any kind, we need to know which, to be able to
     // tell if we need to increment or decrement our depth counters, bounce,
     // etc.
+    let current = data[4];
     let bufferX = bm.get('BUFFER_X_FLAG', current);
     let bufferY = bm.get('BUFFER_Y_FLAG', current);
-    // TODO
+    let bufferXDir = null;
+    let bufferYDir = null;
+    if (bufferX) {
+      bufferXDir = testBounds(data[3], current, data[5], 'BUFFER_X_FLAG',
+                              bs.depthX, bs.right);
+    }
+    if (bufferY) {
+      bufferYDir = testBounds(data[1], current, data[7], 'BUFFER_Y_FLAG',
+                              bs.depthY, bs.down);
+    }
+    return {
+      xMin: bufferXDir === 'min',
+      yMin: bufferYDir === 'min',
+      xMax: bufferXDir === 'max',
+      yMax: bufferYDir === 'max',
+    };
   }
 
   function bigBounce(data, x, y) {
@@ -261,10 +292,11 @@
           bs.setDepthX(maxDepthX);
           bs.setDepthY(maxDepthY);
           // It's a hit; lets see if it's also bouncing or in a buffer.
-          let bufferXMin = bm.get('BUFFER_X_MIN_FLAG', current);
-          let bufferXMax = bm.get('BUFFER_X_MAX_FLAG', current);
-          let bufferYMin = bm.get('BUFFER_Y_MIN_FLAG', current);
-          let bufferYMax = bm.get('BUFFER_Y_MAX_FLAG', current);
+          let bufferBits = getBufferBits(data, bs);
+          let bufferXMin = bufferBits.xMin;
+          let bufferXMax = bufferBits.xMax;
+          let bufferYMin = bufferBits.yMin;
+          let bufferYMax = bufferBits.yMax;
           let bufferFlags = bm.get('BUFFER_FLAGS', current);
 
           if (bs.dX > 0 && bufferXMax) {

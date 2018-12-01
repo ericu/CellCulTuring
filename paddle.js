@@ -14,7 +14,8 @@ let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
     initBitManager();
 
     c.fillRect(nsGlobal.BACKGROUND.getMask(), originX, originY, width, height);
-    c.strokeRect(nsGlobal.WALL.getMask(), originX, originY, width - 1, height - 1);
+    c.strokeRect(nsGlobal.WALL.getMask(), originX, originY,
+                 width - 1, height - 1);
 
     let halfWidth = Math.floor(width / 2);
     let halfHeight = Math.floor(height / 2);
