@@ -1,7 +1,7 @@
 "use strict";
 
+let bm;
 (function () {
-  let bm;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -220,10 +220,16 @@
     function testBounds(lower, current, higher, flag,
                         bsDepth, bsDir) {
       assert(BUFFER_SIZE === 3);
-      if (isWall(lower) || !bm.get(flag, higher)) {
+      if (isWall(lower)) {
         return 'min';
       }
-      if (isWall(higher) || !bm.get(flag, lower)) {
+      if (isWall(higher)) {
+        return 'max';
+      }
+      if (!bm.get(flag, higher)) {
+        return 'min';
+      }
+      if (!bm.get(flag, lower)) {
         return 'max';
       }
       // The only ball pixels that land on the middle buffer cell are:

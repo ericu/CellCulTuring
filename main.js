@@ -104,20 +104,22 @@ const originY = borderSize;
     return i + canvas.width * j
   }
 
-  function dumpImageData(data) {
-    let view = new Uint32Array(data.data.buffer);
-    for (let j = 0; j < data.height; ++j) {
-      let addr = getAddr32(0, j);
-      var t = _.map(view.slice(addr, addr + data.width), i =>
-                    i.toString(16)).join(', ');
+  function dumpImageData(view, x, y, w, h) {
+    for (let j = y; j < y + h; ++j) {
+      let addr = getAddr32(x, j);
+      var t = _.map(view.slice(addr, addr + w), i => i.toString(16)).join(', ');
       console.log(t);
     }
   }
   window.dumpImageData = dumpImageData;
 
-  function dumpBoard() {
-    console.log('board state:')
-    dumpImageData(context.getImageData(0, 0, canvas.width, canvas.height));
+  function dumpBoard(x, y, w, h) {
+    console.log('board state:');
+    x = x || 0;
+    y = y || 0;
+    w = w || canvas.width;
+    h = h || canvas.height;
+    dumpImageData(inputView, x, y, w, h);
   }
   window.dumpBoard = dumpBoard;
 

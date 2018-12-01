@@ -1,8 +1,9 @@
 "use strict";
 
-let bm;  // TODO: For debugging
+// For debugging.
 let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
 (function () {
+  let bm;
   const originX = 1;
   const originY = 1;
   const width = canvas.width - 2; // immutable black border

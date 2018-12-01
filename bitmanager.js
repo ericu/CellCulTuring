@@ -10,6 +10,22 @@ class BitManager {
     this.globalNamespace = this.namespacesByName[undefined];
   }
 
+  dumpInfo(packed) {
+    var that = this;
+    function dumpNS(ns, packed) {
+      for (var r in ns.info) {
+        let record = ns.info[r];
+        let value = that.get(r, packed);
+        console.log(r, value.toString(16));
+      }
+    }
+    dumpNS(this.globalNamespace, packed);
+    let nsID = (packed & this.namespaceBits) >>> 0;
+    if (nsID in this.namespacesByValue) {
+      dumpNS(this.namespacesByValue[nsID], packed);
+    }
+  }
+
   getIsSetFunction(nameOrMask, nameOrValue, namespace) {
     let mask = nameOrMask;
     if (_.isString(nameOrMask)) {
