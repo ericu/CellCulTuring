@@ -1,7 +1,10 @@
 "use strict";
 
 (function () {
-  let bm;
+  let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
+
+  nsGlobal = new Namespace();
+  let bm = new BitManager(nsGlobal);
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -12,67 +15,65 @@
   const BUFFER_SIZE = BALL_SIZE;
 
   function initBitManager() {
-    bm = new BitManager(new Namespace());
-
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
     // Sentinel bits that determine type:
-    bm.declare('WALL_FLAG', 1, 7);
-    bm.declare('HIDDEN_BALL_FLAG', 1, 24);
-    bm.declare('DIM_BALL_FLAG', 1, 14);
-    bm.declare('BRIGHT_BALL_FLAG', 1, 15);
-    bm.combine('FULL_BALL_FLAG',
+    nsGlobal.declare('WALL_FLAG', 1, 7);
+    nsGlobal.declare('HIDDEN_BALL_FLAG', 1, 24);
+    nsGlobal.declare('DIM_BALL_FLAG', 1, 14);
+    nsGlobal.declare('BRIGHT_BALL_FLAG', 1, 15);
+    nsGlobal.combine('FULL_BALL_FLAG',
                ['DIM_BALL_FLAG', 'BRIGHT_BALL_FLAG', 'HIDDEN_BALL_FLAG']);
 
-    bm.declare('FULL_ALPHA', 4, 28); // Leaves 4 low bits free.
+    nsGlobal.declare('FULL_ALPHA', 4, 28); // Leaves 4 low bits free.
 
-    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.combine('HIDDEN_BALL', ['FULL_ALPHA', 'HIDDEN_BALL_FLAG']);
-    bm.combine('FULL_BALL', ['FULL_ALPHA', 'FULL_BALL_FLAG']);
-    bm.combine('DIM_BALL', ['FULL_ALPHA', 'DIM_BALL_FLAG']);
-    bm.alias('BACKGROUND', 'FULL_ALPHA');
+    nsGlobal.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
+    nsGlobal.combine('HIDDEN_BALL', ['FULL_ALPHA', 'HIDDEN_BALL_FLAG']);
+    nsGlobal.combine('FULL_BALL', ['FULL_ALPHA', 'FULL_BALL_FLAG']);
+    nsGlobal.combine('DIM_BALL', ['FULL_ALPHA', 'DIM_BALL_FLAG']);
+    nsGlobal.alias('BACKGROUND', 'FULL_ALPHA');
 
     // Used only by the ball.
-    bm.declare('BUFFER_X_DEPTH_COUNTER', BUFFER_X_DEPTH_COUNTER_BITS,
+    nsGlobal.declare('BUFFER_X_DEPTH_COUNTER', BUFFER_X_DEPTH_COUNTER_BITS,
                28 - BUFFER_X_DEPTH_COUNTER_BITS); // Take over low alpha bits.
-    bm.declare('BUFFER_Y_DEPTH_COUNTER', BUFFER_Y_DEPTH_COUNTER_BITS,
+    nsGlobal.declare('BUFFER_Y_DEPTH_COUNTER', BUFFER_Y_DEPTH_COUNTER_BITS,
                20); // Steal mid-range wall bits for now.
-    bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
-    bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
-    bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 3, 16); // Steal bits from wall.
+    nsGlobal.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
+    nsGlobal.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
+    nsGlobal.declare('MOVE_STATE', 2, 10);
+    nsGlobal.declare('MOVE_INDEX', 3, 16); // Steal bits from wall.
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
-    bm.declare('BUFFER_X_FLAG', 1, 0);
-    bm.declare('BUFFER_Y_FLAG', 1, 1);
-    bm.combine('BUFFER_FLAGS', ['BUFFER_X_FLAG', 'BUFFER_Y_FLAG']);
-    bm.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
-    bm.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
-    bm.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
-    bm.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
-    bm.combine('XY_MAX_BUFFER', ['X_MAX_BUFFER', 'Y_MAX_BUFFER']);
-    bm.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
-    bm.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
-    bm.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
+    nsGlobal.declare('BUFFER_X_FLAG', 1, 0);
+    nsGlobal.declare('BUFFER_Y_FLAG', 1, 1);
+    nsGlobal.combine('BUFFER_FLAGS', ['BUFFER_X_FLAG', 'BUFFER_Y_FLAG']);
+    nsGlobal.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
+    nsGlobal.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
+    nsGlobal.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
+    nsGlobal.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
+    nsGlobal.combine('XY_MAX_BUFFER', ['X_MAX_BUFFER', 'Y_MAX_BUFFER']);
+    nsGlobal.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
+    nsGlobal.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
+    nsGlobal.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
 
-    bm.declare('SIDE_WALL_FLAG', 1, 5);
-    bm.declare('TOP_WALL_FLAG', 1, 4);
-    bm.declare('MESSAGE_R_NOT_L', 1, 3);
-    bm.declare('MESSAGE_PRESENT', 1, 6);
-    bm.combine('MESSAGE_BITS', ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
+    nsGlobal.declare('SIDE_WALL_FLAG', 1, 5);
+    nsGlobal.declare('TOP_WALL_FLAG', 1, 4);
+    nsGlobal.declare('MESSAGE_R_NOT_L', 1, 3);
+    nsGlobal.declare('MESSAGE_PRESENT', 1, 6);
+    nsGlobal.combine('MESSAGE_BITS', ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
 
-    bm.declare('TOP_WALL_CENTER_FLAG', 1, 19);
-    bm.alias('SIGNAL_DOWN_ACTIVE_FLAG', 'MESSAGE_PRESENT');
-    bm.declare('RESPAWN_FLAG', 1, 23);
-    bm.declare('RESPAWN_PHASE_2_FLAG', 1, 2);
+    nsGlobal.declare('TOP_WALL_CENTER_FLAG', 1, 19);
+    nsGlobal.alias('SIGNAL_DOWN_ACTIVE_FLAG', 'MESSAGE_PRESENT');
+    nsGlobal.declare('RESPAWN_FLAG', 1, 23);
+    nsGlobal.declare('RESPAWN_PHASE_2_FLAG', 1, 2);
 
-    bm.combine('RETAINED_BACKGROUND_BITS', ['RESPAWN_FLAG', 'BACKGROUND']);
-    bm.dumpStatus();  
+    nsGlobal.combine('RETAINED_BACKGROUND_BITS', ['RESPAWN_FLAG', 'BACKGROUND']);
+    nsGlobal.dumpStatus();  
   }
 
   function isWall (c) {
-    return bm.isSet('WALL_FLAG', c);
+    return nsGlobal.WALL_FLAG.isSet(c);
   }
 
   function isBackground (c) {
@@ -80,11 +81,11 @@
   }
 
   function isBall (c) {
-    return bm.get('FULL_BALL_FLAG', c) !== 0;
+    return nsGlobal.FULL_BALL_FLAG.get(c) !== 0;
   }
 
   function isRespawn(c) {
-    return isBackground(c) && bm.isSet('RESPAWN_FLAG', c);
+    return isBackground(c) && nsGlobal.RESPAWN_FLAG.isSet(c);
   }
 
   function isCenterRespawn(data) {
@@ -93,7 +94,7 @@
   }
 
   function isTopWallCenter(c) {
-    return isWall(c) && bm.isSet('TOP_WALL_CENTER_FLAG', c);
+    return isWall(c) && nsGlobal.TOP_WALL_CENTER_FLAG.isSet(c);
   }
 
   function sourceDirectionFromIndex(i) {
@@ -137,51 +138,53 @@
     // We fill the whole canvas, then put a wall around that corresponds to the
     // originX/originY/width/height sentinel frame.
 
-    c.fillRect(bm.getMask('BACKGROUND'), 0, 0, canvas.width, canvas.height);
-    c.fillRect(bm.setMask('RESPAWN_FLAG', bm.getMask('BACKGROUND'), true),
+    c.fillRect(nsGlobal.BACKGROUND.getMask(), 0, 0,
+               canvas.width, canvas.height);
+    c.fillRect(nsGlobal.RESPAWN_FLAG.setMask(nsGlobal.BACKGROUND.getMask(),
+                                             true),
                originX + halfWidth - 1, originY + halfHeight - 1,
                BALL_SIZE, BALL_SIZE);
 
 
-    let color = bm.getMask('WALL');
+    let color = nsGlobal.WALL.getMask();
     c.fillRect(color, originX, height, width, 1);
-    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX, originY,
+    c.fillRect(nsGlobal.SIDE_WALL_FLAG.setMask(color, true), originX, originY,
                1, height - 1);
-    c.fillRect(bm.setMask('SIDE_WALL_FLAG', color, true), originX + width - 1,
+    c.fillRect(nsGlobal.SIDE_WALL_FLAG.setMask(color, true), originX + width - 1,
                originY, 1,
                height - 1);
-    c.fillRect(bm.setMask('TOP_WALL_FLAG', color, true), originX, originY,
+    c.fillRect(nsGlobal.TOP_WALL_FLAG.setMask(color, true), originX, originY,
                width, 1);
-    c.fillRect(bm.setMask('TOP_WALL_CENTER_FLAG', color, true),
+    c.fillRect(nsGlobal.TOP_WALL_CENTER_FLAG.setMask(color, true),
                originX + halfWidth,
                originY, 1, 1);
 
     // Buffer regions
-    c.fillRect(bm.getMask('X_MIN_BUFFER'),
+    c.fillRect(nsGlobal.X_MIN_BUFFER.getMask(),
                insideWallOriginX, insideWallOriginY + BUFFER_SIZE,
                BUFFER_SIZE, insideWallHeight - 2 * BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MAX_BUFFER'),
+    c.fillRect(nsGlobal.X_MAX_BUFFER.getMask(),
                insideWallOriginX + insideWallWidth - BUFFER_SIZE,
                insideWallOriginY + BUFFER_SIZE,
                BUFFER_SIZE, insideWallHeight - 2 * BUFFER_SIZE);
-    c.fillRect(bm.getMask('Y_MIN_BUFFER'),
+    c.fillRect(nsGlobal.Y_MIN_BUFFER.getMask(),
                insideWallOriginX + BUFFER_SIZE, insideWallOriginY,
                insideWallWidth - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('Y_MAX_BUFFER'),
+    c.fillRect(nsGlobal.Y_MAX_BUFFER.getMask(),
                insideWallOriginX + BUFFER_SIZE,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                insideWallWidth - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('XY_MIN_BUFFER'),
+    c.fillRect(nsGlobal.XY_MIN_BUFFER.getMask(),
                insideWallOriginX, insideWallOriginY,
                BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('XY_MAX_BUFFER'),
+    c.fillRect(nsGlobal.XY_MAX_BUFFER.getMask(),
                insideWallOriginX + insideWallWidth - BUFFER_SIZE,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MAX_Y_MIN_BUFFER'), insideWallOriginX +
+    c.fillRect(nsGlobal.X_MAX_Y_MIN_BUFFER.getMask(), insideWallOriginX +
                insideWallWidth - BUFFER_SIZE,
                insideWallOriginY, BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MIN_Y_MAX_BUFFER'), insideWallOriginX,
+    c.fillRect(nsGlobal.X_MIN_Y_MAX_BUFFER.getMask(), insideWallOriginX,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
 
@@ -189,11 +192,11 @@
     var left = Math.round(canvas.width / 2 + 4);
     var top = Math.round(canvas.height / 2 + 4);
     const brightColor =
-      BallState.create(bm, 1, 1, 4, 0, bm.getMask('FULL_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, nsGlobal.FULL_BALL.getMask()).nextColor();
     const dimColor =
-      BallState.create(bm, 1, 1, 4, 0, bm.getMask('DIM_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, nsGlobal.DIM_BALL.getMask()).nextColor();
     const hiddenColor =
-      BallState.create(bm, 1, 1, 4, 0, bm.getMask('HIDDEN_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, nsGlobal.HIDDEN_BALL.getMask()).nextColor();
     if (BALL_SIZE === 7) {
       c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
       c.fillRect(hiddenColor, left, top, 1, 1);
@@ -285,10 +288,10 @@
       if (isWall(higher)) {
         return 'max';
       }
-      if (!bm.get(flag, higher)) {
+      if (!nsGlobal[flag].get(higher)) {
         return 'min';
       }
-      if (!bm.get(flag, lower)) {
+      if (!nsGlobal[flag].get(lower)) {
         return 'max';
       }
       // The only ball pixels that land on the middle buffer cell are:
@@ -306,8 +309,8 @@
     // tell if we need to increment or decrement our depth counters, bounce,
     // etc.
     let current = data[4];
-    let bufferX = bm.get('BUFFER_X_FLAG', current);
-    let bufferY = bm.get('BUFFER_Y_FLAG', current);
+    let bufferX = nsGlobal.BUFFER_X_FLAG.get(current);
+    let bufferY = nsGlobal.BUFFER_Y_FLAG.get(current);
     let bufferXDir = null;
     let bufferYDir = null;
     if (bufferX) {
@@ -330,8 +333,8 @@
     const current = data[4];
 
     if (isWall(current)) {
-      if (bm.isSet('SIDE_WALL_FLAG', current)) {
-        if (bm.isSet('MESSAGE_PRESENT', data[7])) {
+      if (nsGlobal.SIDE_WALL_FLAG.isSet(current)) {
+        if (nsGlobal.MESSAGE_PRESENT.isSet(data[7])) {
           return data[7];
         }
         // Only trigger if we're at the middle of the ball, to prevent
@@ -339,37 +342,37 @@
         let right = false;
         if (_.every([0, 3, 6], i => isBall(data[i])) ||
             (right = _.every([2, 5, 8], i => isBall(data[i])))) {
-          var next = bm.set('MESSAGE_PRESENT', current, 1);
-          return bm.set('MESSAGE_R_NOT_L', next, right);
+          var next = nsGlobal.MESSAGE_PRESENT.set(current, 1);
+          return nsGlobal.MESSAGE_R_NOT_L.set(next, right);
         }
-      } else if (bm.isSet('TOP_WALL_CENTER_FLAG', current)) {
-        if (bm.isSet('MESSAGE_PRESENT', data[5])) {
-          assert(bm.get('MESSAGE_R_NOT_L', data[5]) === 0);
-          let message = bm.get('MESSAGE_BITS', data[5]);
-          return bm.set('MESSAGE_BITS', current, message);
+      } else if (nsGlobal.TOP_WALL_CENTER_FLAG.isSet(current)) {
+        if (nsGlobal.MESSAGE_PRESENT.isSet(data[5])) {
+          assert(nsGlobal.MESSAGE_R_NOT_L.get(data[5]) === 0);
+          let message = nsGlobal.MESSAGE_BITS.get(data[5]);
+          return nsGlobal.MESSAGE_BITS.set(current, message);
         }
-        if (bm.isSet('MESSAGE_PRESENT', data[3])) {
-          assert(bm.get('MESSAGE_R_NOT_L', data[3]) === 1);
-          let message = bm.get('MESSAGE_BITS', data[3]);
-          return bm.set('MESSAGE_BITS', current, message);
+        if (nsGlobal.MESSAGE_PRESENT.isSet(data[3])) {
+          assert(nsGlobal.MESSAGE_R_NOT_L.get(data[3]) === 1);
+          let message = nsGlobal.MESSAGE_BITS.get(data[3]);
+          return nsGlobal.MESSAGE_BITS.set(current, message);
         }
-      } else if (bm.isSet('TOP_WALL_FLAG', current)) {
-        if (bm.isSet('MESSAGE_PRESENT', data[5]) &&
-            !bm.isSet('MESSAGE_R_NOT_L', data[5]) &&
-            !bm.isSet('TOP_WALL_CENTER_FLAG', data[5])) {
+      } else if (nsGlobal.TOP_WALL_FLAG.isSet(current)) {
+        if (nsGlobal.MESSAGE_PRESENT.isSet(data[5]) &&
+            !nsGlobal.MESSAGE_R_NOT_L.isSet(data[5]) &&
+            !nsGlobal.TOP_WALL_CENTER_FLAG.isSet(data[5])) {
           return data[5];
         }
-        if (bm.isSet('MESSAGE_PRESENT', data[3]) &&
-            bm.isSet('MESSAGE_R_NOT_L', data[3]) &&
-            !bm.isSet('TOP_WALL_CENTER_FLAG', data[3])) {
+        if (nsGlobal.MESSAGE_PRESENT.isSet(data[3]) &&
+            nsGlobal.MESSAGE_R_NOT_L.isSet(data[3]) &&
+            !nsGlobal.TOP_WALL_CENTER_FLAG.isSet(data[3])) {
           return data[3];
         }
-        if (bm.isSet('MESSAGE_PRESENT', data[7])) {
-          let message = bm.get('MESSAGE_BITS', data[7]);
-          return bm.set('MESSAGE_BITS', current, message);
+        if (nsGlobal.MESSAGE_PRESENT.isSet(data[7])) {
+          let message = nsGlobal.MESSAGE_BITS.get(data[7]);
+          return nsGlobal.MESSAGE_BITS.set(current, message);
         }
       }
-      return bm.set('MESSAGE_BITS', current, 0);
+      return nsGlobal.MESSAGE_BITS.set(current, 0);
     }
     // Both ball and background need to handle incoming ball pixels.
 
@@ -378,40 +381,40 @@
     // cycle.
     if (isBackground(current) && (isBackground(data[1]) ||
                                   isTopWallCenter(data[1]))) {
-      let active = bm.get('SIGNAL_DOWN_ACTIVE_FLAG', data[1]);
+      let active = nsGlobal.SIGNAL_DOWN_ACTIVE_FLAG.get(data[1]);
       if (active) {
         if (isCenterRespawn(data)) {
-          let rightNotL = bm.get('MESSAGE_R_NOT_L', data[1]);
-          let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
-          let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
-          color = bm.set('MESSAGE_R_NOT_L', color, rightNotL);
-          color = bm.setMask('RESPAWN_PHASE_2_FLAG', color, true);
+          let rightNotL = nsGlobal.MESSAGE_R_NOT_L.get(data[1]);
+          let retained = nsGlobal.RETAINED_BACKGROUND_BITS.get(current);
+          let color = nsGlobal.RETAINED_BACKGROUND_BITS.set(0, retained);
+          color = nsGlobal.MESSAGE_R_NOT_L.set(color, rightNotL);
+          color = nsGlobal.RESPAWN_PHASE_2_FLAG.setMask(color, true);
           return color;
         } else {
-          let message = bm.get('MESSAGE_BITS', data[1]);
-          return bm.set('MESSAGE_BITS', current, message);
+          let message = nsGlobal.MESSAGE_BITS.get(data[1]);
+          return nsGlobal.MESSAGE_BITS.set(current, message);
         }
       }
     }
     if (isRespawn(current)) {
       for (let d of data) {
-        if (bm.get('RESPAWN_PHASE_2_FLAG', d)) {
-          let rightNotL = bm.get('MESSAGE_R_NOT_L', d);
-          let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
-          let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
-          color = bm.setMask('DIM_BALL', color, true);
+        if (nsGlobal.RESPAWN_PHASE_2_FLAG.get(d)) {
+          let rightNotL = nsGlobal.MESSAGE_R_NOT_L.get(d);
+          let retained = nsGlobal.RETAINED_BACKGROUND_BITS.get(current);
+          let color = nsGlobal.RETAINED_BACKGROUND_BITS.set(0, retained);
+          color = nsGlobal.DIM_BALL.setMask(color, true);
           var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
           let next = bs.getColor();
           if (isCenterRespawn(data)) {
-            next = bm.setMask('BRIGHT_BALL_FLAG', next, true);
+            next = nsGlobal.BRIGHT_BALL_FLAG.setMask(next, true);
           }
           return next;
         }
       }
     }
 
-    let bufferFlags = bm.get('BUFFER_FLAGS', current);
-    let respawn = bm.get('RESPAWN_FLAG', current);
+    let bufferFlags = nsGlobal.BUFFER_FLAGS.get(current);
+    let respawn = nsGlobal.RESPAWN_FLAG.get(current);
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
       if (isBall(color)) {
@@ -421,7 +424,7 @@
         // neighboring ball pixels and take the highest depth on the way in;
         // they'll all match on the way out.
         let bs = new BallState(bm, color);
-        if (!bs.getDepthX() && bm.get('BUFFER_X_FLAG', color) !== 0) {
+        if (!bs.getDepthX() && nsGlobal.BUFFER_X_FLAG.get(color) !== 0) {
           // The ball has hit the end wall and should vanish, so ignore it.
           break;
         }
@@ -473,15 +476,15 @@
             bs.reflectAngleInc('y')
           }
           let nextColor = bs.nextColor();
-          nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
-          nextColor = bm.set('RESPAWN_FLAG', nextColor, respawn);
+          nextColor = nsGlobal.BUFFER_FLAGS.set(nextColor, bufferFlags);
+          nextColor = nsGlobal.RESPAWN_FLAG.set(nextColor, respawn);
           return nextColor;
         }
       }
     }
-    let background = bm.getMask('BACKGROUND')
-    let nextColor = bm.set('BUFFER_FLAGS', background, bufferFlags);
-    nextColor = bm.set('RESPAWN_FLAG', nextColor, respawn);
+    let background = nsGlobal.BACKGROUND.getMask()
+    let nextColor = nsGlobal.BUFFER_FLAGS.set(background, bufferFlags);
+    nextColor = nsGlobal.RESPAWN_FLAG.set(nextColor, respawn);
     return nextColor;
   }
 
