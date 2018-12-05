@@ -262,27 +262,16 @@ to deal with the routing.
 
 --------------------------------------------------------------------------------
 
-Optimization: it turns out we were spending something like 2/3 of our time in
-BitManager.getRecordInternal, with many of those calls from isPaddle, isBall,
-etc.  I made some dedicated functions to replace those, and that improved things
-from 15-25fps on my home laptop to 45-60fps [inconsistent and with a slow,
-jittery startup].  On my work laptop it'd been a fairly consistent 55-60fps
-before optimization, but that's a much newer machine.  To improve further, I'd
-like to remove the need for that function entirely.  Some thoughts:
-
-When registering a bitfield, return its record, either as something to pass to
-BitManager functions instead of the string, or as a class object that holds the
-BitManager methods.  This would remove the namespace validation that the current
-functions do, though, so we should have each record keep track of its namespace,
-and do the mask check before carrying out the requested function.
-
-That check too could be turned off as asserts could be, but if we can afford to
-keep it on indefinitely, that'd be nice.  We don't currently ever turn off
-asserts, and even if we did, we have no preprocessor [yet], so it won't save all
-that much.  A JS compiler could take care of that for us.
-
-It'll be easiest to implement the new functions without breaking the old if we
-make a new class and methods for the new objects, although there may be some
-duplication.  The new methods should be a lot smaller, though, and maybe they
-can share some core code.  All the declare/combine/alias core will be shared,
-since the central database will still be the same.
+How to implement multi-level namespaces?  The current one has global
+namespaceBits in the bitmanager; we'd want to have each level somehow hold the
+bits for the next level down, so the current namespaceBits would live in the
+global namespace.  When declaring a namespace, you'd point to its parent
+namespace and give your value for the parent's namespaceBits.  Declaring values
+would search all the way up the chain for conflicts.  FastBM would work pretty
+well this way, but the older lookup would get more complicated.  If the symbol's
+not global, you check against the global namespaceBits and look for a subspace
+with that value.  Each namespace would have to have a namespacesByValue [and
+namespacesByName?] container for those recursive lookups, which would replace
+the current global hash.  How would declare() work?  Would you pass in a
+namespace path?  Or perhaps there would be a new declare on NamespaceWrapper,
+and only FastBM users would be able to take advantage of the new features.

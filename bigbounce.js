@@ -1,7 +1,7 @@
 "use strict";
 
-let bm;
 (function () {
+  let bm;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -12,7 +12,7 @@ let bm;
   const BUFFER_SIZE = BALL_SIZE;
 
   function initBitManager() {
-    bm = new BitManager();
+    bm = new BitManager(new Namespace());
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 

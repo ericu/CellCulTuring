@@ -4,7 +4,7 @@
   let bm;
 
   function initBitManager() {
-    bm = new BitManager();
+    bm = new BitManager(new Namespace());
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 

@@ -2,8 +2,8 @@
 
 // For debugging.
 let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
+let bm;
 (function () {
-  let bm;
   const originX = 1;
   const originY = 1;
   const width = canvas.width - 2; // immutable black border
@@ -49,7 +49,8 @@ let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
   let isBallMotionCycleHelper, isPaddleMotionCycleHelper;
 
   function initBitManager() {
-    bm = new BitManager();
+    nsGlobal = new Namespace();
+    bm = new BitManager(nsGlobal);
     PaddleState.init(bm);
 
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
@@ -61,89 +62,96 @@ let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
     // That leaves green and alpha for everyone to use, but that high green bit
     // is going to be pretty obvious if the background ever uses it.  Can use it
     // for paddle counters/pixels, ball params, just not messages.
-    bm.declare('ID_0', 1, 7);
-    bm.declare('ID_1', 1, 23);
+    nsGlobal.declare('ID_0', 1, 7);
+    nsGlobal.declare('ID_1', 1, 23);
 
     // Sentinel bits that determine type:
-    bm.alias('WALL_FLAG', 'ID_0');
-    bm.alias('BALL_FLAG', 'ID_1');
-    bm.combine('ID_BITS', ['ID_0', 'ID_1']);
-    bm.alias('PADDLE_FLAG', 'ID_BITS');
-    bm.declare('BACKGROUND_FLAG', 0, 0);
+    nsGlobal.alias('WALL_FLAG', 'ID_0');
+    nsGlobal.alias('BALL_FLAG', 'ID_1');
+    nsGlobal.combine('ID_BITS', ['ID_0', 'ID_1']);
+    nsGlobal.alias('PADDLE_FLAG', 'ID_BITS');
+    nsGlobal.declare('BACKGROUND_FLAG', 0, 0);
 
-    nsGlobal = bm.global;
-    bm.setNamespaceBits(nsGlobal.ID_BITS.getMask());
-    nsBall = bm.declareNamespace('BALL', nsGlobal.BALL_FLAG.getMask());
-    nsWall = bm.declareNamespace('WALL', nsGlobal.WALL_FLAG.getMask());
-    nsPaddle = bm.declareNamespace('PADDLE', nsGlobal.PADDLE_FLAG.getMask());
-    nsBackground = bm.declareNamespace('BACKGROUND', 0);
+    nsGlobal.setSubspaceMask('ID_BITS');
+    nsBall = nsGlobal.declareSubspace('BALL', 'BALL_FLAG');
+    nsWall = nsGlobal.declareSubspace('WALL', 'WALL_FLAG');
+    nsPaddle = nsGlobal.declareSubspace('PADDLE', 'PADDLE_FLAG');
+    nsBackground = nsGlobal.declareSubspace('BACKGROUND', 0);
 
 
-    bm.declare('FULL_ALPHA', 4, 28);
+    nsGlobal.declare('FULL_ALPHA', 4, 28);
 
-    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.combine('PADDLE', ['FULL_ALPHA', 'PADDLE_FLAG']);
-//    bm.declare('BALL_EXTRA_BRIGHTNESS', 1, 22); // optional, but nice
-//    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG', 'BALL_EXTRA_BRIGHTNESS']);
-    bm.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
+    nsGlobal.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
+    nsGlobal.combine('PADDLE', ['FULL_ALPHA', 'PADDLE_FLAG']);
+//    nsGlobal.declare('BALL_EXTRA_BRIGHTNESS', 1, 22); // optional, but nice
+//    nsGlobal.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG', 'BALL_EXTRA_BRIGHTNESS']);
+    nsGlobal.combine('BALL', ['FULL_ALPHA', 'BALL_FLAG']);
 
     // Ball fields
-    bm.declare('MOVE_R_NOT_L', 1, 0, 'BALL');
-    bm.declare('MOVE_STATE', 2, 2, 'BALL');
-    bm.declare('MOVE_INDEX', 3, 4, 'BALL');
-    bm.declare('MOVE_D_NOT_U', 1, 8, 'BALL');
+    nsBall.declare('MOVE_R_NOT_L', 1, 0);
+    nsBall.declare('MOVE_STATE', 2, 2);
+    nsBall.declare('MOVE_INDEX', 3, 4);
+    nsBall.declare('MOVE_D_NOT_U', 1, 8);
 
     // Wall fields
-    bm.declare('SIDE_WALL_FLAG', 1, 5, 'WALL');
-    bm.declare('TOP_WALL_FLAG', 1, 4, 'WALL');
-    bm.declare('TOP_WALL_CENTER_FLAG', 1, 0, 'WALL');
+    nsWall.declare('SIDE_WALL_FLAG', 1, 5);
+    nsWall.declare('TOP_WALL_FLAG', 1, 4);
+    nsWall.declare('TOP_WALL_CENTER_FLAG', 1, 0);
 
     // Paddle fields
-    bm.declare('PADDLE_PIXEL', 1, 0, 'PADDLE');
-    bm.declare('PADDLE_BALL_SIGNAL', 1, 15, 'PADDLE');
-    bm.declare('PADDLE_POSITION', 6, 16, 'PADDLE');
-    bm.declare('PADDLE_DEST', 3, 8, 'PADDLE');
-    bm.declare('DECIMATOR', 1, 22, 'PADDLE');
+    nsPaddle.declare('PADDLE_PIXEL', 1, 0);
+    nsPaddle.declare('PADDLE_BALL_SIGNAL', 1, 15);
+    nsPaddle.declare('PADDLE_POSITION', 6, 16);
+    nsPaddle.declare('PADDLE_DEST', 3, 8);
+    nsPaddle.declare('DECIMATOR', 1, 22);
 
     // Background fields [shared with ball]
-    bm.declare('DECIMATOR', 1, 22, 'BALL');
-    bm.declare('DECIMATOR', 1, 22, 'BACKGROUND');
-    bm.alias('BACKGROUND', 'FULL_ALPHA');
-    bm.declare('RESPAWN_FLAG', 1, 9, 'BALL');
-    bm.declare('RESPAWN_FLAG', 1, 6, 'BACKGROUND');
+    nsBall.declare('DECIMATOR', 1, 22);
+    nsBackground.declare('DECIMATOR', 1, 22);
+    nsGlobal.alias('BACKGROUND', 'FULL_ALPHA');
+    nsBall.declare('RESPAWN_FLAG', 1, 9);
+    nsBackground.declare('RESPAWN_FLAG', 1, 6);
 
     // Background-only AI message fields
-    bm.declare('MESSAGE_H_NOT_V', 1, 13, 'BACKGROUND');
-    bm.declare('MESSAGE_PADDLE_POSITION', 3, 0, 'BACKGROUND');
+    nsBackground.declare('MESSAGE_H_NOT_V', 1, 13);
+    nsBackground.declare('MESSAGE_PADDLE_POSITION', 3, 0);
 
     // Message fields [for wall and background, mostly]
-    bm.declare('MESSAGE_R_NOT_L', 1, 10, 'WALL');
-    bm.declare('MESSAGE_R_NOT_L', 1, 10, 'BACKGROUND');
-    bm.declare('MESSAGE_PRESENT', 1, 14, 'WALL');
-    bm.declare('MESSAGE_PRESENT', 1, 14, 'BACKGROUND');
-    bm.combine('RESPAWN_MESSAGE_BITS', ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L'],
-               'WALL');
-    bm.combine('RESPAWN_MESSAGE_BITS', ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L'],
-               'BACKGROUND');
-    bm.combine('ALL_MESSAGE_BITS',
-               ['RESPAWN_MESSAGE_BITS', 'MESSAGE_H_NOT_V',
-                'MESSAGE_PADDLE_POSITION'],
-                'BACKGROUND');
-    bm.dumpStatus();
+    // TODO: We're grouping RESPAWN_MESSAGE_BITS together, and their offsets
+    // happen to match between wall and background.  If they change such that
+    // they don't match, we'll have to copy them individually instead of using
+    // the grouping.  This isn't safe!
+    nsWall.declare('MESSAGE_R_NOT_L', 1, 10);
+    nsBackground.declare('MESSAGE_R_NOT_L', 1, 10);
+    nsWall.declare('MESSAGE_PRESENT', 1, 14);
+    nsBackground.declare('MESSAGE_PRESENT', 1, 14);
+    nsWall.combine('RESPAWN_MESSAGE_BITS',
+                   ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
+    nsBackground.combine('RESPAWN_MESSAGE_BITS',
+                         ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
+    nsBackground.combine('ALL_MESSAGE_BITS',
+                         ['RESPAWN_MESSAGE_BITS', 'MESSAGE_H_NOT_V',
+                         'MESSAGE_PADDLE_POSITION']);
+    nsGlobal.dumpStatus();
 
-    isWall = bm.getIsSetFunction('ID_BITS', 'WALL_FLAG');
-    isPaddle = bm.getIsSetFunction('ID_BITS', 'PADDLE_FLAG');
-    isBackground = bm.getIsSetFunction('ID_BITS', 'BACKGROUND_FLAG');
-    isBall = bm.getIsSetFunction('ID_BITS', 'BALL_FLAG');
-    isBallMotionCycleHelper = bm.getIsSetFunction('DECIMATOR', 'DECIMATOR',
-                                                  'BALL');
-    isPaddleMotionCycleHelper = bm.getIsSetFunction('DECIMATOR', 0, 'PADDLE');
-    isRespawn = bm.getIsSetFunction(nsGlobal.ID_BITS.getMask() |
+    isWall = getHasValueFunction(nsGlobal.ID_BITS.getMask(),
+                                 nsGlobal.WALL_FLAG.getMask());
+    isPaddle = getHasValueFunction(nsGlobal.ID_BITS.getMask(),
+                                   nsGlobal.PADDLE_FLAG.getMask());
+    isBackground = getHasValueFunction(nsGlobal.ID_BITS.getMask(),
+                                       nsGlobal.BACKGROUND_FLAG.getMask());
+    isBall = getHasValueFunction(nsGlobal.ID_BITS.getMask(),
+                                 nsGlobal.BALL_FLAG.getMask());
+    isBallMotionCycleHelper = getHasValueFunction(nsBall.DECIMATOR.getMask(),
+                                                  nsBall.DECIMATOR.getMask());
+    isPaddleMotionCycleHelper =
+      getHasValueFunction(nsPaddle.DECIMATOR.getMask(), 0);
+    isRespawn = getHasValueFunction(nsGlobal.ID_BITS.getMask() |
                                     nsBackground.RESPAWN_FLAG.getMask(),
                                     nsGlobal.BACKGROUND_FLAG.getMask() |
                                     nsBackground.RESPAWN_FLAG.getMask())
     isTopWallCenter =
-      bm.getIsSetFunction(nsGlobal.ID_BITS.getMask() |
+      getHasValueFunction(nsGlobal.ID_BITS.getMask() |
                           nsWall.TOP_WALL_CENTER_FLAG.getMask(),
                           nsGlobal.WALL_FLAG.getMask() |
                           nsWall.TOP_WALL_CENTER_FLAG.getMask())
@@ -267,11 +275,9 @@ let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
       return next;
     } else {
       // Here we get stomped on by a paddle, which we just missed.
-      // TODO: Is this necessary?  It seems like it would create an extra
-      // message, as the wall should already have seen the ball, but perhaps
-      // the DECIMATOR takes care of that.  If so we could also handle it by
-      // making the ball not decimate as it hits the wall, so it goes away a
-      // cycle faster.
+      // We have to tell the ball about it because it's the paddle motion cycle,
+      // not the ball motion cycle, and the wall only notices balls on the ball
+      // motion cycle.  This ball won't live that long.
       for (let index of [1, 7]) {
         let color = data[index];
         if (isPaddle(color) && isPaddleMotionCycle(color)) {
@@ -296,13 +302,18 @@ let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal;
     if (activeRespawnMessage) {
       if (isRespawn(current)) {
         let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(data[1]);
-        let color = bm.setMask('BALL', 0, true);
+        let color = nsGlobal.BALL.setMask(0, true);
         color = nsBall.RESPAWN_FLAG.set(color, 1);
         var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
         let decimator = nsBackground.DECIMATOR.isSet(current);
         return { value: nsBall.DECIMATOR.set(bs.getColor(), !decimator) };
       } else {
-        let message = bm.get('RESPAWN_MESSAGE_BITS', data[1]);
+        let message;
+        if (isWall(data[1])) {
+          message = nsWall.RESPAWN_MESSAGE_BITS.get(data[1]);
+        } else {
+          message = nsBackground.RESPAWN_MESSAGE_BITS.get(data[1]);
+        }
         return {
           value: nsBackground.RESPAWN_MESSAGE_BITS.set(current, message)
         };
