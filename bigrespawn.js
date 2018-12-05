@@ -65,9 +65,10 @@
     bm.declare('TOP_WALL_CENTER_FLAG', 1, 19);
     bm.alias('SIGNAL_DOWN_ACTIVE_FLAG', 'MESSAGE_PRESENT');
     bm.declare('RESPAWN_FLAG', 1, 23);
+    bm.declare('RESPAWN_PHASE_2_FLAG', 1, 2);
 
     bm.combine('RETAINED_BACKGROUND_BITS', ['RESPAWN_FLAG', 'BACKGROUND']);
-    
+    bm.dumpStatus();  
   }
 
   function isWall (c) {
@@ -84,6 +85,11 @@
 
   function isRespawn(c) {
     return isBackground(c) && bm.isSet('RESPAWN_FLAG', c);
+  }
+
+  function isCenterRespawn(data) {
+    assert(_.isArray(data));
+    return _.every(data, isRespawn);
   }
 
   function isTopWallCenter(c) {
@@ -366,6 +372,43 @@
       return bm.set('MESSAGE_BITS', current, 0);
     }
     // Both ball and background need to handle incoming ball pixels.
+
+    // First deal with messages and respawns in the background, then deal with
+    // the ball in both.  We won't receive a message and a ball in the same
+    // cycle.
+    if (isBackground(current) && (isBackground(data[1]) ||
+                                  isTopWallCenter(data[1]))) {
+      let active = bm.get('SIGNAL_DOWN_ACTIVE_FLAG', data[1]);
+      if (active) {
+        if (isCenterRespawn(data)) {
+          let rightNotL = bm.get('MESSAGE_R_NOT_L', data[1]);
+          let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
+          let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
+          color = bm.setMask('RESPAWN_PHASE_2_FLAG', color, true);
+          return color;
+        } else {
+          let message = bm.get('MESSAGE_BITS', data[1]);
+          return bm.set('MESSAGE_BITS', current, message);
+        }
+      }
+    }
+    if (isRespawn(current)) {
+      for (let d of data) {
+        if (bm.get('RESPAWN_PHASE_2_FLAG', d)) {
+          let rightNotL = bm.get('MESSAGE_R_NOT_L', d);
+          let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
+          let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
+          color = bm.setMask('DIM_BALL', color, true);
+          var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
+          let next = bs.getColor();
+          if (isCenterRespawn(data)) {
+            next = bm.setMask('BRIGHT_BALL_FLAG', next, true);
+          }
+          return next;
+        }
+      }
+    }
+
     let bufferFlags = bm.get('BUFFER_FLAGS', current);
     let respawn = bm.get('RESPAWN_FLAG', current);
     for (let i = 0; i < 9; ++i) {

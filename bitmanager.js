@@ -12,6 +12,9 @@ class BitManager {
   constructor(globalNamespace) {
     this.ns = globalNamespace;
   }
+  dumpStatus() {
+    return this.ns.dumpStatus();
+  }
   get(name, packed) {
     if (name in this.ns) {
       return this.ns[name].get(packed);
@@ -76,7 +79,7 @@ function getHasValueFunction(mask, value) {
 class Namespace {
   constructor(name, parent, id) {
     assert(!name || (_.isString(name) && name.length && parent));
-    this.name = name;
+    this.name = name || 'GLOBAL';
     this.parent = parent;
     this.id = id;
     this.subspacesByName = {};
