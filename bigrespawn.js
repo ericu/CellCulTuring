@@ -384,6 +384,7 @@
           let rightNotL = bm.get('MESSAGE_R_NOT_L', data[1]);
           let retained = bm.get('RETAINED_BACKGROUND_BITS', current);
           let color = bm.set('RETAINED_BACKGROUND_BITS', 0, retained);
+          color = bm.set('MESSAGE_R_NOT_L', color, rightNotL);
           color = bm.setMask('RESPAWN_PHASE_2_FLAG', color, true);
           return color;
         } else {
