@@ -328,18 +328,13 @@
         if (bm.isSet('MESSAGE_PRESENT', data[7])) {
           return data[7];
         }
-        // TODO: Only trigger on the middle pixel.
-        for (let i = 0; i < 9; ++i) {
-          let color = data[i];
-          if (isBall(color)) {
-            let bs = new BallState(bm, color);
-            let source = sourceDirectionFromIndex(i);
-            if (source.dX === bs.dX && source.dY === bs.dY) {
-              // There's a ball hitting us.
-              var next = bm.set('MESSAGE_PRESENT', current, 1);
-              return bm.set('MESSAGE_R_NOT_L', next, source.dX < 0);
-            }
-          }
+        // Only trigger if we're at the middle of the ball, to prevent
+        // duplicate messages.
+        let right = false;
+        if (_.every([0, 3, 6], i => isBall(data[i])) ||
+            (right = _.every([2, 5, 8], i => isBall(data[i])))) {
+          var next = bm.set('MESSAGE_PRESENT', current, 1);
+          return bm.set('MESSAGE_R_NOT_L', next, right);
         }
       } else if (bm.isSet('TOP_WALL_CENTER_FLAG', current)) {
         if (bm.isSet('MESSAGE_PRESENT', data[5])) {
@@ -382,6 +377,10 @@
         // neighboring ball pixels and take the highest depth on the way in;
         // they'll all match on the way out.
         let bs = new BallState(bm, color);
+        if (!bs.getDepthX() && bm.get('BUFFER_X_FLAG', color) !== 0) {
+          // The ball has hit the end wall and should vanish, so ignore it.
+          break;
+        }
         let source = sourceDirectionFromIndex(i);
         if (source.dX === bs.dX && source.dY === bs.dY) {
           let allMotions = _(data)
@@ -422,8 +421,8 @@
             bs.decDepthY();
           }
           if (bs.getDepthX() >= BUFFER_SIZE) {
-            assert(bs.getDepthX() <= BUFFER_SIZE);
-            bs.reflectAngleInc('x')
+            // Mark the ball for destruction.
+            bs.setDepthX(0);
           }
           if (bs.getDepthY() >= BUFFER_SIZE) {
             assert(bs.getDepthY() <= BUFFER_SIZE);
