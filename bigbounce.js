@@ -1,7 +1,8 @@
 "use strict";
 
 (function () {
-  let bm;
+  nsGlobal = new Namespace();
+  let bm = new BitManager(nsGlobal);
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -12,53 +13,51 @@
   const BUFFER_SIZE = BALL_SIZE;
 
   function initBitManager() {
-    bm = new BitManager(new Namespace());
-
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
     // Sentinel bits that determine type:
-    bm.declare('WALL_FLAG', 1, 7);
-    bm.declare('HIDDEN_BALL_FLAG', 1, 24);
-    bm.declare('DIM_BALL_FLAG', 1, 14);
-    bm.declare('BRIGHT_BALL_FLAG', 1, 15);
-    bm.combine('FULL_BALL_FLAG',
+    nsGlobal.declare('WALL_FLAG', 1, 7);
+    nsGlobal.declare('HIDDEN_BALL_FLAG', 1, 24);
+    nsGlobal.declare('DIM_BALL_FLAG', 1, 14);
+    nsGlobal.declare('BRIGHT_BALL_FLAG', 1, 15);
+    nsGlobal.combine('FULL_BALL_FLAG',
                ['DIM_BALL_FLAG', 'BRIGHT_BALL_FLAG', 'HIDDEN_BALL_FLAG']);
 
-    bm.declare('FULL_ALPHA', 4, 28); // Leaves 4 low bits free.
+    nsGlobal.declare('FULL_ALPHA', 4, 28); // Leaves 4 low bits free.
 
-    bm.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    bm.combine('HIDDEN_BALL', ['FULL_ALPHA', 'HIDDEN_BALL_FLAG']);
-    bm.combine('FULL_BALL', ['FULL_ALPHA', 'FULL_BALL_FLAG']);
-    bm.combine('DIM_BALL', ['FULL_ALPHA', 'DIM_BALL_FLAG']);
-    bm.alias('BACKGROUND', 'FULL_ALPHA');
+    nsGlobal.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
+    nsGlobal.combine('HIDDEN_BALL', ['FULL_ALPHA', 'HIDDEN_BALL_FLAG']);
+    nsGlobal.combine('FULL_BALL', ['FULL_ALPHA', 'FULL_BALL_FLAG']);
+    nsGlobal.combine('DIM_BALL', ['FULL_ALPHA', 'DIM_BALL_FLAG']);
+    nsGlobal.alias('BACKGROUND', 'FULL_ALPHA');
 
     // Used only by the ball.
-    bm.declare('BUFFER_X_DEPTH_COUNTER', BUFFER_X_DEPTH_COUNTER_BITS,
+    nsGlobal.declare('BUFFER_X_DEPTH_COUNTER', BUFFER_X_DEPTH_COUNTER_BITS,
                28 - BUFFER_X_DEPTH_COUNTER_BITS); // Take over low alpha bits.
-    bm.declare('BUFFER_Y_DEPTH_COUNTER', BUFFER_Y_DEPTH_COUNTER_BITS,
+    nsGlobal.declare('BUFFER_Y_DEPTH_COUNTER', BUFFER_Y_DEPTH_COUNTER_BITS,
                20); // Steal mid-range wall bits for now.
-    bm.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
-    bm.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
-    bm.declare('MOVE_STATE', 2, 10);
-    bm.declare('MOVE_INDEX', 3, 16); // Steal bits from wall.
+    nsGlobal.declare('MOVE_R_NOT_L', 1, 8); // In ball color for now.
+    nsGlobal.declare('MOVE_D_NOT_U', 1, 9); // In ball color for now.
+    nsGlobal.declare('MOVE_STATE', 2, 10);
+    nsGlobal.declare('MOVE_INDEX', 3, 16); // Steal bits from wall.
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
-    bm.declare('BUFFER_X_FLAG', 1, 0);
-    bm.declare('BUFFER_Y_FLAG', 1, 1);
-    bm.combine('BUFFER_FLAGS', ['BUFFER_X_FLAG', 'BUFFER_Y_FLAG']);
-    bm.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
-    bm.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
-    bm.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
-    bm.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
-    bm.combine('XY_MAX_BUFFER', ['X_MAX_BUFFER', 'Y_MAX_BUFFER']);
-    bm.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
-    bm.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
-    bm.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
+    nsGlobal.declare('BUFFER_X_FLAG', 1, 0);
+    nsGlobal.declare('BUFFER_Y_FLAG', 1, 1);
+    nsGlobal.combine('BUFFER_FLAGS', ['BUFFER_X_FLAG', 'BUFFER_Y_FLAG']);
+    nsGlobal.combine('X_MIN_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
+    nsGlobal.combine('X_MAX_BUFFER', ['BACKGROUND', 'BUFFER_X_FLAG']);
+    nsGlobal.combine('Y_MIN_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
+    nsGlobal.combine('Y_MAX_BUFFER', ['BACKGROUND', 'BUFFER_Y_FLAG']);
+    nsGlobal.combine('XY_MAX_BUFFER', ['X_MAX_BUFFER', 'Y_MAX_BUFFER']);
+    nsGlobal.combine('XY_MIN_BUFFER', ['X_MIN_BUFFER', 'Y_MIN_BUFFER']);
+    nsGlobal.combine('X_MAX_Y_MIN_BUFFER', ['X_MAX_BUFFER', 'Y_MIN_BUFFER']);
+    nsGlobal.combine('X_MIN_Y_MAX_BUFFER', ['X_MIN_BUFFER', 'Y_MAX_BUFFER']);
   }
 
   function isWall (c) {
-    return bm.isSet('WALL_FLAG', c);
+    return nsGlobal.WALL_FLAG.isSet(c);
   }
 
   function isBackground (c) {
@@ -66,7 +65,7 @@
   }
 
   function isBall (c) {
-    return bm.get('FULL_BALL_FLAG', c) !== 0;
+    return nsGlobal.FULL_BALL_FLAG.get(c) !== 0;
   }
 
   function sourceDirectionFromIndex(i) {
@@ -100,29 +99,29 @@
     // We fill the whole canvas, then put a wall around that corresponds to the
     // originX/originY/width/height sentinel frame.
 
-    c.fillRect(bm.getMask('BACKGROUND'), 0, 0, canvas.width, canvas.height);
-    c.strokeRect(bm.getMask('WALL'), 0, 0, canvas.width - 1, canvas.height - 1);
+    c.fillRect(nsGlobal.BACKGROUND.getMask(), 0, 0, canvas.width, canvas.height);
+    c.strokeRect(nsGlobal.WALL.getMask(), 0, 0, canvas.width - 1, canvas.height - 1);
 
     // Buffer regions
-    c.fillRect(bm.getMask('X_MIN_BUFFER'), originX, originY + BUFFER_SIZE,
+    c.fillRect(nsGlobal.X_MIN_BUFFER.getMask(), originX, originY + BUFFER_SIZE,
                BUFFER_SIZE, height - 2 * BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MAX_BUFFER'), originX + width - BUFFER_SIZE,
+    c.fillRect(nsGlobal.X_MAX_BUFFER.getMask(), originX + width - BUFFER_SIZE,
                originY + BUFFER_SIZE, BUFFER_SIZE, height - 2 * BUFFER_SIZE);
-    c.fillRect(bm.getMask('Y_MIN_BUFFER'), originX + BUFFER_SIZE, originY,
+    c.fillRect(nsGlobal.Y_MIN_BUFFER.getMask(), originX + BUFFER_SIZE, originY,
                width - 2 * BUFFER_SIZE, BUFFER_SIZE);
 
 
-    c.fillRect(bm.getMask('Y_MAX_BUFFER'), originX + BUFFER_SIZE,
+    c.fillRect(nsGlobal.Y_MAX_BUFFER.getMask(), originX + BUFFER_SIZE,
                originY + height - BUFFER_SIZE,
                width - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('XY_MIN_BUFFER'), originX, originY,
+    c.fillRect(nsGlobal.XY_MIN_BUFFER.getMask(), originX, originY,
                BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('XY_MAX_BUFFER'), originX + width - BUFFER_SIZE,
+    c.fillRect(nsGlobal.XY_MAX_BUFFER.getMask(), originX + width - BUFFER_SIZE,
                originY + height - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MAX_Y_MIN_BUFFER'), originX + width - BUFFER_SIZE,
+    c.fillRect(nsGlobal.X_MAX_Y_MIN_BUFFER.getMask(), originX + width - BUFFER_SIZE,
                originY, BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.getMask('X_MIN_Y_MAX_BUFFER'), originX,
+    c.fillRect(nsGlobal.X_MIN_Y_MAX_BUFFER.getMask(), originX,
                originY + height - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
 
@@ -130,11 +129,11 @@
     var left = Math.round(canvas.width / 2);
     var top = Math.round(canvas.height / 2);
     const brightColor =
-      BallState.create(bm, 1, 1, 4, 0, bm.getMask('FULL_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, nsGlobal.FULL_BALL.getMask()).nextColor();
     const dimColor =
-      BallState.create(bm, 1, 1, 4, 0, bm.getMask('DIM_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, nsGlobal.DIM_BALL.getMask()).nextColor();
     const hiddenColor =
-      BallState.create(bm, 1, 1, 4, 0, bm.getMask('HIDDEN_BALL')).nextColor();
+      BallState.create(bm, 1, 1, 4, 0, nsGlobal.HIDDEN_BALL.getMask()).nextColor();
     if (BALL_SIZE === 7) {
       c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
       c.fillRect(hiddenColor, left, top, 1, 1);
@@ -226,10 +225,10 @@
       if (isWall(higher)) {
         return 'max';
       }
-      if (!bm.get(flag, higher)) {
+      if (!nsGlobal[flag].get(higher)) {
         return 'min';
       }
-      if (!bm.get(flag, lower)) {
+      if (!nsGlobal[flag].get(lower)) {
         return 'max';
       }
       // The only ball pixels that land on the middle buffer cell are:
@@ -247,8 +246,8 @@
     // tell if we need to increment or decrement our depth counters, bounce,
     // etc.
     let current = data[4];
-    let bufferX = bm.get('BUFFER_X_FLAG', current);
-    let bufferY = bm.get('BUFFER_Y_FLAG', current);
+    let bufferX = nsGlobal.BUFFER_X_FLAG.get(current);
+    let bufferY = nsGlobal.BUFFER_Y_FLAG.get(current);
     let bufferXDir = null;
     let bufferYDir = null;
     if (bufferX) {
@@ -303,7 +302,7 @@
           let bufferXMax = bufferBits.xMax;
           let bufferYMin = bufferBits.yMin;
           let bufferYMax = bufferBits.yMax;
-          let bufferFlags = bm.get('BUFFER_FLAGS', current);
+          let bufferFlags = nsGlobal.BUFFER_FLAGS.get(current);
 
           if (bs.dX > 0 && bufferXMax) {
             bs.incDepthX();
@@ -332,14 +331,14 @@
             bs.reflectAngleInc('y')
           }
           let nextColor = bs.nextColor();
-          nextColor = bm.set('BUFFER_FLAGS', nextColor, bufferFlags);
+          nextColor = nsGlobal.BUFFER_FLAGS.set(nextColor, bufferFlags);
           return nextColor;
         }
       }
     }
-    let bufferFlags = bm.get('BUFFER_FLAGS', current);
-    let background = bm.getMask('BACKGROUND')
-    let nextColor = bm.set('BUFFER_FLAGS', background, bufferFlags);
+    let bufferFlags = nsGlobal.BUFFER_FLAGS.get(current);
+    let background = nsGlobal.BACKGROUND.getMask()
+    let nextColor = nsGlobal.BUFFER_FLAGS.set(background, bufferFlags);
     return nextColor;
   }
 
