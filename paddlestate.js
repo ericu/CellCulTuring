@@ -1,22 +1,19 @@
 (function () {
-  let bm;
-
-  function isPaddle(c) {
-    return bm.isSet('PADDLE_FLAG', c);
-  }
+  let ns, isPaddle;
 
   // Don't access color directly; it may be out of date.
   class PaddleState {
-    static init(_bm_) {
-      bm = _bm_
+    static init(_ns_, _isPaddle_) {
+      ns = _ns_;
+      isPaddle = _isPaddle_;
     }
     constructor(color) {
-      assert(bm);
-      assert(bm.isSet('PADDLE_FLAG', color));
+      assert(ns);
+      assert(isPaddle(color));
       this.color = color;
-      this.position = bm.get('PADDLE_POSITION', color);
-      this.dest = bm.get('PADDLE_DEST', color);
-      this.decimator = bm.get('DECIMATOR', color);
+      this.position = ns.PADDLE_POSITION.get(color);
+      this.dest = ns.PADDLE_DEST.get(color);
+      this.decimator = ns.DECIMATOR.get(color);
     }
 
     // Assumes this encoding and an 8-pixel paddle for now: 01000111.
@@ -39,9 +36,9 @@
         }
         return 7;
       }
-      switch ((bm.get('PADDLE_PIXEL', d0) << 2) |
-              (bm.get('PADDLE_PIXEL', d1) << 1) |
-              (bm.get('PADDLE_PIXEL', d2))) {
+      switch ((ns.PADDLE_PIXEL.get(d0) << 2) |
+              (ns.PADDLE_PIXEL.get(d1) << 1) |
+              (ns.PADDLE_PIXEL.get(d2))) {
         case 0:
           return 3;
         case 1:
@@ -88,17 +85,16 @@
 
     getColor() {
       let color = this.color;
-      color = bm.set('PADDLE_DEST', color, this.dest);
+      color = ns.PADDLE_DEST.set(color, this.dest);
       return color;
     }
 
     nextColor() {
       let color = this.getColor();
       if (this.isMotionCycle()) {
-        color = bm.set('PADDLE_POSITION', color, this.position +
-                       this.getDY());
+        color = ns.PADDLE_POSITION.set(color, this.position + this.getDY());
       }
-      color = bm.set('DECIMATOR', color, !this.decimator);
+      color = ns.DECIMATOR.set(color, !this.decimator);
       return color;
     }
   }

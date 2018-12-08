@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-  let bm;
+  let nsGlobal;
   const DECIMATION = 50;
 
   // Segments numbered clockwise from top, then the middle last.
@@ -17,59 +17,58 @@
   ]
 
   function initBitManager() {
-    bm = new BitManager(new Namespace());
-
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
+    nsGlobal = new Namespace();
 
     // Sentinel bits that determine type:
-    bm.declare('COUNTER_FLAG', 1, 0);
-    bm.declare('COUNTER_BITS', 6, 24);
-    bm.declare('COUNTER_SEGMENT_ID', 4, 1);
-    bm.declare('COUNTER_HIGH_DIGIT', 1, 5);
-    bm.declare('COUNTER_COLOR', 2, 6);
-    bm.declare('COUNTER_VISIBLE', 2, 30);
-    bm.combine('COUNTER_ON', ['COUNTER_COLOR', 'COUNTER_VISIBLE'])
-    bm.declare('STARTER_FLAG', 1, 15);
-    bm.declare('STARTER_COUNTER_BITS', 7, 16);
+    nsGlobal.declare('COUNTER_FLAG', 1, 0);
+    nsGlobal.declare('COUNTER_BITS', 6, 24);
+    nsGlobal.declare('COUNTER_SEGMENT_ID', 4, 1);
+    nsGlobal.declare('COUNTER_HIGH_DIGIT', 1, 5);
+    nsGlobal.declare('COUNTER_COLOR', 2, 6);
+    nsGlobal.declare('COUNTER_VISIBLE', 2, 30);
+    nsGlobal.combine('COUNTER_ON', ['COUNTER_COLOR', 'COUNTER_VISIBLE'])
+    nsGlobal.declare('STARTER_FLAG', 1, 15);
+    nsGlobal.declare('STARTER_COUNTER_BITS', 7, 16);
   }
 
   function isStarter (c) {
-    return bm.isSet('STARTER_FLAG', c);
+    return nsGlobal.STARTER_FLAG.isSet(c);
   }
 
   function isCounter (c) {
-    return bm.isSet('COUNTER_FLAG', c);
+    return nsGlobal.COUNTER_FLAG.isSet(c);
   }
 
   function drawDigit(c, digitBit, x, y, l, w) {
-    let color = bm.getMask('COUNTER_FLAG');
-    color = bm.set('COUNTER_HIGH_DIGIT', color, digitBit);
+    let color = nsGlobal.COUNTER_FLAG.getMask();
+    color = nsGlobal.COUNTER_HIGH_DIGIT.set(color, digitBit);
 
-    c.fillRect(bm.set('COUNTER_SEGMENT_ID', color, 0),
+    c.fillRect(nsGlobal.COUNTER_SEGMENT_ID.set(color, 0),
                x + w,
                y,
                l, w);
-    c.fillRect(bm.set('COUNTER_SEGMENT_ID', color, 1),
+    c.fillRect(nsGlobal.COUNTER_SEGMENT_ID.set(color, 1),
                x + l + w,
                y + w,
                w, l);
-    c.fillRect(bm.set('COUNTER_SEGMENT_ID', color, 2),
+    c.fillRect(nsGlobal.COUNTER_SEGMENT_ID.set(color, 2),
                x + l + w,
                y + 2 * w + l,
                w, l);
-    c.fillRect(bm.set('COUNTER_SEGMENT_ID', color, 3),
+    c.fillRect(nsGlobal.COUNTER_SEGMENT_ID.set(color, 3),
                x + w,
                y + 2 * w + 2 * l,
                l, w);
-    c.fillRect(bm.set('COUNTER_SEGMENT_ID', color, 4),
+    c.fillRect(nsGlobal.COUNTER_SEGMENT_ID.set(color, 4),
                x,
                y + 2 * w + l,
                w, l);
-    c.fillRect(bm.set('COUNTER_SEGMENT_ID', color, 5),
+    c.fillRect(nsGlobal.COUNTER_SEGMENT_ID.set(color, 5),
                x,
                y + w,
                w, l);
-    c.fillRect(bm.set('COUNTER_SEGMENT_ID', color, 6),
+    c.fillRect(nsGlobal.COUNTER_SEGMENT_ID.set(color, 6),
                x + w,
                y + w + l,
                l, w);
@@ -79,7 +78,7 @@
     initBitManager();
 
     c.fillRect(0, 0, 0, canvas.width, canvas.height);
-    c.fillRect(bm.getMask('STARTER_FLAG'), 3, 3, 1, 1);
+    c.fillRect(nsGlobal.STARTER_FLAG.getMask(), 3, 3, 1, 1);
     const TOP = 10;
     const LEFT = 5;
     const SEGMENT_LENGTH = 10;
@@ -92,30 +91,30 @@
   function counter(data, i, j) {
     let current = data[4];
     if (isStarter(current)) {
-      let fastCounter = bm.get('STARTER_COUNTER_BITS', current);
-      let slowCounter = bm.get('COUNTER_BITS', current);
+      let fastCounter = nsGlobal.STARTER_COUNTER_BITS.get(current);
+      let slowCounter = nsGlobal.COUNTER_BITS.get(current);
       if (++fastCounter >= DECIMATION) {
         fastCounter = 0;
         ++slowCounter;
       }
-      let next = bm.set('STARTER_COUNTER_BITS', current, fastCounter)
-      next = bm.set('COUNTER_BITS', next, slowCounter)
+      let next = nsGlobal.STARTER_COUNTER_BITS.set(current, fastCounter)
+      next = nsGlobal.COUNTER_BITS.set(next, slowCounter)
       return next;
     } else {
       let slowCounter = _(data)
-        .map(c => bm.get('COUNTER_BITS', c))
+        .map(c => nsGlobal.COUNTER_BITS.get(c))
         .max()
-      let next = bm.set('COUNTER_BITS', current, slowCounter);
+      let next = nsGlobal.COUNTER_BITS.set(current, slowCounter);
       if (isCounter(current)) {
-        let segment = bm.get('COUNTER_SEGMENT_ID', current);
+        let segment = nsGlobal.COUNTER_SEGMENT_ID.get(current);
         let digit;
-        if (bm.isSet('COUNTER_HIGH_DIGIT', current)) {
+        if (nsGlobal.COUNTER_HIGH_DIGIT.isSet(current)) {
           digit = Math.floor((slowCounter + 0.5) / 10) % 10;
         } else {
           digit = slowCounter % 10;
         }
         let on = SEGMENT_TABLE[segment][digit] === 1;
-        return bm.setMask('COUNTER_ON', next, on);
+        return nsGlobal.COUNTER_ON.setMask(next, on);
       } else {
         return next;
       }

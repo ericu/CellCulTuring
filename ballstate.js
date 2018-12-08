@@ -103,10 +103,14 @@ function processState(bs) {
   bs.nextState = nextState;
 }
 
-// Note that these bit assignments are currently specific to anglebounce.js and
-// bigbounce.js.
+// Note that these bit assignments are currently specific to various files.
 
 // Don't access color directly; it may be out of date.
+// TODO: How hard would it be to remove the explicit BitManager cleanly?  We
+// could pass in namespaces instead; it's the hasKey that may be iffy.  Possibly
+// we can tweak calls to create() as well to make it easier...that baseColor has
+// always been odd, and may not be necessary if we standardize the ball flag and
+// associated alpha bits across a few demos.
 class BallState {
   constructor(bm, color) {
 //    assert(bm.isSet('BALL_FLAG', color));

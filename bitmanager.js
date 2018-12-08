@@ -12,6 +12,14 @@ class BitManager {
   constructor(globalNamespace) {
     this.ns = globalNamespace;
   }
+  static copyBits(nsFrom, packedFrom, nsTo, packedTo, whichBits) {
+    assert(_.isArray(whichBits));
+    for (let value of whichBits) {
+      let bits = nsFrom[value].get(packedFrom);
+      packedTo = nsTo[value].set(packedTo, bits);
+    }
+    return packedTo;
+  }
   dumpStatus() {
     return this.ns.dumpStatus();
   }
@@ -46,15 +54,14 @@ class BitManager {
   isSet(name, packed) {
     return this.ns[name].isSet(packed);
   }
+  // This is really hacky and should never be used, but is here for
+  // backwards-compatibility.
   hasKey(name, nsName) {
-    let ns = this.ns;
     if (nsName) {
-      ns = this.ns.subspacesByName[nsName];
+      return this.ns.subspacesByName[nsName] &&
+             this.ns.subspacesByName[nsName].hasKey(name);
     }
-    if (ns) {
-      return name in ns;
-    }
-    return false;
+    return this.ns.hasKey(name);
   }
   declare(name, count, offset, namespace) {
     assert(!namespace);
@@ -85,26 +92,29 @@ class Namespace {
     this.subspacesByName = {};
     this.subspacesById = {};
     this.values = {};
-    this.bitsUsed = 0;
+    this.bitsUsed = parent ? parent.bitsUsed : 0;
   }
-  dumpStatus(parentMask) {
-    parentMask = parentMask || 0;
-    let cumulative = (parentMask | this.bitsUsed) >>> 0;
-    console.log('bits used by', this.name, this.bitsUsed.toString(16),
-                cumulative.toString(16));
+  dumpStatus() {
+    console.log('bits used by', this.name, this.bitsUsed.toString(16));
     for (let name in this.subspacesByName) {
-      this.subspacesByName[name].dumpStatus(cumulative);
+      this.subspacesByName[name].dumpStatus();
     }
   }
-  describe(packed) {
+  describe(packed, prefix) {
+    if (!prefix) {
+      prefix = ''
+    }
+    console.log(prefix + 'namespace', this.name);
     for (var i in this.values) {
       var value = this.values[i];
       let v = value.get(packed);
-      console.log(value.name, v.toString(16));
+      console.log(prefix + value.name, v.toString(16));
     }
-    let id = (packed & this.subspaceMask) >>> 0;
-    assert(id in this.subspacesById)
-    this.subspacesById[id].describe(packed);
+    if (this.subspaceMask) {
+      let id = (packed & this.subspaceMask) >>> 0;
+      assert(id in this.subspacesById)
+      this.subspacesById[id].describe(packed, prefix + '  ');
+    }
   }
   setSubspaceMask(maskName) {
     assert(this.subspaceMask === undefined);
@@ -134,12 +144,45 @@ class Namespace {
     return subspace;
   }
   declare(name, count, offset) {
+    // Can't use up any more bits in the mask after declaring subspaces.  Do all
+    // your bits first.
+    assert(!Object.keys(this.subspacesById).length);
     let bits = ((1 << count) - 1) >>> 0;
     let mask = (bits << offset) >>> 0
     this._ensureNonConflicting(name, mask);
 
     assert(!(name in this.values));
     assert(!(name in this));
+    this.bitsUsed = (this.bitsUsed | mask) >>> 0;
+    let record = {
+      offset: offset,
+      bits: bits,
+      mask: mask,
+      count: count
+    }
+    let newValue = new Value(this, name, record);
+    this.values[name] = newValue;
+    // This is the speedy accessor; it's a bit hacky, but it means you can look
+    // for namespace.VALUE_NAME and have it work, instead of
+    // namespace.records.VALUE_NAME.  Is it worth it?
+    this[name] = newValue;
+    return newValue;
+  }
+  alloc(name, count) {
+    // Can't use up any more bits in the mask after declaring subspaces.  Do all
+    // your bits first.
+    assert(!Object.keys(this.subspacesById).length);
+    assert(!(name in this.values));
+    assert(!(name in this));
+    let bits = ((1 << count) - 1) >>> 0;
+    let offset = 0;
+    let mask = bits;
+    while (mask & this.bitsUsed) {
+      ++offset;
+      assert(offset + count < 32);
+      mask <<= 1;
+    }
+
     this.bitsUsed = (this.bitsUsed | mask) >>> 0;
     let record = {
       offset: offset,
@@ -165,14 +208,22 @@ class Namespace {
     this[newName] = newValue;
     return newValue;
   }
+
+  _findRecord(name) {
+    if (name in this.values) {
+      return this.values[name]
+    }
+    assert(this.parent);
+    return this.parent._findRecord(name)
+  }
+
   combine(newName, oldNames) {
     assert(!(newName in this.values));
     assert(_.isArray(oldNames));
     let mask = 0;
     let offset = 32;
     for (var name of oldNames) {
-      let oldValue = this.values[name];
-      assert(oldValue);
+      let oldValue = this._findRecord(name);
       mask = (mask | oldValue.getMask()) >>> 0;
       offset = Math.min(offset, oldValue.getOffset());
     }
@@ -187,7 +238,8 @@ class Namespace {
     this[newName] = newValue;
     return newValue;
   }
-  _ensureNonConflictingLocally(name, mask) {
+
+  _ensureNonConflicting(name, mask) {
     if (this.bitsUsed & mask) {
       for (let r in this.values) {
         let value = this.values[r];
@@ -196,20 +248,25 @@ class Namespace {
             `Declaration of "${name}" conflicts with "${r}".`)
         }
       }
+      // Found a conflict but it's not here, so it must be in the parent.
+      this.parent._ensureNonConflicting(name, mask);
       assert(false);
     }
   }
 
-  _ensureNonConflicting(name, mask) {
-    this._ensureNonConflictingLocally(name, mask);
-    for (let id in this.subspacesById) {
-      this.subspacesById[id]._ensureNonConflicting(name, mask);
+  // This is really hacky and should never be used, but is here for
+  // backwards-compatibility.
+  hasKey(name) {
+    if (name in this.values) {
+      return true;
     }
-    for (let ns = this.parent; ns; ns = ns.parent) {
-      ns._ensureNonConflictingLocally(name, mask);
+    for (let i in this.subspacesById) {
+      if (this.subspacesById[i].hasKey(name)) {
+        return true;
+      }
     }
+    return false;
   }
-
 }
 
 class Value {
@@ -218,7 +275,7 @@ class Value {
     this.record = record;
     this.namespaceId = 0;
     this.namespaceMask = 0;
-    if (namespace.id) {
+    if (namespace.parent) {
       this.namespaceId = namespace.id;
       this.namespaceMask = namespace.parent.subspaceMask;
     }

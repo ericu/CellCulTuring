@@ -262,16 +262,13 @@ to deal with the routing.
 
 --------------------------------------------------------------------------------
 
-How to implement multi-level namespaces?  The current one has global
-namespaceBits in the bitmanager; we'd want to have each level somehow hold the
-bits for the next level down, so the current namespaceBits would live in the
-global namespace.  When declaring a namespace, you'd point to its parent
-namespace and give your value for the parent's namespaceBits.  Declaring values
-would search all the way up the chain for conflicts.  FastBM would work pretty
-well this way, but the older lookup would get more complicated.  If the symbol's
-not global, you check against the global namespaceBits and look for a subspace
-with that value.  Each namespace would have to have a namespacesByValue [and
-namespacesByName?] container for those recursive lookups, which would replace
-the current global hash.  How would declare() work?  Would you pass in a
-namespace path?  Or perhaps there would be a new declare on NamespaceWrapper,
-and only FastBM users would be able to take advantage of the new features.
+To add paddles to bigrespawn:
+* First add a trough for the paddle, moving the side buffers in and making the
+  trough region handle respawn.
+* Then add paddles that bounce but don't move.
+* Then add paddle motion, but no AI messages.
+* Then add AI messages and move delays.
+
+* At some point, add AI messages on respawn; they could be sent early by the
+ball at destruction, or could be sent at respawn itself, although that gives
+much less warning.

@@ -45,7 +45,6 @@ const originY = borderSize;
   }
 
   function initBuffers() {
-    // TODO: Are we keeping 2 buffers properly?
     inputBuffer = context.getImageData(0, 0, canvas.width, canvas.height);
     outputBuffer = context.createImageData(inputBuffer)
     inputView = new Uint32Array(inputBuffer.data.buffer);

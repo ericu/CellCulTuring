@@ -1,8 +1,8 @@
 "use strict";
 
 (function () {
-  nsGlobal = new Namespace();
-  let bm = new BitManager(nsGlobal);
+  let nsGlobal;
+  let bm;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -13,6 +13,8 @@
   const BUFFER_SIZE = BALL_SIZE;
 
   function initBitManager() {
+    nsGlobal = new Namespace();
+    bm = new BitManager(nsGlobal);
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
     // Sentinel bits that determine type:
@@ -172,40 +174,46 @@
       }
 
     } else if (BALL_SIZE === 3) {
-      const CHOICE = 2
+      const CHOICE = 7
       switch (CHOICE) {
-        case 0:
+        case 0: // Too flickery.
           c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
           c.fillRect(dimColor, left + 1, top, 1, BALL_SIZE);
           c.fillRect(dimColor, left, top + 1, BALL_SIZE, 1);
           c.fillRect(brightColor, left + 1, top + 1, 1, 1);
           break;
-        case 1:
+        case 1: // Boring, but big.
           c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
           break;
-        case 2:
+        case 2: // Motion appears smoother.
           c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
           c.fillRect(brightColor, left + 1, top + 1, 1, 1);
           break;
-        case 3:
+        case 3: // Less boring than 1, but less smooth than 2.
           c.fillRect(brightColor, left, top, BALL_SIZE, BALL_SIZE);
           c.fillRect(dimColor, left + 1, top + 1, 1, 1);
           break;
-        case 4:
+        case 4: // Weird, flickery like 0.
           c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
           c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
           c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
           c.fillRect(dimColor, left + 1, top + 1, 1, 1);
           break;
-        case 5:
+        case 5: // Weird, flickery like 0.
           c.fillRect(hiddenColor, left, top, BALL_SIZE, BALL_SIZE);
           c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
           c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
           break;
-        case 6:
+        case 6: // Weird, slightly flickery like 0.
           c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
           c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
           c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          break;
+        case 7: // Flickery, kinda OK.
+          c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
+          c.fillRect(brightColor, left + 1, top, 1, BALL_SIZE);
+          c.fillRect(brightColor, left, top + 1, BALL_SIZE, 1);
+          c.fillRect(dimColor, left + 1, top + 1, 1, 1);
           break;
         default:
           assert(false);
