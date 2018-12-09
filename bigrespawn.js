@@ -46,14 +46,20 @@ Wow.  Namespacing the bits has saved us a *ton* of bits; we might be able to get
 by with a much larger ball!  But let's get it working with a 3x3 ball first.
 Then the things that need to scale up are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
-need to turn into something to encode depth [can we use the PADDLE_PIXEL TRICK
-THERE TOO?...anything else?  Maybe another shading pixel for the ball's edges?]
+need to get their MAX and MIN bits back, ... anything else?  Maybe another
+shading pixel for the ball's edges?]
+
+Another namespacing idea:  Have the high alpha bit be !IS_BACKGROUND, then
+namespace between ball, paddle, wall, and counter using 2 more high bits, with
+counter being ID 0.  Then that gives background 31 bits, each other subspace 29,
+and counter can use the last high bit for its display-on color.  As a plus, all
+the background queries get simpler again, since we need no other sub-spacing.
 */
 
 let bm;
 (function () {
-  let nsBall, nsWall, nsBackground, nsGlobal, nsBgSpecial, nsBgBuffer;
-  let isWall, isBackground, isBgSpecial, isBgBuffer, isBall, isRespawn;
+  let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal, nsNonbackground;
+  let isWall, isBackground, isBall, isRespawn;
   let isTopWallCenter;
   let copySets = {};
 
@@ -72,35 +78,31 @@ let bm;
     bm = new BitManager(nsGlobal);
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
-    nsGlobal.declare('ID_0', 1, 7);
-    nsGlobal.declare('ID_1', 1, 23);
+    nsGlobal.declare('IS_NOT_BACKGROUND', 1, 31);
+    nsGlobal.setSubspaceMask('IS_NOT_BACKGROUND');
+    nsBackground = nsGlobal.declareSubspace('BACKGROUND', 0);
+    nsNonbackground = nsGlobal.declareSubspace('NONBACKGROUND',
+                                               'IS_NOT_BACKGROUND');
+
+    nsNonbackground.declare('ID_0', 1, 7);
+    nsNonbackground.declare('ID_1', 1, 23);
 
     // Sentinel bits that determine type:
-    nsGlobal.alias('WALL_FLAG', 'ID_0');
-    nsGlobal.alias('BALL_FLAG', 'ID_1');
-    nsGlobal.combine('ID_BITS', ['ID_0', 'ID_1']);
-    nsGlobal.declare('BACKGROUND_FLAG', 0, 0);
+    nsNonbackground.alias('WALL_FLAG', 'ID_0');
+    nsNonbackground.alias('BALL_FLAG', 'ID_1');
+    nsNonbackground.combine('ID_BITS', ['ID_0', 'ID_1']);
+    nsNonbackground.alias('PADDLE_FLAG', 'ID_BITS');
 
-    nsGlobal.declare('FULL_ALPHA', 4, 28);
+    nsNonbackground.declare('FULL_ALPHA', 3, 28);
 
-    nsGlobal.declare('HIDDEN_BALL_FLAG', 1, 24);
-    nsGlobal.declare('DIM_BALL_FLAG', 1, 14);
-    nsGlobal.declare('BRIGHT_BALL_FLAG', 1, 15);
-    nsGlobal.combine('FULL_BALL_FLAG',
-               ['DIM_BALL_FLAG', 'BRIGHT_BALL_FLAG', 'HIDDEN_BALL_FLAG']);
+    nsNonbackground.setSubspaceMask('ID_BITS');
+    nsBall = nsNonbackground.declareSubspace('BALL', 'BALL_FLAG');
+    nsWall = nsNonbackground.declareSubspace('WALL', 'WALL_FLAG');
+    nsPaddle = nsNonbackground.declareSubspace('PADDLE', 'ID_BITS');
 
-    nsGlobal.setSubspaceMask('ID_BITS');
-    nsBall = nsGlobal.declareSubspace('BALL', 'BALL_FLAG');
-    nsWall = nsGlobal.declareSubspace('WALL', 'WALL_FLAG');
-    nsBackground = nsGlobal.declareSubspace('BACKGROUND', 0);
-
-    nsGlobal.combine('WALL', ['FULL_ALPHA', 'WALL_FLAG']);
-    nsGlobal.combine('HIDDEN_BALL',
-                     ['FULL_ALPHA', 'HIDDEN_BALL_FLAG', 'BALL_FLAG']);
-    nsGlobal.combine('FULL_BALL',
-                     ['FULL_ALPHA', 'FULL_BALL_FLAG', 'BALL_FLAG']);
-    nsGlobal.combine('DIM_BALL', ['FULL_ALPHA', 'DIM_BALL_FLAG', 'BALL_FLAG']);
-    nsGlobal.alias('BACKGROUND', 'FULL_ALPHA');
+    nsBall.declare('HIDDEN_BALL_FLAG', 1, 24);
+    nsBall.declare('DIM_BALL_FLAG', 1, 14);
+    nsBall.declare('BRIGHT_BALL_FLAG', 1, 15);
 
     // Message fields [for wall and background, mostly]
     nsWall.alloc('MESSAGE_R_NOT_L', 1);
@@ -123,53 +125,44 @@ let bm;
     nsWall.alloc('TOP_WALL_FLAG', 1);
 
     nsWall.alloc('TOP_WALL_CENTER_FLAG', 1);
-    nsWall.alias('SIGNAL_DOWN_ACTIVE_FLAG', 'MESSAGE_PRESENT');
-    nsBackground.alias('SIGNAL_DOWN_ACTIVE_FLAG', 'MESSAGE_PRESENT');
 
-    nsBackground.alloc('SPECIAL_FLAG', 1);
-    nsBackground.setSubspaceMask('SPECIAL_FLAG');
-    // Initial uses of background subspaces:
-    // Special will have RESPAWN_FLAG, RESPAWN_PHASE_2_FLAG, and the paddle
-    // trough.
-    // Non-special [buffer] will have buffer flags.
-    nsBgSpecial = nsBackground.declareSubspace('BG_SPECIAL', 'SPECIAL_FLAG');
-    nsBgBuffer = nsBackground.declareSubspace('BG_BUFFER', 0);
-    nsBgSpecial.alloc('RESPAWN_FLAG', 1);
-    nsBgSpecial.alloc('RESPAWN_PHASE_2_FLAG', 1);
+    nsBackground.alloc('RESPAWN_FLAG', 1);
+    nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
     nsBall.alloc('BUFFER_X_FLAG', 1);
     nsBall.alloc('BUFFER_Y_FLAG', 1);
-    nsBgBuffer.alloc('BUFFER_X_FLAG', 1);
-    nsBgBuffer.alloc('BUFFER_Y_FLAG', 1);
+    nsBackground.alloc('BUFFER_X_FLAG', 1);
+    nsBackground.alloc('BUFFER_Y_FLAG', 1);
 
     nsBall.alloc('RESPAWN_FLAG', 1);
 
-    isWall = getHasValueFunction(nsGlobal.ID_BITS.getMask(),
-                                 nsGlobal.WALL_FLAG.getMask());
-    isBackground = getHasValueFunction(nsGlobal.ID_BITS.getMask(),
-                                       nsGlobal.BACKGROUND_FLAG.getMask());
-    isBall = getHasValueFunction(nsGlobal.ID_BITS.getMask(),
-                                 nsGlobal.BALL_FLAG.getMask());
-    isBgSpecial = getHasValueFunction(nsGlobal.ID_BITS.getMask() |
-                                      nsBackground.SPECIAL_FLAG.getMask(),
-                                      nsGlobal.BACKGROUND_FLAG.getMask() |
-                                      nsBackground.SPECIAL_FLAG.getMask());
-    isBgBuffer = getHasValueFunction(nsGlobal.ID_BITS.getMask() |
-                                     nsBackground.SPECIAL_FLAG.getMask(),
-                                     nsGlobal.BACKGROUND_FLAG.getMask());
-    isRespawn = getHasValueFunction(nsGlobal.ID_BITS.getMask() |
-                                    nsBackground.SPECIAL_FLAG.getMask() |
-                                    nsBgSpecial.RESPAWN_FLAG.getMask(),
-                                    nsGlobal.BACKGROUND_FLAG.getMask() |
-                                    nsBackground.SPECIAL_FLAG.getMask() |
-                                    nsBgSpecial.RESPAWN_FLAG.getMask())
+    isWall = getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                       nsNonbackground.ID_BITS.getMask()]),
+                                 bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                       nsNonbackground.WALL_FLAG.getMask()]));
+    isBackground = getHasValueFunction(nsGlobal.IS_NOT_BACKGROUND.getMask(), 0);
+    isBall = getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                       nsNonbackground.ID_BITS.getMask()]),
+                                 bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                       nsNonbackground.BALL_FLAG.getMask()]));
+    isRespawn = getHasValueFunction(
+      bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+             nsBackground.RESPAWN_FLAG.getMask()]),
+             nsBackground.RESPAWN_FLAG.getMask());
     isTopWallCenter =
-      getHasValueFunction(nsGlobal.ID_BITS.getMask() |
-                          nsWall.TOP_WALL_CENTER_FLAG.getMask(),
-                          nsGlobal.WALL_FLAG.getMask() |
-                          nsWall.TOP_WALL_CENTER_FLAG.getMask())
+      getHasValueFunction(bm.or([nsNonbackground.ID_BITS.getMask(),
+                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]),
+                          bm.or([nsNonbackground.WALL_FLAG.getMask(),
+                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]))
+    isTopWallCenter =
+      getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                 nsNonbackground.ID_BITS.getMask(),
+                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]),
+                          bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                 nsNonbackground.WALL_FLAG.getMask(),
+                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]));
     nsGlobal.dumpStatus();  
   }
 
@@ -219,15 +212,13 @@ let bm;
     // We fill the whole canvas, then put a wall around that corresponds to the
     // originX/originY/width/height sentinel frame.
 
-    c.fillRect(nsGlobal.BACKGROUND.getMask(), 0, 0,
-               canvas.width, canvas.height);
-    c.fillRect(
-      nsBgSpecial.RESPAWN_FLAG.setMask(
-        nsBackground.SPECIAL_FLAG.setMask(nsGlobal.BACKGROUND.getMask(), true),
-        true),
+    c.fillRect(0, 0, 0, canvas.width, canvas.height);
+    c.fillRect(nsBackground.RESPAWN_FLAG.setMask(0, true),
       originX + halfWidth - 1, originY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
 
-    let color = nsGlobal.WALL.getMask();
+    let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                       nsNonbackground.WALL_FLAG.getMask(),
+                       nsNonbackground.FULL_ALPHA.getMask()]);
     c.fillRect(color, originX, height, width, 1);
     c.fillRect(nsWall.SIDE_WALL_FLAG.setMask(color, true), originX, originY,
                1, height - 1);
@@ -240,10 +231,10 @@ let bm;
                originX + halfWidth,
                originY, 1, 1);
 
-    let bg = nsGlobal.BACKGROUND.getMask();
-    // BgBuffer's id is 0, so no extra flag for that.
-    let bufferX = nsBgBuffer.BUFFER_X_FLAG.getMask() | bg;
-    let bufferY = nsBgBuffer.BUFFER_Y_FLAG.getMask() | bg;
+    let bg = 0;
+    // Background's id is 0, so no extra flag for that.
+    let bufferX = bm.or([nsBackground.BUFFER_X_FLAG.getMask(), bg]);
+    let bufferY = bm.or([nsBackground.BUFFER_Y_FLAG.getMask(), bg]);
 
     // Buffer regions
     c.fillRect(bufferX,
@@ -260,17 +251,17 @@ let bm;
                insideWallOriginX + BUFFER_SIZE,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                insideWallWidth - 2 * BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bufferX | bufferY,
+    c.fillRect(bm.or([bufferX, bufferY]),
                insideWallOriginX, insideWallOriginY,
                BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bufferX | bufferY,
+    c.fillRect(bm.or([bufferX, bufferY]),
                insideWallOriginX + insideWallWidth - BUFFER_SIZE,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bufferX | bufferY, insideWallOriginX +
+    c.fillRect(bm.or([bufferX, bufferY]), insideWallOriginX +
                insideWallWidth - BUFFER_SIZE,
                insideWallOriginY, BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bufferX | bufferY, insideWallOriginX,
+    c.fillRect(bm.or([bufferX, bufferY]), insideWallOriginX,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
 
@@ -279,13 +270,23 @@ let bm;
     var top = Math.round(canvas.height / 2 + 4);
     const brightColor =
       BallState.create(bm, 1, 1, 4, 0,
-                       nsGlobal.FULL_BALL.getMask()).nextColor();
+                       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                       nsNonbackground.BALL_FLAG.getMask(),
+                       nsBall.BRIGHT_BALL_FLAG.getMask(),
+                       nsBall.DIM_BALL_FLAG.getMask(),
+                       nsNonbackground.FULL_ALPHA.getMask()])).nextColor();
     const dimColor =
       BallState.create(bm, 1, 1, 4, 0,
-                       nsGlobal.DIM_BALL.getMask()).nextColor();
+                       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                       nsNonbackground.BALL_FLAG.getMask(),
+                       nsBall.DIM_BALL_FLAG.getMask(),
+                       nsNonbackground.FULL_ALPHA.getMask()])).nextColor();
     const hiddenColor =
       BallState.create(bm, 1, 1, 4, 0,
-                       nsGlobal.HIDDEN_BALL.getMask()).nextColor();
+                       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                       nsNonbackground.BALL_FLAG.getMask(),
+                       nsBall.HIDDEN_BALL_FLAG.getMask(),
+                       nsNonbackground.FULL_ALPHA.getMask()])).nextColor();
 
     c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
     c.fillRect(brightColor, left + 1, top + 1, 1, 1);
@@ -303,11 +304,11 @@ let bm;
       }
       let bgH = isBackground(higher);
       let bgL = isBackground(lower);
-      if ((bgH && !(isBgBuffer(higher) && nsBgBuffer[flag].get(higher))) ||
+      if ((bgH && !nsBackground[flag].get(higher)) ||
           (!bgH && !nsBall[flag].get(higher))) {
         return 'min';
       }
-      if ((bgL && !(isBgBuffer(lower) && nsBgBuffer[flag].get(lower))) ||
+      if ((bgL && !nsBackground[flag].get(lower)) ||
           (!bgL && !nsBall[flag].get(lower))) {
         return 'max';
       }
@@ -333,10 +334,8 @@ let bm;
       bufferY = nsBall.BUFFER_Y_FLAG.get(current);
     } else {
       assert(isBackground(current));
-      if (isBgBuffer(current)) {
-        bufferX = nsBgBuffer.BUFFER_X_FLAG.get(current);
-        bufferY = nsBgBuffer.BUFFER_Y_FLAG.get(current);
-      }
+      bufferX = nsBackground.BUFFER_X_FLAG.get(current);
+      bufferY = nsBackground.BUFFER_Y_FLAG.get(current);
     }
     let bufferXDir = null;
     let bufferYDir = null;
@@ -421,15 +420,14 @@ let bm;
       } else {
         nsAbove = nsWall
       }
-      let active = nsAbove.SIGNAL_DOWN_ACTIVE_FLAG.get(data[1]);
+      let active = nsAbove.MESSAGE_PRESENT.get(data[1]);
       if (active) {
         if (isCenterRespawn(data)) {
           let rightNotL = nsAbove.MESSAGE_R_NOT_L.get(data[1]);
-          let color = nsGlobal.BACKGROUND.getMask();
+          let color = 0;
           color = nsBackground.MESSAGE_R_NOT_L.set(color, rightNotL);
-          color = nsBackground.SPECIAL_FLAG.set(color, true);
-          color = nsBgSpecial.RESPAWN_FLAG.set(color, true);
-          color = nsBgSpecial.RESPAWN_PHASE_2_FLAG.set(color, true);
+          color = nsBackground.RESPAWN_FLAG.set(color, true);
+          color = nsBackground.RESPAWN_PHASE_2_FLAG.set(color, true);
           return color;
         } else {
           return BitManager.copyBits(nsAbove, data[1], nsBackground, current,
@@ -439,14 +437,17 @@ let bm;
     }
     if (isRespawn(current)) {
       for (let d of data) {
-        if (isBgSpecial(d) && nsBgSpecial.RESPAWN_PHASE_2_FLAG.get(d)) {
+        if (isBackground(d) && nsBackground.RESPAWN_PHASE_2_FLAG.get(d)) {
           let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(d);
-          let color = nsGlobal.DIM_BALL.getMask();
+          let color = nsGlobal.IS_NOT_BACKGROUND.getMask() |
+                      nsNonbackground.BALL_FLAG.getMask() |
+                      nsBall.DIM_BALL_FLAG.getMask() |
+                      nsNonbackground.FULL_ALPHA.getMask();
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
           var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
           let next = bs.getColor();
           if (isCenterRespawn(data)) {
-            next = nsGlobal.BRIGHT_BALL_FLAG.setMask(next, true);
+            next = nsBall.BRIGHT_BALL_FLAG.setMask(next, true);
           }
           return next;
         }
@@ -456,15 +457,15 @@ let bm;
     let respawn;
     let bufferXFlag;
     let bufferYFlag;
-    let bgBuffer = isBgBuffer(current);
     if (isBall(current)) {
       respawn = nsBall.RESPAWN_FLAG.get(current);
       bufferXFlag = nsBall.BUFFER_X_FLAG.get(current);
       bufferYFlag = nsBall.BUFFER_Y_FLAG.get(current);
     } else {
+      assert(isBackground(current));
       respawn = isRespawn(current);
-      bufferXFlag = bgBuffer && nsBgBuffer.BUFFER_X_FLAG.get(current);
-      bufferYFlag = bgBuffer && nsBgBuffer.BUFFER_Y_FLAG.get(current);
+      bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
+      bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
     }
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
@@ -534,18 +535,17 @@ let bm;
         }
       }
     }
-    let background = nsGlobal.BACKGROUND.getMask()
+    let background = 0;
     let nextColor = background;
     if (bufferXFlag || bufferYFlag) {
       // Background flag is 0, so no special bit for that.
       assert(!respawn);
-      nextColor = nsBgBuffer.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
-      nextColor = nsBgBuffer.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
+      nextColor = nsBackground.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
+      nextColor = nsBackground.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
     }
     if (respawn) {
-      assert(!bgBuffer);
-      nextColor = nsBackground.SPECIAL_FLAG.set(nextColor, respawn);
-      nextColor = nsBgSpecial.RESPAWN_FLAG.set(nextColor, respawn);
+      assert(!bufferXFlag && !bufferYFlag);
+      nextColor = nsBackground.RESPAWN_FLAG.set(nextColor, respawn);
     }
     return nextColor;
   }

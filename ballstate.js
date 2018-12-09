@@ -137,7 +137,7 @@ class BallState {
   }
 
   static create(bm, right, down, index, state, baseColor) {
-    let color = baseColor;
+    let color = baseColor; // TODO: Remove baseColor?
     color = bm.set('MOVE_R_NOT_L', color, right);
     color = bm.set('MOVE_D_NOT_U', color, down);
     color = bm.set('MOVE_INDEX', color, index);

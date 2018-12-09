@@ -8,6 +8,15 @@
 
 // Backwards-compatibility shim; this only supports the bare minimum that's
 // already in use.
+function _or(list) {
+  assert(_.isArray(list));
+  return _.reduce(list, (a, b) => (a | b) >>> 0, 0);
+}
+function _and(list) {
+  assert(_.isArray(list));
+  return _.reduce(list, (a, b) => (a & b) >>> 0, 0xffffffff);
+}
+
 class BitManager {
   constructor(globalNamespace) {
     this.ns = globalNamespace;
@@ -20,39 +29,43 @@ class BitManager {
     }
     return packedTo;
   }
+  _findNamespace(name, packed) {
+    let ns = this.ns;
+    while (!(name in ns)) {
+      let id = _and([packed, ns.subspaceMask]);
+      ns = ns.subspacesById[id];
+      assert(ns);
+    }
+    return ns;
+  }
+  or(list) { // Non-static only for ease of call.
+    return _or(list);
+  }
+  and(list) { // Non-static only for ease of call.
+    return _and(list)
+  }
   dumpStatus() {
     return this.ns.dumpStatus();
   }
   get(name, packed) {
-    if (name in this.ns) {
-      return this.ns[name].get(packed);
-    }
-    let id = (packed & this.ns.subspaceMask) >>> 0;
-    return this.ns.subspacesById[id][name].get(packed);
+    let ns = this._findNamespace(name, packed);
+    return ns[name].get(packed);
   }
   getMask(name) {
-    if (name in this.ns) {
-      return this.ns[name].getMask();
-    }
-    let id = (packed & this.ns.subspaceMask) >>> 0;
-    return this.ns.subspacesById[id][name].getMask();
+    let ns = this._findNamespace(name, packed);
+    return ns[name].getMask();
   }
   set(name, packed, value) {
-    if (name in this.ns) {
-      return this.ns[name].set(packed, value);
-    }
-    let id = (packed & this.ns.subspaceMask) >>> 0;
-    return this.ns.subspacesById[id][name].set(packed, value);
+    let ns = this._findNamespace(name, packed);
+    return ns[name].set(packed, value);
   }
   setMask(name, packed, value) {
-    if (name in this.ns) {
-      return this.ns[name].setMask(packed, value);
-    }
-    let id = (packed & this.ns.subspaceMask) >>> 0;
-    return this.ns.subspacesById[id][name].setMask(packed, value);
+    let ns = this._findNamespace(name, packed);
+    return ns[name].setMask(packed, value);
   }
   isSet(name, packed) {
-    return this.ns[name].isSet(packed);
+    let ns = this._findNamespace(name, packed);
+    return ns[name].isSet(packed);
   }
   // This is really hacky and should never be used, but is here for
   // backwards-compatibility.
@@ -80,7 +93,7 @@ class BitManager {
 function getHasValueFunction(mask, value) {
   assert(_.isNumber(mask));
   assert(_.isNumber(value));
-  return data => (data & mask) === value;
+  return data => ((data & mask) >>> 0) === value;
 }
 
 class Namespace {
@@ -111,7 +124,7 @@ class Namespace {
       console.log(prefix + value.name, v.toString(16));
     }
     if (this.subspaceMask) {
-      let id = (packed & this.subspaceMask) >>> 0;
+      let id = _and([packed, this.subspaceMask]);
       assert(id in this.subspacesById)
       this.subspacesById[id].describe(packed, prefix + '  ');
     }
@@ -122,7 +135,7 @@ class Namespace {
     if (this.parent) {
       mask = this.parent.subspaceMask;
     }
-    this.subspaceMask = mask | this.values[maskName].getMask();
+    this.subspaceMask = _or([mask, this.values[maskName].getMask()]);
   }
   declareSubspace(name, idMaskNameOrZero) {
     assert(this.subspaceMask);
@@ -134,7 +147,7 @@ class Namespace {
       assert(idMaskNameOrZero === 0);
     }
     if (this.parent) {
-      id = id | this.parent.id;
+      id = _or([id, this.id]);
     }
     assert(!(id & ~this.subspaceMask));
     assert(!(id in this.subspacesById));
@@ -153,7 +166,7 @@ class Namespace {
 
     assert(!(name in this.values));
     assert(!(name in this));
-    this.bitsUsed = (this.bitsUsed | mask) >>> 0;
+    this.bitsUsed = _or([this.bitsUsed, mask]);
     let record = {
       offset: offset,
       bits: bits,
@@ -183,7 +196,7 @@ class Namespace {
       mask <<= 1;
     }
 
-    this.bitsUsed = (this.bitsUsed | mask) >>> 0;
+    this.bitsUsed = _or([this.bitsUsed, mask]);
     let record = {
       offset: offset,
       bits: bits,
@@ -224,7 +237,7 @@ class Namespace {
     let offset = 32;
     for (var name of oldNames) {
       let oldValue = this._findRecord(name);
-      mask = (mask | oldValue.getMask()) >>> 0;
+      mask = _or([mask, oldValue.getMask()]);
       offset = Math.min(offset, oldValue.getOffset());
     }
     let bits = mask >>> offset;
@@ -283,13 +296,13 @@ class Value {
 
   isSet(packed) {
     assert(_.isNumber(packed));
-    assert((packed & this.namespaceMask) === this.namespaceId);
-    return ((packed & this.record.mask) >>> 0) === this.record.mask;
+    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
+    return _and([packed, this.record.mask]) === this.record.mask;
   }
 
   get(packed) {
     assert(_.isNumber(packed));
-    assert((packed & this.namespaceMask) === this.namespaceId);
+    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
     return (packed & this.record.mask) >>> this.record.offset;
   }
 
@@ -303,7 +316,7 @@ class Value {
 
   set(packed, value) {
     assert(_.isNumber(packed));
-    assert((packed & this.namespaceMask) === this.namespaceId);
+    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
     if (!_.isNumber(value)) {
       assert(_.isBoolean(value));
       assert(this.record.count === 1);
@@ -316,11 +329,11 @@ class Value {
   setMask(packed, value, namespace) {
     assert(_.isNumber(packed));
     assert(_.isBoolean(value));
-    assert((packed & this.namespaceMask) === this.namespaceId);
+    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
     if (value) {
-      return (packed | this.record.mask) >>> 0;
+      return _or([packed, this.record.mask]);
     } else {
-      return (packed & ~this.record.mask) >>> 0;
+      return _and([packed, ~this.record.mask]);
     }
   }
 }
