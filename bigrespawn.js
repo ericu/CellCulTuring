@@ -1,4 +1,54 @@
 "use strict";
+/* Namespace plan:
+  Global
+2   ID_0, ID_1
+1   High alpha
+  Ball
+2   BUFFER_X_DEPTH_COUNTER
+2   BUFFER_Y_DEPTH_COUNTER
+1   MOVE_R_NOT_L
+1   MOVE_D_NOT_U
+2   MOVE_STATE
+3   MOVE_INDEX
+1   DECIMATOR
+1   Extra ball pixel for appearance [optional]
+4   To replace when run over: BUFFER_X_FLAG, BUFFER_Y_FLAG, RESPAWN_FLAG,
+                              PADDLE_BUFFER_FLAG.
+  Wall
+1   SIDE_WALL_FLAG
+1   TOP_WALL_FLAG
+1   TOP_WALL_CENTER_FLAG
+1   MESSAGE_PRESENT
+1   MESSAGE_R_NOT_L
+  Background
+1   SPECIAL_FLAG
+1   MESSAGE_PRESENT
+1   MESSAGE_R_NOT_L
+1   MESSAGE_H_NOT_V
+6   MESSAGE_PADDLE_POSITION
+    Special
+1     RESPAWN_FLAG
+1     RESPAWN_PHASE_2_FLAG
+1     DECIMATOR
+1     Something to indicate the death of a ball [share with
+                                                 RESPAWN_PHASE_2_FLAG?]
+    Buffer
+1     BUFFER_X_FLAG
+1     BUFFER_Y_FLAG
+  Paddle
+1   PADDLE_PIXEL
+6   PADDLE_POSITION
+3   PADDLE_DEST
+2   PADDLE_MOVE_DELAY_COUNTER
+1   DECIMATOR
+
+Wow.  Namespacing the bits has saved us a *ton* of bits; we might be able to get
+by with a much larger ball!  But let's get it working with a 3x3 ball first.
+Then the things that need to scale up are:
+BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
+need to turn into something to encode depth [can we use the PADDLE_PIXEL TRICK
+THERE TOO?...anything else?  Maybe another shading pixel for the ball's edges?]
+*/
 
 let bm;
 (function () {
@@ -83,7 +133,6 @@ let bm;
     // trough.
     // Non-special [buffer] will have buffer flags.
     nsBgSpecial = nsBackground.declareSubspace('BG_SPECIAL', 'SPECIAL_FLAG');
-    // TODO: Put buffer bits in BgBuffer.
     nsBgBuffer = nsBackground.declareSubspace('BG_BUFFER', 0);
     nsBgSpecial.alloc('RESPAWN_FLAG', 1);
     nsBgSpecial.alloc('RESPAWN_PHASE_2_FLAG', 1);
