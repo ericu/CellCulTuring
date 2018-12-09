@@ -8,13 +8,19 @@
 
 // Backwards-compatibility shim; this only supports the bare minimum that's
 // already in use.
-function _or(list) {
-  assert(_.isArray(list));
-  return _.reduce(list, (a, b) => (a | b) >>> 0, 0);
+function _or(a, b) {
+  return (a | b) >>> 0;
 }
-function _and(list) {
+function _and(a, b) {
+  return (a & b) >>> 0;
+}
+function _orL(list) {
   assert(_.isArray(list));
-  return _.reduce(list, (a, b) => (a & b) >>> 0, 0xffffffff);
+  return _.reduce(list, _or, 0);
+}
+function _andL(list) {
+  assert(_.isArray(list));
+  return _.reduce(list, _and, 0);
 }
 
 class BitManager {
@@ -32,17 +38,17 @@ class BitManager {
   _findNamespace(name, packed) {
     let ns = this.ns;
     while (!(name in ns)) {
-      let id = _and([packed, ns.subspaceMask]);
+      let id = _and(packed, ns.subspaceMask);
       ns = ns.subspacesById[id];
       assert(ns);
     }
     return ns;
   }
   or(list) { // Non-static only for ease of call.
-    return _or(list);
+    return _orL(list);
   }
   and(list) { // Non-static only for ease of call.
-    return _and(list)
+    return _andL(list)
   }
   dumpStatus() {
     return this.ns.dumpStatus();
@@ -124,7 +130,7 @@ class Namespace {
       console.log(prefix + value.name, v.toString(16));
     }
     if (this.subspaceMask) {
-      let id = _and([packed, this.subspaceMask]);
+      let id = _and(packed, this.subspaceMask);
       assert(id in this.subspacesById)
       this.subspacesById[id].describe(packed, prefix + '  ');
     }
@@ -135,7 +141,7 @@ class Namespace {
     if (this.parent) {
       mask = this.parent.subspaceMask;
     }
-    this.subspaceMask = _or([mask, this.values[maskName].getMask()]);
+    this.subspaceMask = _or(mask, this.values[maskName].getMask());
   }
   declareSubspace(name, idMaskNameOrZero) {
     assert(this.subspaceMask);
@@ -147,7 +153,7 @@ class Namespace {
       assert(idMaskNameOrZero === 0);
     }
     if (this.parent) {
-      id = _or([id, this.id]);
+      id = _or(id, this.id);
     }
     assert(!(id & ~this.subspaceMask));
     assert(!(id in this.subspacesById));
@@ -166,7 +172,7 @@ class Namespace {
 
     assert(!(name in this.values));
     assert(!(name in this));
-    this.bitsUsed = _or([this.bitsUsed, mask]);
+    this.bitsUsed = _or(this.bitsUsed, mask);
     let record = {
       offset: offset,
       bits: bits,
@@ -196,7 +202,7 @@ class Namespace {
       mask <<= 1;
     }
 
-    this.bitsUsed = _or([this.bitsUsed, mask]);
+    this.bitsUsed = _or(this.bitsUsed, mask);
     let record = {
       offset: offset,
       bits: bits,
@@ -237,7 +243,7 @@ class Namespace {
     let offset = 32;
     for (var name of oldNames) {
       let oldValue = this._findRecord(name);
-      mask = _or([mask, oldValue.getMask()]);
+      mask = _or(mask, oldValue.getMask());
       offset = Math.min(offset, oldValue.getOffset());
     }
     let bits = mask >>> offset;
@@ -296,13 +302,13 @@ class Value {
 
   isSet(packed) {
     assert(_.isNumber(packed));
-    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
-    return _and([packed, this.record.mask]) === this.record.mask;
+    assert(_and(packed, this.namespaceMask) === this.namespaceId);
+    return _and(packed, this.record.mask) === this.record.mask;
   }
 
   get(packed) {
     assert(_.isNumber(packed));
-    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
+    assert(_and(packed, this.namespaceMask) === this.namespaceId);
     return (packed & this.record.mask) >>> this.record.offset;
   }
 
@@ -316,7 +322,7 @@ class Value {
 
   set(packed, value) {
     assert(_.isNumber(packed));
-    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
+    assert(_and(packed, this.namespaceMask) === this.namespaceId);
     if (!_.isNumber(value)) {
       assert(_.isBoolean(value));
       assert(this.record.count === 1);
@@ -329,11 +335,11 @@ class Value {
   setMask(packed, value, namespace) {
     assert(_.isNumber(packed));
     assert(_.isBoolean(value));
-    assert(_and([packed, this.namespaceMask]) === this.namespaceId);
+    assert(_and(packed, this.namespaceMask) === this.namespaceId);
     if (value) {
-      return _or([packed, this.record.mask]);
+      return _or(packed, this.record.mask);
     } else {
-      return _and([packed, ~this.record.mask]);
+      return _and(packed, ~this.record.mask);
     }
   }
 }
