@@ -1,46 +1,57 @@
 "use strict";
 /* Namespace plan:
   Global
-2   ID_0, ID_1
-1   High alpha
-  Ball
-2   BUFFER_X_DEPTH_COUNTER
-2   BUFFER_Y_DEPTH_COUNTER
-1   MOVE_R_NOT_L
-1   MOVE_D_NOT_U
-2   MOVE_STATE
-3   MOVE_INDEX
-1   DECIMATOR
-1   Extra ball pixel for appearance [optional]
-4   To replace when run over: BUFFER_X_FLAG, BUFFER_Y_FLAG, RESPAWN_FLAG,
-                              PADDLE_BUFFER_FLAG.
-  Wall
-1   SIDE_WALL_FLAG
-1   TOP_WALL_FLAG
-1   TOP_WALL_CENTER_FLAG
-1   MESSAGE_PRESENT
-1   MESSAGE_R_NOT_L
-  Background
-1   SPECIAL_FLAG
-1   MESSAGE_PRESENT
-1   MESSAGE_R_NOT_L
-1   MESSAGE_H_NOT_V
-6   MESSAGE_PADDLE_POSITION
-    Special
+1 IS_NOT_BACKGROUND [high alpha bit]
+
+  Background [29+1; can split respawn/trough/buffer+paddle stuff if needed]
+1     MESSAGE_PRESENT
+1     MESSAGE_R_NOT_L
+1     MESSAGE_H_NOT_V
+6     MESSAGE_PADDLE_POSITION
 1     RESPAWN_FLAG
 1     RESPAWN_PHASE_2_FLAG
-1     DECIMATOR
-1     Something to indicate the death of a ball [share with
-                                                 RESPAWN_PHASE_2_FLAG?]
-    Buffer
+1     BALL_MISS_FLAG
+1     TROUGH_FLAG
+1     DECIMATOR [for respawn and paddle buffer]
 1     BUFFER_X_FLAG
 1     BUFFER_Y_FLAG
+1     PADDLE_BUFFER_FLAG
+1     PADDLE_PIXEL
+6     PADDLE_POSITION
+3     PADDLE_DEST
+2     PADDLE_MOVE_DELAY_COUNTER
+
+  NonBackground
+2   ID_0, ID_1
+
+  Ball [28+2(+1)]
+2     BUFFER_X_DEPTH_COUNTER
+2     BUFFER_Y_DEPTH_COUNTER
+1     MOVE_R_NOT_L
+1     MOVE_D_NOT_U
+2     MOVE_STATE
+3     MOVE_INDEX
+1     DECIMATOR
+(1)   Extra ball pixel for appearance [optional]
+14    To replace when run over: BUFFER_X_FLAG, BUFFER_Y_FLAG, RESPAWN_FLAG,
+        PADDLE_BUFFER_FLAG, PADDLE_PIXEL, PADDLE_POSITION, PADDLE_DEST.
+
+  Wall
+1     SIDE_WALL_FLAG
+1     TOP_WALL_FLAG
+1     TOP_WALL_CENTER_FLAG
+1     MESSAGE_PRESENT
+1     MESSAGE_R_NOT_L
+
   Paddle
-1   PADDLE_PIXEL
-6   PADDLE_POSITION
-3   PADDLE_DEST
-2   PADDLE_MOVE_DELAY_COUNTER
-1   DECIMATOR
+1     PADDLE_PIXEL
+6     PADDLE_POSITION
+3     PADDLE_DEST
+2-3   PADDLE_MOVE_DELAY_COUNTER
+1     DECIMATOR
+
+  Counter/scoreboard
+TBD
 
 Wow.  Namespacing the bits has saved us a *ton* of bits; we might be able to get
 by with a much larger ball!  But let's get it working with a 3x3 ball first.
@@ -59,7 +70,7 @@ the background queries get simpler again, since we need no other sub-spacing.
 let bm;
 (function () {
   let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal, nsNonbackground;
-  let isWall, isBackground, isBall, isRespawn;
+  let isWall, isBackground, isBall, isRespawn, isTrough;
   let isTopWallCenter;
   let copySets = {};
 
@@ -94,6 +105,7 @@ let bm;
     nsNonbackground.alias('PADDLE_FLAG', 'ID_BITS');
 
     nsNonbackground.declare('FULL_ALPHA', 3, 28);
+    nsBackground.declare('FULL_ALPHA', 3, 28);
 
     nsNonbackground.setSubspaceMask('ID_BITS');
     nsBall = nsNonbackground.declareSubspace('BALL', 'BALL_FLAG');
@@ -107,8 +119,8 @@ let bm;
     // Message fields [for wall and background, mostly]
     nsWall.alloc('MESSAGE_R_NOT_L', 1);
     nsBackground.alloc('MESSAGE_R_NOT_L', 1);
-    nsWall.alloc('MESSAGE_PRESENT', 1);
-    nsBackground.alloc('MESSAGE_PRESENT', 1);
+    nsWall.declare('MESSAGE_PRESENT', 1, 14);
+    nsBackground.alloc('MESSAGE_PRESENT', 1, 14);
     copySets.RESPAWN_MESSAGE_BITS = ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']
     nsWall.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
     nsBackground.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
@@ -128,13 +140,15 @@ let bm;
 
     nsBackground.alloc('RESPAWN_FLAG', 1);
     nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
+    nsBackground.declare('TROUGH_FLAG', 1, 15);
+    nsBackground.declare('BALL_MISS_FLAG', 1, 14);
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
     nsBall.alloc('BUFFER_X_FLAG', 1);
     nsBall.alloc('BUFFER_Y_FLAG', 1);
-    nsBackground.alloc('BUFFER_X_FLAG', 1);
-    nsBackground.alloc('BUFFER_Y_FLAG', 1);
+    nsBackground.declare('BUFFER_X_FLAG', 1, 21);
+    nsBackground.declare('BUFFER_Y_FLAG', 1, 22);
 
     nsBall.alloc('RESPAWN_FLAG', 1);
 
@@ -151,6 +165,10 @@ let bm;
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsBackground.RESPAWN_FLAG.getMask()]),
              nsBackground.RESPAWN_FLAG.getMask());
+    isTrough = getHasValueFunction(
+      bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+             nsBackground.TROUGH_FLAG.getMask()]),
+             nsBackground.TROUGH_FLAG.getMask());
     isTopWallCenter =
       getHasValueFunction(bm.or([nsNonbackground.ID_BITS.getMask(),
                                  nsWall.TOP_WALL_CENTER_FLAG.getMask()]),
@@ -212,10 +230,15 @@ let bm;
     // We fill the whole canvas, then put a wall around that corresponds to the
     // originX/originY/width/height sentinel frame.
 
+    // background
     c.fillRect(0, 0, 0, canvas.width, canvas.height);
+
+    // respawn square
     c.fillRect(nsBackground.RESPAWN_FLAG.setMask(0, true),
       originX + halfWidth - 1, originY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
 
+
+    // walls
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.WALL_FLAG.getMask(),
                        nsNonbackground.FULL_ALPHA.getMask()]);
@@ -231,39 +254,47 @@ let bm;
                originX + halfWidth,
                originY, 1, 1);
 
-    let bg = 0;
-    // Background's id is 0, so no extra flag for that.
-    let bufferX = bm.or([nsBackground.BUFFER_X_FLAG.getMask(), bg]);
-    let bufferY = bm.or([nsBackground.BUFFER_Y_FLAG.getMask(), bg]);
-
-    // Buffer regions
+    // buffer regions
+    let bufferX = nsBackground.BUFFER_X_FLAG.getMask() |
+      nsBackground.FULL_ALPHA.getMask();
+    let bufferY = nsBackground.BUFFER_Y_FLAG.getMask() |
+      nsBackground.FULL_ALPHA.getMask();
     c.fillRect(bufferX,
-               insideWallOriginX, insideWallOriginY + BUFFER_SIZE,
+               insideWallOriginX + 1, insideWallOriginY + BUFFER_SIZE,
                BUFFER_SIZE, insideWallHeight - 2 * BUFFER_SIZE);
     c.fillRect(bufferX,
-               insideWallOriginX + insideWallWidth - BUFFER_SIZE,
+               insideWallOriginX + insideWallWidth - BUFFER_SIZE - 1,
                insideWallOriginY + BUFFER_SIZE,
                BUFFER_SIZE, insideWallHeight - 2 * BUFFER_SIZE);
     c.fillRect(bufferY,
-               insideWallOriginX + BUFFER_SIZE, insideWallOriginY,
-               insideWallWidth - 2 * BUFFER_SIZE, BUFFER_SIZE);
+               insideWallOriginX + BUFFER_SIZE + 1, insideWallOriginY,
+               insideWallWidth - 2 * BUFFER_SIZE - 2, BUFFER_SIZE);
     c.fillRect(bufferY,
-               insideWallOriginX + BUFFER_SIZE,
+               insideWallOriginX + BUFFER_SIZE + 1,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
-               insideWallWidth - 2 * BUFFER_SIZE, BUFFER_SIZE);
+               insideWallWidth - 2 * BUFFER_SIZE - 2, BUFFER_SIZE);
     c.fillRect(bm.or([bufferX, bufferY]),
-               insideWallOriginX, insideWallOriginY,
+               insideWallOriginX + 1, insideWallOriginY,
                BUFFER_SIZE, BUFFER_SIZE);
     c.fillRect(bm.or([bufferX, bufferY]),
-               insideWallOriginX + insideWallWidth - BUFFER_SIZE,
+               insideWallOriginX + insideWallWidth - BUFFER_SIZE - 1,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
     c.fillRect(bm.or([bufferX, bufferY]), insideWallOriginX +
-               insideWallWidth - BUFFER_SIZE,
+               insideWallWidth - BUFFER_SIZE - 1,
                insideWallOriginY, BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.or([bufferX, bufferY]), insideWallOriginX,
+    c.fillRect(bm.or([bufferX, bufferY]), insideWallOriginX + 1,
                insideWallOriginY + insideWallHeight - BUFFER_SIZE,
                BUFFER_SIZE, BUFFER_SIZE);
+
+
+    // trough lines
+    let trough = bm.or([nsBackground.FULL_ALPHA.getMask(),
+                        nsBackground.TROUGH_FLAG.getMask()])
+    c.fillRect(trough, insideWallOriginX, insideWallOriginY, 1,
+               insideWallHeight);
+    c.fillRect(trough, insideWallOriginX + insideWallWidth - 1,
+               insideWallOriginY, 1, insideWallHeight);
 
     // arbitrarily moving ball
     var left = Math.round(canvas.width / 2 + 4);
@@ -296,12 +327,14 @@ let bm;
     function testBounds(lower, current, higher, flag,
                         bsDepth, bsDir) {
       assert(BUFFER_SIZE === 3);
-      if (isWall(lower)) {
+      if (isWall(lower) || isTrough(lower)) {
         return 'min';
       }
-      if (isWall(higher)) {
+      if (isWall(higher) || isTrough(higher)) {
         return 'max';
       }
+      // Beyond this line, higher and lower are either empty background, buffer,
+      // or ball, no trough or wall.
       let bgH = isBackground(higher);
       let bgL = isBackground(lower);
       if ((bgH && !nsBackground[flag].get(higher)) ||
@@ -362,13 +395,13 @@ let bm;
       if (nsWall.MESSAGE_PRESENT.isSet(data[7])) {
         return data[7];
       }
-      // Only trigger if we're at the middle of the ball, to prevent
-      // duplicate messages.
-      let right = false;
-      if (_.every([0, 3, 6], i => isBall(data[i])) ||
-          (right = _.every([2, 5, 8], i => isBall(data[i])))) {
+      if (isTrough(data[3]) &&
+          nsBackground.BALL_MISS_FLAG.isSet(data[3])) {
+        return nsWall.MESSAGE_PRESENT.set(current, 1);
+      } else if (isTrough(data[5]) &&
+                 nsBackground.BALL_MISS_FLAG.isSet(data[5])) {
         var next = nsWall.MESSAGE_PRESENT.set(current, 1);
-        return nsWall.MESSAGE_R_NOT_L.set(next, right);
+        return nsWall.MESSAGE_R_NOT_L.set(next, 1);
       }
     } else if (nsWall.TOP_WALL_CENTER_FLAG.isSet(current)) {
       if (nsWall.MESSAGE_PRESENT.isSet(data[5])) {
@@ -452,6 +485,15 @@ let bm;
           return next;
         }
       }
+    }
+    // Trough doesn't have to deal with balls, messages, or respawn, only ball
+    // deaths and eventually the paddle.
+    if (isTrough(current)) {
+      if (_.every([0, 3, 6], i => isBall(data[i])) ||
+          _.every([2, 5, 8], i => isBall(data[i]))) {
+        return nsBackground.BALL_MISS_FLAG.set(current, 1);
+      }
+      return nsBackground.BALL_MISS_FLAG.set(current, 0);
     }
 
     let respawn;

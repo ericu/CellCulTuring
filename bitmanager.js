@@ -291,6 +291,7 @@ class Namespace {
 class Value {
   constructor (namespace, name, record) {
     this.name = name;
+    this.namespace = namespace; // for debugging only, currently
     this.record = record;
     this.namespaceId = 0;
     this.namespaceMask = 0;
