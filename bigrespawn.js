@@ -53,18 +53,10 @@
   Counter/scoreboard
 TBD
 
-Wow.  Namespacing the bits has saved us a *ton* of bits; we might be able to get
-by with a much larger ball!  But let's get it working with a 3x3 ball first.
-Then the things that need to scale up are:
+The things that need to scale up for a larger ball are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
-need to get their MAX and MIN bits back, ... anything else?  Maybe another
-shading pixel for the ball's edges?]
-
-Another namespacing idea:  Have the high alpha bit be !IS_BACKGROUND, then
-namespace between ball, paddle, wall, and counter using 2 more high bits, with
-counter being ID 0.  Then that gives background 31 bits, each other subspace 29,
-and counter can use the last high bit for its display-on color.  As a plus, all
-the background queries get simpler again, since we need no other sub-spacing.
+need to get their MAX and MIN bits back, the paddle move delay
+counter...anything else?  Maybe another shading pixel for the ball's edges?]
 */
 
 let bm;
@@ -106,6 +98,7 @@ let bm;
 
     nsNonbackground.declare('FULL_ALPHA', 3, 28);
     nsBackground.declare('FULL_ALPHA', 3, 28);
+    nsBackground.alias('BASIC_BACKGROUND', 'FULL_ALPHA');
 
     nsNonbackground.setSubspaceMask('ID_BITS');
     nsBall = nsNonbackground.declareSubspace('BALL', 'BALL_FLAG');
@@ -120,7 +113,7 @@ let bm;
     nsWall.alloc('MESSAGE_R_NOT_L', 1);
     nsBackground.alloc('MESSAGE_R_NOT_L', 1);
     nsWall.declare('MESSAGE_PRESENT', 1, 14);
-    nsBackground.alloc('MESSAGE_PRESENT', 1, 14);
+    nsBackground.declare('MESSAGE_PRESENT', 1, 14);
     copySets.RESPAWN_MESSAGE_BITS = ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']
     nsWall.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
     nsBackground.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
@@ -141,7 +134,7 @@ let bm;
     nsBackground.alloc('RESPAWN_FLAG', 1);
     nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
     nsBackground.declare('TROUGH_FLAG', 1, 15);
-    nsBackground.declare('BALL_MISS_FLAG', 1, 14);
+    nsBackground.declare('BALL_MISS_FLAG', 1, 13);
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
@@ -231,10 +224,11 @@ let bm;
     // originX/originY/width/height sentinel frame.
 
     // background
-    c.fillRect(0, 0, 0, canvas.width, canvas.height);
+    let background = nsBackground.BASIC_BACKGROUND.getMask();
+    c.fillRect(background, 0, 0, canvas.width, canvas.height);
 
     // respawn square
-    c.fillRect(nsBackground.RESPAWN_FLAG.setMask(0, true),
+    c.fillRect(nsBackground.RESPAWN_FLAG.setMask(background, true),
       originX + halfWidth - 1, originY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
 
 
@@ -255,10 +249,8 @@ let bm;
                originY, 1, 1);
 
     // buffer regions
-    let bufferX = nsBackground.BUFFER_X_FLAG.getMask() |
-      nsBackground.FULL_ALPHA.getMask();
-    let bufferY = nsBackground.BUFFER_Y_FLAG.getMask() |
-      nsBackground.FULL_ALPHA.getMask();
+    let bufferX = bm.or([nsBackground.BUFFER_X_FLAG.getMask(), background]);
+    let bufferY = bm.or([nsBackground.BUFFER_Y_FLAG.getMask(), background]);
     c.fillRect(bufferX,
                insideWallOriginX + 1, insideWallOriginY + BUFFER_SIZE,
                BUFFER_SIZE, insideWallHeight - 2 * BUFFER_SIZE);
@@ -289,8 +281,7 @@ let bm;
 
 
     // trough lines
-    let trough = bm.or([nsBackground.FULL_ALPHA.getMask(),
-                        nsBackground.TROUGH_FLAG.getMask()])
+    let trough = bm.or([nsBackground.TROUGH_FLAG.getMask(), background])
     c.fillRect(trough, insideWallOriginX, insideWallOriginY, 1,
                insideWallHeight);
     c.fillRect(trough, insideWallOriginX + insideWallWidth - 1,
@@ -457,8 +448,7 @@ let bm;
       if (active) {
         if (isCenterRespawn(data)) {
           let rightNotL = nsAbove.MESSAGE_R_NOT_L.get(data[1]);
-          let color = 0;
-          color = nsBackground.MESSAGE_R_NOT_L.set(color, rightNotL);
+          let color = nsBackground.MESSAGE_R_NOT_L.set(current, rightNotL);
           color = nsBackground.RESPAWN_FLAG.set(color, true);
           color = nsBackground.RESPAWN_PHASE_2_FLAG.set(color, true);
           return color;
@@ -472,10 +462,10 @@ let bm;
       for (let d of data) {
         if (isBackground(d) && nsBackground.RESPAWN_PHASE_2_FLAG.get(d)) {
           let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(d);
-          let color = nsGlobal.IS_NOT_BACKGROUND.getMask() |
-                      nsNonbackground.BALL_FLAG.getMask() |
-                      nsBall.DIM_BALL_FLAG.getMask() |
-                      nsNonbackground.FULL_ALPHA.getMask();
+          let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                             nsNonbackground.BALL_FLAG.getMask(),
+                             nsBall.DIM_BALL_FLAG.getMask(),
+                             nsNonbackground.FULL_ALPHA.getMask()]);
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
           var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
           let next = bs.getColor();
@@ -577,8 +567,7 @@ let bm;
         }
       }
     }
-    let background = 0;
-    let nextColor = background;
+    let nextColor = nsBackground.BASIC_BACKGROUND.getMask();
     if (bufferXFlag || bufferYFlag) {
       // Background flag is 0, so no special bit for that.
       assert(!respawn);
