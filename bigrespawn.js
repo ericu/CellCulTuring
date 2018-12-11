@@ -105,10 +105,6 @@ let bm;
     nsWall = nsNonbackground.declareSubspace('WALL', 'WALL_FLAG');
     nsPaddle = nsNonbackground.declareSubspace('PADDLE', 'ID_BITS');
 
-    nsBall.declare('HIDDEN_BALL_FLAG', 1, 24);
-    nsBall.declare('DIM_BALL_FLAG', 1, 14);
-    nsBall.declare('BRIGHT_BALL_FLAG', 1, 15);
-
     // Message fields [for wall and background, mostly]
     nsWall.alloc('MESSAGE_R_NOT_L', 1);
     nsBackground.alloc('MESSAGE_R_NOT_L', 1);
@@ -119,12 +115,18 @@ let bm;
     nsBackground.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
 
     // Used only by the ball.
+    nsBall.declare('BRIGHT_BALL_FLAG', 1, 15);
+
+    nsBall.alloc('PADDLE_POSITION', 6);
+    nsBall.alloc('PADDLE_DEST', 3);
+    nsBall.alloc('MOVE_INDEX', 3);
     nsBall.alloc('BUFFER_X_DEPTH_COUNTER', BUFFER_X_DEPTH_COUNTER_BITS);
     nsBall.alloc('BUFFER_Y_DEPTH_COUNTER', BUFFER_Y_DEPTH_COUNTER_BITS);
+    nsBall.alloc('MOVE_STATE', 2);
     nsBall.alloc('MOVE_R_NOT_L', 1);
     nsBall.alloc('MOVE_D_NOT_U', 1);
-    nsBall.alloc('MOVE_STATE', 2);
-    nsBall.alloc('MOVE_INDEX', 3);
+    nsBall.alloc('PADDLE_PIXEL', 1);
+    nsBall.alloc('PADDLE_BUFFER_FLAG', 1);
 
     nsWall.alloc('SIDE_WALL_FLAG', 1);
     nsWall.alloc('TOP_WALL_FLAG', 1);
@@ -144,6 +146,20 @@ let bm;
     nsBackground.declare('BUFFER_Y_FLAG', 1, 22);
 
     nsBall.alloc('RESPAWN_FLAG', 1);
+
+    // Paddle fields
+    nsPaddle.alloc('PADDLE_POSITION', 6);
+    nsPaddle.alloc('PADDLE_DEST', 3);
+    nsPaddle.alloc('PADDLE_PIXEL', 1);
+    nsPaddle.alloc('DECIMATOR', 1);
+
+    // Background fields for paddle
+    nsBackground.alloc('PADDLE_POSITION', 6);
+    nsBackground.alloc('PADDLE_DEST', 3);
+    nsBackground.alloc('PADDLE_MOVE_DELAY_COUNTER', 3);
+    nsBackground.alloc('PADDLE_PIXEL', 1);
+    nsBackground.alloc('DECIMATOR', 1);
+    nsBackground.alloc('PADDLE_BUFFER_FLAG', 1);
 
     isWall = getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                        nsNonbackground.ID_BITS.getMask()]),
@@ -295,20 +311,13 @@ let bm;
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.BALL_FLAG.getMask(),
                        nsBall.BRIGHT_BALL_FLAG.getMask(),
-                       nsBall.DIM_BALL_FLAG.getMask(),
                        nsNonbackground.FULL_ALPHA.getMask()])).nextColor();
     const dimColor =
       BallState.create(bm, 1, 1, 4, 0,
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
-                       nsNonbackground.BALL_FLAG.getMask(),
-                       nsBall.DIM_BALL_FLAG.getMask(),
-                       nsNonbackground.FULL_ALPHA.getMask()])).nextColor();
-    const hiddenColor =
-      BallState.create(bm, 1, 1, 4, 0,
-                       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
-                       nsNonbackground.BALL_FLAG.getMask(),
-                       nsBall.HIDDEN_BALL_FLAG.getMask(),
-                       nsNonbackground.FULL_ALPHA.getMask()])).nextColor();
+                              nsNonbackground.BALL_FLAG.getMask(),
+                              nsNonbackground.FULL_ALPHA.getMask()]))
+        .nextColor();
 
     c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
     c.fillRect(brightColor, left + 1, top + 1, 1, 1);
@@ -464,7 +473,6 @@ let bm;
           let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(d);
           let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                              nsNonbackground.BALL_FLAG.getMask(),
-                             nsBall.DIM_BALL_FLAG.getMask(),
                              nsNonbackground.FULL_ALPHA.getMask()]);
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
           var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);

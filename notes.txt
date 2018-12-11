@@ -272,3 +272,40 @@ To add paddles to bigrespawn:
 * At some point, add AI messages on respawn; they could be sent early by the
 ball at destruction, or could be sent at respawn itself, although that gives
 much less warning.
+
+--------------------------------------------------------------------------------
+The checkerboard ball state will probably work!  We can save a ton of bits that
+way.  Make a ball out of alternating pixels, where some have all the ball motion
+info and the others have all the collected paddle/buffer info.  When you need
+one or the other namespace of info, there's always a pixel within reach that has
+it.  The only thing to watch out for is that the leading corner when moving
+diagonally must have the ball info, as it may be the only ball pixel that the
+target pixel can see.  That's probably pretty easy to arrange, though, for most
+odd ball sizes.
+
+7:
+   x.x
+  x.x.x
+ x.x.x.x
+ .x.x.x.
+ x.x.x.x
+  x.x.x
+   x.x
+
+5:
+   x
+  x.x
+ x.x.x
+  x.x
+   x
+
+4: does that work?  Probably.
+
+   xx
+  x..x
+  x..x
+   xx
+
+
+--------------------------------------------------------------------------------
+Make a debugging helper via describe-on-click to an on-screen display panel.
