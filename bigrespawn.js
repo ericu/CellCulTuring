@@ -62,7 +62,7 @@ counter...anything else?  Maybe another shading pixel for the ball's edges?]
 let bm;
 (function () {
   let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal, nsNonbackground;
-  let isWall, isBackground, isBall, isRespawn, isTrough;
+  let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
   let isTopWallCenter;
   let copySets = {};
 
@@ -178,6 +178,10 @@ let bm;
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsBackground.TROUGH_FLAG.getMask()]),
              nsBackground.TROUGH_FLAG.getMask());
+    isPaddle = getHasValueFunction(
+      bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+             nsNonbackground.ID_BITS.getMask()]),
+             nsNonbackground.PADDLE_FLAG.getMask());
     isTopWallCenter =
       getHasValueFunction(bm.or([nsNonbackground.ID_BITS.getMask(),
                                  nsWall.TOP_WALL_CENTER_FLAG.getMask()]),
@@ -433,6 +437,21 @@ let bm;
     return nsWall.RESPAWN_MESSAGE_BITS.set(current, 0);
   }
 
+  function handleTrough(data, x, y) {
+    let current = data[4];
+    if (_.every([0, 3, 6], i => isBall(data[i])) ||
+        _.every([2, 5, 8], i => isBall(data[i]))) {
+      return nsBackground.BALL_MISS_FLAG.set(current, 1);
+    }
+    return nsBackground.BALL_MISS_FLAG.set(current, 0);
+  }
+
+  function handlePaddle(data, x, y) {
+    let current = data[4];
+    assert(false);
+    return null;
+  }
+
   function handleRespawnMessage(data, x, y) {
     let current = data[4];
     let backgroundAbove = isBackground(data[1]);
@@ -477,6 +496,11 @@ let bm;
         }
       }
     }
+    return null;
+  }
+
+  function handleAIMessage(data, x, y) {
+    let current = data[4];
     return null;
   }
 
@@ -566,35 +590,8 @@ let bm;
     return null;
   }
 
-  function bigRespawn(data, x, y) {
+  function handleBecomingOrStayingBackground(data, x, y) {
     const current = data[4];
-    let v;
-
-    if (isWall(current)) {
-      return handleWall(data, x, y);
-    }
-    // Both ball and background need to handle incoming ball pixels.
-
-    // First deal with messages and respawns in the background, then deal with
-    // the ball in both.  We won't receive a message and a ball in the same
-    // cycle.
-    if (v = handleRespawnMessage(data, x, y)) {
-      return v.value;
-    }
-
-    // Trough doesn't have to deal with balls, messages, or respawn, only ball
-    // deaths and eventually the paddle.
-    if (isTrough(current)) {
-      if (_.every([0, 3, 6], i => isBall(data[i])) ||
-          _.every([2, 5, 8], i => isBall(data[i]))) {
-        return nsBackground.BALL_MISS_FLAG.set(current, 1);
-      }
-      return nsBackground.BALL_MISS_FLAG.set(current, 0);
-    }
-
-    if (v = handleIncomingBall(data, x, y)) {
-      return v.value;
-    }
     let respawn;
     let bufferXFlag;
     let bufferYFlag;
@@ -619,6 +616,43 @@ let bm;
       nextColor = nsBackground.RESPAWN_FLAG.set(nextColor, respawn);
     }
     return nextColor;
+  }
+
+  function bigRespawn(data, x, y) {
+    const current = data[4];
+    let v;
+
+    if (isWall(current)) {
+      return handleWall(data, x, y);
+    }
+
+    // Trough doesn't have to deal with balls, messages, or respawn, only ball
+    // deaths and eventually the paddle.
+    if (isTrough(current)) {
+      return handleTrough(data, x, y);
+    }
+
+    if (isPaddle(current)) {
+      return handlePaddle(data, x, y);
+    }
+
+    // First deal with messages and respawns in the background, then deal with
+    // the ball in both.  We won't receive a message and a ball in the same
+    // cycle.
+    if (v = handleRespawnMessage(data, x, y)) {
+      return v.value;
+    }
+
+    if (v = handleAIMessage(data, x, y)) {
+      return v.value;
+    }
+
+    // Both ball and background need to handle incoming ball pixels.
+    if (v = handleIncomingBall(data, x, y)) {
+      return v.value;
+    }
+
+    return handleBecomingOrStayingBackground(data, x, y);
   }
 
   registerAnimation("big respawn", initBigRespawn, bigRespawn);
