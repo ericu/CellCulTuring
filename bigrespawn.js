@@ -433,17 +433,8 @@ let bm;
     return nsWall.RESPAWN_MESSAGE_BITS.set(current, 0);
   }
 
-  function bigRespawn(data, x, y) {
-    const current = data[4];
-
-    if (isWall(current)) {
-      return handleWall(data, x, y);
-    }
-    // Both ball and background need to handle incoming ball pixels.
-
-    // First deal with messages and respawns in the background, then deal with
-    // the ball in both.  We won't receive a message and a ball in the same
-    // cycle.
+  function handleRespawnMessage(data, x, y) {
+    let current = data[4];
     let backgroundAbove = isBackground(data[1]);
     if (isBackground(current) && (backgroundAbove ||
                                   isTopWallCenter(data[1]))) {
@@ -460,10 +451,12 @@ let bm;
           let color = nsBackground.MESSAGE_R_NOT_L.set(current, rightNotL);
           color = nsBackground.RESPAWN_FLAG.set(color, true);
           color = nsBackground.RESPAWN_PHASE_2_FLAG.set(color, true);
-          return color;
+          return { value: color };
         } else {
-          return BitManager.copyBits(nsAbove, data[1], nsBackground, current,
-                                     copySets.RESPAWN_MESSAGE_BITS);
+          return {
+            value: BitManager.copyBits(nsAbove, data[1], nsBackground, current,
+                                       copySets.RESPAWN_MESSAGE_BITS)
+          };
         }
       }
     }
@@ -480,9 +473,28 @@ let bm;
           if (isCenterRespawn(data)) {
             next = nsBall.BRIGHT_BALL_FLAG.setMask(next, true);
           }
-          return next;
+          return { value: next };
         }
       }
+    }
+    return null;
+  }
+
+  function bigRespawn(data, x, y) {
+    const current = data[4];
+
+    if (isWall(current)) {
+      return handleWall(data, x, y);
+    }
+    // Both ball and background need to handle incoming ball pixels.
+
+    let v;
+
+    // First deal with messages and respawns in the background, then deal with
+    // the ball in both.  We won't receive a message and a ball in the same
+    // cycle.
+    if (v = handleRespawnMessage(data, x, y)) {
+      return v.value;
     }
     // Trough doesn't have to deal with balls, messages, or respawn, only ball
     // deaths and eventually the paddle.
