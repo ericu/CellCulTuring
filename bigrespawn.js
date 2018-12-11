@@ -63,7 +63,7 @@ let bm;
 (function () {
   let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal, nsNonbackground;
   let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
-  let isTopWallCenter;
+  let isPaddleBuffer, isBallInPaddleBuffer, isTopWallCenter;
   let copySets = {};
 
   const BALL_SIZE_BITS = 2;
@@ -127,6 +127,9 @@ let bm;
     nsBall.alloc('MOVE_D_NOT_U', 1);
     nsBall.alloc('PADDLE_PIXEL', 1);
     nsBall.alloc('PADDLE_BUFFER_FLAG', 1);
+    copySets.PADDLE_BALL_BITS =
+      ['PADDLE_POSITION', 'PADDLE_DEST', 'PADDLE_PIXEL', 'PADDLE_BUFFER_FLAG']
+    nsBall.combine('PADDLE_BALL_BITS', copySets.PADDLE_BALL_BITS);
 
     nsWall.alloc('SIDE_WALL_FLAG', 1);
     nsWall.alloc('TOP_WALL_FLAG', 1);
@@ -178,6 +181,17 @@ let bm;
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsBackground.TROUGH_FLAG.getMask()]),
              nsBackground.TROUGH_FLAG.getMask());
+    isPaddleBuffer = getHasValueFunction(
+      bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+             nsBackground.PADDLE_BUFFER_FLAG.getMask()]),
+             nsBackground.PADDLE_BUFFER_FLAG.getMask());
+    isBallInPaddleBuffer = getHasValueFunction(
+      bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+             nsNonbackground.ID_BITS.getMask(),
+             nsBall.PADDLE_BUFFER_FLAG]),
+      bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+             nsNonbackground.BALL_FLAG.getMask(),
+             nsBall.PADDLE_BUFFER_FLAG]));
     isPaddle = getHasValueFunction(
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.ID_BITS.getMask()]),
@@ -506,19 +520,6 @@ let bm;
 
   function handleIncomingBall(data, x, y) {
     const current = data[4];
-    let respawn;
-    let bufferXFlag;
-    let bufferYFlag;
-    if (isBall(current)) {
-      respawn = nsBall.RESPAWN_FLAG.get(current);
-      bufferXFlag = nsBall.BUFFER_X_FLAG.get(current);
-      bufferYFlag = nsBall.BUFFER_Y_FLAG.get(current);
-    } else {
-      assert(isBackground(current));
-      respawn = isRespawn(current);
-      bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
-      bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
-    }
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
       if (isBall(color)) {
@@ -579,9 +580,27 @@ let bm;
             assert(bs.getDepthY() <= BUFFER_SIZE);
             bs.reflectAngleInc('y')
           }
+          let respawn;
+          let bufferXFlag = bufferXMin || bufferXMax;
+          let bufferYFlag = bufferYMin || bufferYMax;
           let nextColor = bs.nextColor();
           nextColor = nsBall.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
           nextColor = nsBall.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
+          if (isBall(current)) {
+            respawn = nsBall.RESPAWN_FLAG.get(current);
+            if (nsBall.PADDLE_BUFFER_FLAG.isSet(current)) {
+              let paddleBits = nsBall.PADDLE_BALL_BITS.get(current);
+              nextColor = nsBall.PADDLE_BALL_BITS.set(nextColor, paddleBits);
+            }
+          } else {
+            assert(isBackground(current));
+            respawn = isRespawn(current);
+            if (isPaddleBuffer(current)) {
+              nextColor =
+                BitManager.copyBits(nsBackground, current, nsBall, nextColor,
+                                    copySets.PADDLE_BALL_BITS)
+            }
+          }
           nextColor = nsBall.RESPAWN_FLAG.set(nextColor, respawn);
           return { value: nextColor };
         }
@@ -590,6 +609,7 @@ let bm;
     return null;
   }
 
+  // TODO: Paddle buffer stuff.
   function handleBecomingOrStayingBackground(data, x, y) {
     const current = data[4];
     let respawn;
@@ -632,13 +652,14 @@ let bm;
       return handleTrough(data, x, y);
     }
 
+    // Paddle just deals with receiving and sending messages and its own motion.
     if (isPaddle(current)) {
       return handlePaddle(data, x, y);
     }
 
     // First deal with messages and respawns in the background, then deal with
-    // the ball in both.  We won't receive a message and a ball in the same
-    // cycle.
+    // the ball in both ball and background.  We won't receive a message and a
+    // ball in the same cycle.
     if (v = handleRespawnMessage(data, x, y)) {
       return v.value;
     }
