@@ -480,32 +480,8 @@ let bm;
     return null;
   }
 
-  function bigRespawn(data, x, y) {
+  function handleIncomingBall(data, x, y) {
     const current = data[4];
-
-    if (isWall(current)) {
-      return handleWall(data, x, y);
-    }
-    // Both ball and background need to handle incoming ball pixels.
-
-    let v;
-
-    // First deal with messages and respawns in the background, then deal with
-    // the ball in both.  We won't receive a message and a ball in the same
-    // cycle.
-    if (v = handleRespawnMessage(data, x, y)) {
-      return v.value;
-    }
-    // Trough doesn't have to deal with balls, messages, or respawn, only ball
-    // deaths and eventually the paddle.
-    if (isTrough(current)) {
-      if (_.every([0, 3, 6], i => isBall(data[i])) ||
-          _.every([2, 5, 8], i => isBall(data[i]))) {
-        return nsBackground.BALL_MISS_FLAG.set(current, 1);
-      }
-      return nsBackground.BALL_MISS_FLAG.set(current, 0);
-    }
-
     let respawn;
     let bufferXFlag;
     let bufferYFlag;
@@ -583,13 +559,57 @@ let bm;
           nextColor = nsBall.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
           nextColor = nsBall.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
           nextColor = nsBall.RESPAWN_FLAG.set(nextColor, respawn);
-          return nextColor;
+          return { value: nextColor };
         }
       }
     }
+    return null;
+  }
+
+  function bigRespawn(data, x, y) {
+    const current = data[4];
+    let v;
+
+    if (isWall(current)) {
+      return handleWall(data, x, y);
+    }
+    // Both ball and background need to handle incoming ball pixels.
+
+    // First deal with messages and respawns in the background, then deal with
+    // the ball in both.  We won't receive a message and a ball in the same
+    // cycle.
+    if (v = handleRespawnMessage(data, x, y)) {
+      return v.value;
+    }
+
+    // Trough doesn't have to deal with balls, messages, or respawn, only ball
+    // deaths and eventually the paddle.
+    if (isTrough(current)) {
+      if (_.every([0, 3, 6], i => isBall(data[i])) ||
+          _.every([2, 5, 8], i => isBall(data[i]))) {
+        return nsBackground.BALL_MISS_FLAG.set(current, 1);
+      }
+      return nsBackground.BALL_MISS_FLAG.set(current, 0);
+    }
+
+    if (v = handleIncomingBall(data, x, y)) {
+      return v.value;
+    }
+    let respawn;
+    let bufferXFlag;
+    let bufferYFlag;
+    if (isBall(current)) {
+      respawn = nsBall.RESPAWN_FLAG.get(current);
+      bufferXFlag = nsBall.BUFFER_X_FLAG.get(current);
+      bufferYFlag = nsBall.BUFFER_Y_FLAG.get(current);
+    } else {
+      assert(isBackground(current));
+      respawn = isRespawn(current);
+      bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
+      bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
+    }
     let nextColor = nsBackground.BASIC_BACKGROUND.getMask();
     if (bufferXFlag || bufferYFlag) {
-      // Background flag is 0, so no special bit for that.
       assert(!respawn);
       nextColor = nsBackground.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
       nextColor = nsBackground.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
