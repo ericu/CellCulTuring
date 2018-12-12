@@ -63,7 +63,8 @@ let bm;
 (function () {
   let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal, nsNonbackground;
   let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
-  let isPaddleBuffer, isBallInPaddleBuffer, isTopWallCenter;
+  let isPaddleBuffer, isBallInPaddleBuffer, isInPaddleBufferRegion;
+  let isTopWallCenter;
   let copySets = {};
 
   const BALL_SIZE_BITS = 2;
@@ -192,6 +193,7 @@ let bm;
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.BALL_FLAG.getMask(),
              nsBall.PADDLE_BUFFER_FLAG]));
+    isInPaddleBufferRegion = d => isPaddleBuffer(d) || isBallInPaddleBuffer(d);
     isPaddle = getHasValueFunction(
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.ID_BITS.getMask()]),
@@ -208,7 +210,7 @@ let bm;
                           bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                  nsNonbackground.WALL_FLAG.getMask(),
                                  nsWall.TOP_WALL_CENTER_FLAG.getMask()]));
-    nsGlobal.dumpStatus();  
+    nsGlobal.dumpStatus();
   }
 
   function isCenterRespawn(data) {
@@ -518,6 +520,119 @@ let bm;
     return null;
   }
 
+  // Figure out the relevant paddle pixel for bounce, or return null if the ball
+  // isn't completely within the paddle buffer region.  We have bs, so we know
+  // that at least one ball pixel is within reach, and we know that data[4] is
+  // in the paddle buffer region.
+  function getPaddlePixel(bs, source, data, x, y) {
+    let column;
+    if (bs.dX > 0) {
+      column = [0, 3, 6];
+    } else {
+      assert(bs.dX < 0);
+      column = [2, 5, 8];
+    }
+    d0 = data[column[0]]
+    d1 = data[column[1]]
+    d2 = data[column[2]]
+    let bTop = isBall(d0);
+    let bMid = isBall(d1);
+    let bBot = isBall(d2);
+    let ballCurPos;
+    if (bTop && bMid && bBot) {
+      ballCurPos = 0;
+    } else if (bTop && bMid) {
+      ballCurPos = -1;
+    } else if (bMid && bBot) {
+      ballCurPos = 1;
+    } else if (bTop) {
+      ballCurPos = -2;
+    } else if (bBot) {
+      ballCurPos = 2;
+    } else {
+      assert(false);
+    }
+    // How can we tell which ball pixel we're going to be?  The ball hasn't
+    // moved yet, so we can't just look at our neighbors.  We can tell from bs
+    // where the ball's coming from.  It must have dX != 0, and dY can be in
+    // [-1,0,1].  We should be able to see enough pixels to know--either we can
+    // see ball pixels, or we can see above or below, and so detect an edge.
+    // If dY === 0, check offsets (-dX, 1), and (-dX, 0) for isBall.
+    // Hmm...check them all anyway.  If you see the bottom or top edge, that
+    // tells you where it is now.  If you don't that tells you too.  Then use dY
+    // to tell you where it's going to be.
+    let ballNextPos = ballCurPos + bs.dY;
+    let paddlePixel = ballNextPos + getPaddlePixelHelper(d0, d1, d2);
+    if (paddlePixel >= 0 && paddlePixel <= 7) {
+      return { value: paddlePixel };
+    }
+    return null;
+  }
+
+  /* Assumes this encoding and a 10-pixel paddle region now: 0100011101.
+     Assumes the center pixel is in the paddle region.
+     Returns the paddle pixel value for that center pixel.
+     Returns a value between -1 and 8.
+
+      xxxb
+      xxxb
+      xxxp  // This is the highest hit; above this it's a miss.
+         p  // So let's call that 0.  Above that is -1.  Since the center
+         p  // pixel in our data is guaranteed to be in-region, we can't get
+         p  // -2 or above.
+         p
+         p
+         b
+         b
+
+         b
+         b
+         p
+         p
+         p
+         p
+         p
+      xxxp  // This is the lowest hit; below this it's a miss.
+      xxxb  // It's pixel 7.  So there are 8 valid positions, 6 for the length
+      xxxb  // of the paddle, plus 2 for the width of the ball, using the 10
+            // slots of the single-bit encoding.
+ */
+
+  getPaddlePixelHelper(d0, d1, d2) {
+    let isP0 = isInPaddleBufferRegion(d0);
+    assert(isInPaddleBufferRegion(d1));
+    let isP2 = isInPaddleBufferRegion(d2);
+    assert(isP0 || isP1 || isP2);
+    if (!isP0) {
+      return -1;
+    } else if (!isP2) {
+      return 8;
+    }
+    switch (((ns.PADDLE_PIXEL.get(d0) << 2) |
+             (ns.PADDLE_PIXEL.get(d1) << 1) |
+             (ns.PADDLE_PIXEL.get(d2))) >>> 0) {
+      case 2:
+        return 0;
+      case 4:
+        return 1;
+      case 0:
+        return 2;
+      case 1:
+        return 3;
+      case 3:
+        return 4;
+      case 7:
+        return 5;
+      case 6:
+        return 6;
+      case 5:
+        return 7;
+      default:
+        assert(false);
+        break;
+    }
+  }
+
   function handleIncomingBall(data, x, y) {
     const current = data[4];
     for (let i = 0; i < 9; ++i) {
@@ -573,8 +688,16 @@ let bm;
             bs.decDepthY();
           }
           if (bs.getDepthX() >= BUFFER_SIZE) {
-            // Mark the ball for destruction.
-            bs.setDepthX(0);
+            assert(bs.getDepthX() <= BUFFER_SIZE);
+            // Mark the ball for bounce or destruction.
+            let worthChecking =
+              isPaddleBuffer(current) || isBallInPaddleBuffer(current);
+            let v;
+            if (worthChecking && (v = getPaddlePixel(bs, source, data, x, y))) {
+              bs.bounce('x', v.value)
+            } else {
+              bs.setDepthX(0);
+            }
           }
           if (bs.getDepthY() >= BUFFER_SIZE) {
             assert(bs.getDepthY() <= BUFFER_SIZE);
