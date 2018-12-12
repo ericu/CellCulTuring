@@ -525,6 +525,7 @@ let bm;
   // that at least one ball pixel is within reach, and we know that data[4] is
   // in the paddle buffer region.
   function getPaddlePixel(bs, source, data, x, y) {
+    assert(isInPaddleBufferRegion(data[4]));
     let column;
     if (bs.dX > 0) {
       column = [0, 3, 6];
@@ -532,9 +533,9 @@ let bm;
       assert(bs.dX < 0);
       column = [2, 5, 8];
     }
-    d0 = data[column[0]]
-    d1 = data[column[1]]
-    d2 = data[column[2]]
+    let d0 = data[column[0]]
+    let d1 = data[column[1]]
+    let d2 = data[column[2]]
     let bTop = isBall(d0);
     let bMid = isBall(d1);
     let bBot = isBall(d2);
@@ -562,7 +563,8 @@ let bm;
     // tells you where it is now.  If you don't that tells you too.  Then use dY
     // to tell you where it's going to be.
     let ballNextPos = ballCurPos + bs.dY;
-    let paddlePixel = ballNextPos + getPaddlePixelHelper(d0, d1, d2);
+    let paddlePixel =
+      ballNextPos + getPaddlePixelHelper(data[1], data[4], data[7]);
     if (paddlePixel >= 0 && paddlePixel <= 7) {
       return { value: paddlePixel };
     }
@@ -598,7 +600,7 @@ let bm;
             // slots of the single-bit encoding.
  */
 
-  getPaddlePixelHelper(d0, d1, d2) {
+  function getPaddlePixelHelper(d0, d1, d2) {
     let isP0 = isInPaddleBufferRegion(d0);
     assert(isInPaddleBufferRegion(d1));
     let isP2 = isInPaddleBufferRegion(d2);
@@ -608,9 +610,17 @@ let bm;
     } else if (!isP2) {
       return 8;
     }
-    switch (((ns.PADDLE_PIXEL.get(d0) << 2) |
-             (ns.PADDLE_PIXEL.get(d1) << 1) |
-             (ns.PADDLE_PIXEL.get(d2))) >>> 0) {
+    let code = 0;
+    for (let d of [d0, d1, d2]) {
+      let bit;
+      if (isBall(d)) {
+        bit = nsBall.PADDLE_PIXEL.get(d);
+      } else {
+        bit = nsBackground.PADDLE_PIXEL.get(d);
+      }
+      code = ((code << 1) | bit) >>> 0;
+    }
+    switch (code) {
       case 2:
         return 0;
       case 4:
