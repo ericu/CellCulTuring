@@ -262,10 +262,9 @@
     if (isBallMotionCycle(current)) {
       let next = nsGlobal.BACKGROUND.getMask();
       let respawn = nsBall.RESPAWN_FLAG.isSet(current);
-      let decimator = nsBall.DECIMATOR.isSet(current);
       if (respawn) {
         next = nsBackground.RESPAWN_FLAG.set(next, true);
-        next = nsBackground.DECIMATOR.set(next, !decimator);
+        next = nsBackground.DECIMATOR.set(next, 0);
       }
       return next;
     } else {

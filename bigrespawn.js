@@ -64,6 +64,8 @@ let bm;
   let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal, nsNonbackground;
   let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
   let isPaddleBuffer, isBallInPaddleBuffer, isInPaddleBufferRegion;
+  let isBallMotionCycleHelper;
+  let isPaddleMotionCycleHelper;
   let isTopWallCenter;
   let copySets = {};
   // TODO: Can we make these not so global?
@@ -127,8 +129,6 @@ let bm;
     nsBackground.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
 
     // Used only by the ball.
-    nsBall.declare('BRIGHT_BALL_FLAG', 1, 15);
-
     nsBall.alloc('PADDLE_POSITION', 6);
     nsBall.alloc('PADDLE_DEST', 3);
     nsBall.alloc('MOVE_INDEX', 3);
@@ -139,6 +139,7 @@ let bm;
     nsBall.alloc('MOVE_D_NOT_U', 1);
     nsBall.alloc('PADDLE_PIXEL', 1);
     nsBall.alloc('PADDLE_BUFFER_FLAG', 1);
+    nsBall.alloc('DECIMATOR', 1);
     copySets.PADDLE_BALL_BITS =
       ['PADDLE_POSITION', 'PADDLE_DEST', 'PADDLE_PIXEL', 'PADDLE_BUFFER_FLAG']
     nsBall.combine('PADDLE_BALL_BITS', copySets.PADDLE_BALL_BITS);
@@ -190,6 +191,10 @@ let bm;
                                        nsNonbackground.ID_BITS.getMask()]),
                                  bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                        nsNonbackground.BALL_FLAG.getMask()]));
+    isBallMotionCycleHelper = getHasValueFunction(nsBall.DECIMATOR.getMask(),
+                                                  nsBall.DECIMATOR.getMask());
+    isPaddleMotionCycleHelper =
+      getHasValueFunction(nsPaddle.DECIMATOR.getMask(), 0);
     isRespawn = getHasValueFunction(
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsBackground.RESPAWN_FLAG.getMask()]),
@@ -229,6 +234,16 @@ let bm;
                                  nsNonbackground.WALL_FLAG.getMask(),
                                  nsWall.TOP_WALL_CENTER_FLAG.getMask()]));
     nsGlobal.dumpStatus();
+  }
+
+  function isBallMotionCycle(c) {
+    assert(isBall(c));
+    return isBallMotionCycleHelper(c);
+  }
+
+  function isPaddleMotionCycle(c) {
+    assert(isPaddle(c));
+    return isPaddleMotionCycleHelper(c);
   }
 
   function isCenterRespawn(data) {
@@ -381,7 +396,6 @@ let bm;
       BallState.create(bm, 1, 1, 4, 0,
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.BALL_FLAG.getMask(),
-                       nsBall.BRIGHT_BALL_FLAG.getMask(),
                        nsNonbackground.FULL_ALPHA.getMask()])).nextColor();
     const dimColor =
       BallState.create(bm, 1, 1, 4, 0,
@@ -395,7 +409,7 @@ let bm;
 
     // Subtract 2 from height for top + bottom walls, then another to get below
     // the power of 2.
-    drawPaddle(c, true, 35, 3);
+    drawPaddle(c, true, 42, 3);
     drawPaddle(c, false, 56, 7);
   }
 
@@ -543,6 +557,11 @@ let bm;
       } else {
         nsAbove = nsWall
       }
+      let decimator;
+      let respawn = isRespawn(current);
+      if (respawn) {
+        decimator = nsBackground.DECIMATOR.getMask(current);
+      }
       let active = nsAbove.MESSAGE_PRESENT.get(data[1]);
       if (active) {
         if (isCenterRespawn(data)) {
@@ -550,12 +569,17 @@ let bm;
           let color = nsBackground.MESSAGE_R_NOT_L.set(current, rightNotL);
           color = nsBackground.RESPAWN_FLAG.set(color, true);
           color = nsBackground.RESPAWN_PHASE_2_FLAG.set(color, true);
+          color = nsBackground.DECIMATOR.setMask(color, !decimator);
           return { value: color };
         } else {
-          return {
-            value: BitManager.copyBits(nsAbove, data[1], nsBackground, current,
-                                       copySets.RESPAWN_MESSAGE_BITS)
-          };
+          let color =
+            BitManager.copyBits(nsAbove, data[1], nsBackground, current,
+                                copySets.RESPAWN_MESSAGE_BITS)
+
+          if (respawn) {
+            color = nsBackground.DECIMATOR.setMask(color, !decimator);
+          }
+          return { value: color };
         }
       }
     }
@@ -569,9 +593,8 @@ let bm;
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
           var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
           let next = bs.getColor();
-          if (isCenterRespawn(data)) {
-            next = nsBall.BRIGHT_BALL_FLAG.setMask(next, true);
-          }
+          let decimator = nsBackground.DECIMATOR.getMask(current);
+          next = nsBall.DECIMATOR.setMask(next, !decimator);
           return { value: next };
         }
       }
@@ -707,6 +730,9 @@ let bm;
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
       if (isBall(color)) {
+        if (!isBallMotionCycle(color)) {
+          break;
+        }
         // With a diagonal entry to the buffer, a trailing ball pixel moving
         // into the buffer for the first time [so no depth count] can hit an
         // edge buffer pixel even if it's time to bounce.  We need to check all
@@ -770,12 +796,13 @@ let bm;
           }
           if (bs.getDepthY() >= BUFFER_SIZE) {
             assert(bs.getDepthY() <= BUFFER_SIZE);
-            bs.reflectAngleInc('y')
+            bs.reflect('y')
           }
           let respawn;
           let bufferXFlag = bufferXMin || bufferXMax;
           let bufferYFlag = bufferYMin || bufferYMax;
           let nextColor = bs.nextColor();
+          nextColor = nsBall.DECIMATOR.set(nextColor, 0);
           nextColor = nsBall.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
           nextColor = nsBall.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
           nextColor = nsBall.PADDLE_BUFFER_FLAG.set(nextColor,
@@ -785,6 +812,8 @@ let bm;
             if (nsBall.PADDLE_BUFFER_FLAG.isSet(current)) {
               let paddleBits = nsBall.PADDLE_BALL_BITS.get(current);
               nextColor = nsBall.PADDLE_BALL_BITS.set(nextColor, paddleBits);
+            } else {
+              nextColor = nsBall.PADDLE_BALL_BITS.setMask(nextColor, false);
             }
           } else {
             assert(isBackground(current));
@@ -793,6 +822,8 @@ let bm;
               nextColor =
                 BitManager.copyBits(nsBackground, current, nsBall, nextColor,
                                     copySets.PADDLE_BALL_BITS)
+            } else {
+              nextColor = nsBall.PADDLE_BALL_BITS.setMask(nextColor, false);
             }
           }
           nextColor = nsBall.RESPAWN_FLAG.set(nextColor, respawn);
@@ -803,14 +834,16 @@ let bm;
     return null;
   }
 
-  // TODO: Paddle buffer stuff.
   function handleBecomingOrStayingBackground(data, x, y) {
     const current = data[4];
     let respawn;
     let bufferXFlag;
     let bufferYFlag;
     let nextColor = nsBackground.BASIC_BACKGROUND.getMask();
+    let decimator;
+    let isPB = false;
     if (isBall(current)) {
+      decimator = nsBall.DECIMATOR.isSet(current);
       respawn = nsBall.RESPAWN_FLAG.get(current);
       bufferXFlag = nsBall.BUFFER_X_FLAG.get(current);
       bufferYFlag = nsBall.BUFFER_Y_FLAG.get(current);
@@ -818,17 +851,22 @@ let bm;
         nextColor =
           BitManager.copyBits(nsBall, current, nsBackground, nextColor,
                               copySets.PADDLE_BALL_BITS)
+          isPB = true;
       }
     } else {
       assert(isBackground(current));
       respawn = isRespawn(current);
       bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
       bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
-      if (isPaddleBuffer(current)) {
+      isPB = isPaddleBuffer(current);
+      if (isPB) {
         nextColor =
           nsBackground.PADDLE_BACKGROUND_BITS.set(
             nextColor,
             nsBackground.PADDLE_BACKGROUND_BITS.get(current));
+      }
+      if (respawn || isPB) {
+        decimator = nsBackground.DECIMATOR.isSet(current);
       }
     }
     if (bufferXFlag || bufferYFlag) {
@@ -839,6 +877,9 @@ let bm;
     if (respawn) {
       assert(!bufferXFlag && !bufferYFlag);
       nextColor = nsBackground.RESPAWN_FLAG.set(nextColor, respawn);
+    }
+    if (respawn || isPB) {
+      nextColor = nsBackground.DECIMATOR.setMask(nextColor, !decimator);
     }
     return nextColor;
   }
@@ -868,6 +909,16 @@ let bm;
     // a ball, and the ball must win.
     if (v = handleRespawnMessage(data, x, y)) {
       return v.value;
+    }
+
+    if (isBall(current) && !isBallMotionCycle(current)) {
+      if (nsBall.BUFFER_X_FLAG.isSet(current) &&
+          !nsBall.BUFFER_X_DEPTH_COUNTER.get(current)) {
+        // The ball has hit the end wall and should vanish, so ignore it.
+        // It will get handled in handleBecomingOrStayingBackground.
+      } else {
+        return nsBall.DECIMATOR.set(current, 1);
+      }
     }
 
     // Both ball and background need to handle incoming ball pixels.
