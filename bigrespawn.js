@@ -164,6 +164,11 @@ let bm;
     nsBackground.alloc('PADDLE_PIXEL', 1);
     nsBackground.alloc('DECIMATOR', 1);
     nsBackground.alloc('PADDLE_BUFFER_FLAG', 1);
+    // We don't copy decimator because we always flip it.
+    nsBackground.combine(
+      'PADDLE_BACKGROUND_BITS',
+      ['PADDLE_POSITION', 'PADDLE_DEST', 'PADDLE_MOVE_DELAY_COUNTER',
+       'PADDLE_PIXEL', 'PADDLE_BUFFER_FLAG']);
 
     isWall = getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                        nsNonbackground.ID_BITS.getMask()]),
@@ -516,11 +521,6 @@ let bm;
     return null;
   }
 
-  function handleAIMessage(data, x, y) {
-    let current = data[4];
-    return null;
-  }
-
   // Figure out the relevant paddle pixel for bounce, or return null if the ball
   // isn't completely within the paddle buffer region.  We have bs, so we know
   // that at least one ball pixel is within reach, and we know that data[4] is
@@ -749,17 +749,28 @@ let bm;
     let respawn;
     let bufferXFlag;
     let bufferYFlag;
+    let nextColor = nsBackground.BASIC_BACKGROUND.getMask();
     if (isBall(current)) {
       respawn = nsBall.RESPAWN_FLAG.get(current);
       bufferXFlag = nsBall.BUFFER_X_FLAG.get(current);
       bufferYFlag = nsBall.BUFFER_Y_FLAG.get(current);
+      if (isBallInPaddleBuffer(current)) {
+        nextColor =
+          BitManager.copyBits(nsBall, current, nsBackground, nextColor,
+                              copySets.PADDLE_BALL_BITS)
+      }
     } else {
       assert(isBackground(current));
       respawn = isRespawn(current);
       bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
       bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
+      if (isPaddleBuffer(current)) {
+        nextColor =
+          nsBackground.PADDLE_BACKGROUND_BITS.set(
+            nsBackground.PADDLE_BACKGROUND_BITS.get(current),
+            nextColor);
+      }
     }
-    let nextColor = nsBackground.BASIC_BACKGROUND.getMask();
     if (bufferXFlag || bufferYFlag) {
       assert(!respawn);
       nextColor = nsBackground.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
@@ -792,13 +803,10 @@ let bm;
     }
 
     // First deal with messages and respawns in the background, then deal with
-    // the ball in both ball and background.  We won't receive a message and a
-    // ball in the same cycle.
+    // the ball in both ball and background.  We won't receive a respawn message
+    // and a ball in the same cycle, but we could get an AI message and part of
+    // a ball, and the ball must win.
     if (v = handleRespawnMessage(data, x, y)) {
-      return v.value;
-    }
-
-    if (v = handleAIMessage(data, x, y)) {
       return v.value;
     }
 
@@ -807,6 +815,7 @@ let bm;
       return v.value;
     }
 
+    // TODO: This includes AI messages.
     return handleBecomingOrStayingBackground(data, x, y);
   }
 

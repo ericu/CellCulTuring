@@ -28,6 +28,8 @@ class BitManager {
   constructor(globalNamespace) {
     this.ns = globalNamespace;
   }
+  // TODO: This could generate its own whichBits records by capturing them at
+  // combine calls.
   static copyBits(nsFrom, packedFrom, nsTo, packedTo, whichBits) {
     assert(_.isArray(whichBits));
     for (let value of whichBits) {
