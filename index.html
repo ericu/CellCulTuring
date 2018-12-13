@@ -8,17 +8,26 @@
 </head>
 <body onload="init()">
   <div id="container">
-    <div id="background">
-      <canvas id="canvas" width="69" height="68"></canvas>
-    </div>
     <div id="controls">
       <select id="animation" onchange="onSelectAnimation()">
       </select>
       <button type="button" onclick="toggleRun()">toggleRun</button>
       <button type="button" onclick="step()">step</button>
       <button type="button" onclick="test()">test</button>
+      <input type="checkbox" checked onclick="showTestToggled(this)">
+        Show test canvas
+      </input>
+      <input type="checkbox" checked onclick="showDebugToggled(this)">
+        Show debug area
+      </input>
+      <span>FPS: <span id="fps">0.0</span></span>
     </div>
-    <span>FPS: <span id="fps">0.0</span></span>
+    <div id="inner-container">
+      <div class="background">
+        <canvas id="canvas" width="69" height="68"></canvas>
+      </div>
+      <textarea rows="40" cols="40" id="debug"></textarea>
+    </div>
   </div>
   <script src="main.js"></script>
   <script src="ballstate.js"></script>

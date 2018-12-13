@@ -3,7 +3,7 @@
 // ID_0 and ID_1 as your two bits, and combine them together as ID_BITS.  Then
 // you setSubspaceMask(ID_BITS).  For each subspace you want to create, you then
 // declareSubspace(ID_0, 'BALL'), declareSubspace(ID_1, 'PADDLE'),
-// declareSubspace(ID_BITS, 'WALL'), declareSubspace(0, 'BACKGROUND'), 
+// declareSubspace(ID_BITS, 'WALL'), declareSubspace(0, 'BACKGROUND'),
 // For the global namespace, just use new Namespace() with no arguments.
 
 // Backwards-compatibility shim; this only supports the bare minimum that's
@@ -119,22 +119,31 @@ class Namespace {
       this.subspacesByName[name].dumpStatus();
     }
   }
-  describe(packed, prefix) {
+
+  getDescription(packed, prefix) {
     if (!prefix) {
       prefix = ''
     }
-    console.log(prefix + 'namespace', this.name);
+    var s;
+    s = prefix + 'namespace: ' + this.name;
+    prefix += '  ';
     for (var i in this.values) {
       var value = this.values[i];
       let v = value.get(packed);
-      console.log(prefix + value.name, v.toString(16));
+      s += '\n' + prefix + value.name + ': ' +  v.toString(16);
     }
     if (this.subspaceMask) {
       let id = _and(packed, this.subspaceMask);
       assert(id in this.subspacesById)
-      this.subspacesById[id].describe(packed, prefix + '  ');
+      s += '\n' + this.subspacesById[id].getDescription(packed, prefix);
     }
+    return s;
   }
+
+  describe(packed, prefix) {
+    console.log(this.getDescription(packed, prefix));
+  }
+
   setSubspaceMask(maskName) {
     assert(this.subspaceMask === undefined);
     let mask = 0;

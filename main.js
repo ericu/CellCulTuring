@@ -15,26 +15,35 @@ const originY = borderSize;
   // then copy that either to the canvas or to canvas2 for display, and into
   // inputBuffer for the next iteration.
   let inputBuffer;
-  let canvas2Buffer
   let inputView;
   let outputBuffer;
+  let outputBuffer2;
   let outputView;
+  let outputView2;
 
+  let CANVAS_SCALE = 8;
   function init() {
     // TODO: Ensure that the proportions of the canvas are safe.  In particular,
     // the width must be at least one greater than the height for the AI message
     // to be safe, otherwise a corner-sourced message might not reach all pixels
     // of the paddle, leading to it tearing in half.
     canvas = document.getElementById('canvas');
-    canvas.style.width = 8 * canvas.width + 'px';
-    canvas.style.height = 8 * canvas.height + 'px';
-    canvas2 = document.createElement('canvas');
-    canvas.parentElement.insertBefore(canvas2, canvas);
-    canvas.parentElement.insertBefore(canvas, canvas2);
+    canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
+    canvas.style.height = CANVAS_SCALE * canvas.height + 'px';
+
+    let background1 = canvas.parentElement;
+    let background1Parent = background1.parentElement;
+    let background2 = background1.cloneNode(true);
+    canvas2 = background2.firstElementChild;
+    canvas2.id = 'canvas2';
+
+    background1Parent.insertBefore(background2, background1);
+    background1Parent.insertBefore(background1, background2);
+
     canvas2.width = canvas.width;
     canvas2.height = canvas.height;
-    canvas2.style.width = 8 * canvas.width + 'px';
-    canvas2.style.height = 8 * canvas.height + 'px';
+    canvas2.style.width = CANVAS_SCALE * canvas.width + 'px';
+    canvas2.style.height = CANVAS_SCALE * canvas.height + 'px';
     context = canvas.getContext('2d');
     context2 = canvas2.getContext('2d');
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -42,13 +51,17 @@ const originY = borderSize;
     width = canvas.width - 2 * borderSize;
     height = canvas.height - 2 * borderSize;
     onSelectAnimation();
+    canvas.addEventListener('click', onCanvasClicked);
+    canvas2.addEventListener('click', onCanvasClicked);
   }
 
   function initBuffers() {
     inputBuffer = context.getImageData(0, 0, canvas.width, canvas.height);
     outputBuffer = context.createImageData(inputBuffer)
+    outputBuffer2 = context.createImageData(inputBuffer)
     inputView = new Uint32Array(inputBuffer.data.buffer);
     outputView = new Uint32Array(outputBuffer.data.buffer);
+    outputView2 = new Uint32Array(outputBuffer2.data.buffer);
   }
 
   function initArbitraryPattern(c) {
@@ -171,13 +184,13 @@ const originY = borderSize;
   }
 
   function test() {
-    runConv3x3Step(curFunc, inputView, outputView)
+    runConv3x3Step(curFunc, inputView, outputView2)
 
     // TODO: Remove this?
     context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
     context2.fillRect(0, 0, canvas2.width, canvas2.height);
 
-    context2.putImageData(outputBuffer, 0, 0);
+    context2.putImageData(outputBuffer2, 0, 0);
   }
 
   function step() {
@@ -185,6 +198,38 @@ const originY = borderSize;
 //    context.clearRect(originX, originY, width, height);
     context.putImageData(outputBuffer, 0, 0, originX, originY, width, height);
     inputView.set(outputView);
+  }
+
+  function showTestToggled(e) {
+    if (e.checked) {
+      document.getElementById('canvas2').parentElement.style.display = 'inline';
+    } else {
+      document.getElementById('canvas2').parentElement.style.display = 'none';
+    }
+  }
+
+  function showDebugToggled(e) {
+    if (e.checked) {
+      document.getElementById('debug').style.display = 'inline';
+    } else {
+      document.getElementById('debug').style.display = 'none';
+    }
+  }
+
+  function onCanvasClicked(e) {
+    let x = Math.floor(e.offsetX / CANVAS_SCALE);
+    let y = Math.floor(e.offsetY / CANVAS_SCALE);
+    let addr = getAddr32(x, y);
+    let view;
+    if (e.currentTarget.id === 'canvas') {
+      view = outputView
+    } else {
+      view = outputView2
+      assert(e.currentTarget.id === 'canvas2');
+    }
+    console.log(view[addr].toString(16));
+    // Assumes a global BitManager.
+    document.getElementById('debug').value = bm.ns.getDescription(view[addr]);
   }
 
   let running = false;
@@ -235,5 +280,7 @@ const originY = borderSize;
   window.toggleRun = toggleRun;
   window.step = step;
   window.test = test;
+  window.showTestToggled = showTestToggled;
+  window.showDebugToggled = showDebugToggled;
 })()
 
