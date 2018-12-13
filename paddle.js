@@ -42,7 +42,7 @@
                originX + halfWidth, originY + halfHeight, 1, 1);
 
     var bs = BallState.create(bm, 1, 1, 4, 0, nsGlobal.BALL.getMask());
-    c.fillRect(bs.nextColor(), 62, 62, 1, 1);
+    c.fillRect(bs.nextColor(), 62, 58, 1, 1);
   }
 
   let isWall, isBackground, isBall, isPaddle, isRespawn, isTopWallCenter;
