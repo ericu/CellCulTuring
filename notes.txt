@@ -264,8 +264,9 @@ to deal with the routing.
 
 To add paddles to bigrespawn:
 * First add a trough for the paddle, moving the side buffers in and making the
-  trough region handle respawn.
-* Then add paddles that bounce but don't move.
+  trough region handle respawn. DONE
+* Then add paddles that bounce but don't move. DONE
+* Then add decimation.
 * Then add paddle motion, but no AI messages.
 * Then add AI messages and move delays.
 
@@ -306,6 +307,3 @@ odd ball sizes.
   x..x
    xx
 
-
---------------------------------------------------------------------------------
-Make a debugging helper via describe-on-click to an on-screen display panel.

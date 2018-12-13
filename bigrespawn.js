@@ -395,7 +395,7 @@ let bm;
 
     // Subtract 2 from height for top + bottom walls, then another to get below
     // the power of 2.
-    drawPaddle(c, true, 0, 3);
+    drawPaddle(c, true, 35, 3);
     drawPaddle(c, false, 56, 7);
   }
 
@@ -515,9 +515,14 @@ let bm;
 
   function handleTrough(data, x, y) {
     let current = data[4];
-    if (_.every([0, 3, 6], i => isBall(data[i])) ||
+    let left = false;
+    if ((left = _.every([0, 3, 6], i => isBall(data[i]))) ||
         _.every([2, 5, 8], i => isBall(data[i]))) {
-      return nsBackground.BALL_MISS_FLAG.set(current, 1);
+      let ballMissedPaddle =
+        !nsBall.BUFFER_X_DEPTH_COUNTER.get(left ? data[0] : data[2])
+      if (ballMissedPaddle) {
+        return nsBackground.BALL_MISS_FLAG.set(current, 1);
+      }
     }
     return nsBackground.BALL_MISS_FLAG.set(current, 0);
   }
