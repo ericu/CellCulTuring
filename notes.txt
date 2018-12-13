@@ -266,13 +266,14 @@ To add paddles to bigrespawn:
 * First add a trough for the paddle, moving the side buffers in and making the
   trough region handle respawn. DONE
 * Then add paddles that bounce but don't move. DONE
-* Then add decimation.
+* Then add decimation. DONE
 * Then add paddle motion, but no AI messages.
 * Then add AI messages and move delays.
 
 * At some point, add AI messages on respawn; they could be sent early by the
-ball at destruction, or could be sent at respawn itself, although that gives
-much less warning.
+ball at destruction, which guarantees plenty of time to get there but looks a
+bit weird, or could be sent at respawn itself, although that gives much less
+warning.
 
 --------------------------------------------------------------------------------
 The checkerboard ball state will probably work!  We can save a ton of bits that

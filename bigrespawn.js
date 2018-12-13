@@ -129,6 +129,7 @@ let bm;
     nsBackground.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
 
     // Used only by the ball.
+    nsBall.declare('DECIMATOR', 1, 15);
     nsBall.alloc('PADDLE_POSITION', 6);
     nsBall.alloc('PADDLE_DEST', 3);
     nsBall.alloc('MOVE_INDEX', 3);
@@ -139,7 +140,6 @@ let bm;
     nsBall.alloc('MOVE_D_NOT_U', 1);
     nsBall.alloc('PADDLE_PIXEL', 1);
     nsBall.alloc('PADDLE_BUFFER_FLAG', 1);
-    nsBall.alloc('DECIMATOR', 1);
     copySets.PADDLE_BALL_BITS =
       ['PADDLE_POSITION', 'PADDLE_DEST', 'PADDLE_PIXEL', 'PADDLE_BUFFER_FLAG']
     nsBall.combine('PADDLE_BALL_BITS', copySets.PADDLE_BALL_BITS);
@@ -151,7 +151,7 @@ let bm;
 
     nsBackground.alloc('RESPAWN_FLAG', 1);
     nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
-    nsBackground.declare('TROUGH_FLAG', 1, 15);
+    nsBackground.alloc('TROUGH_FLAG', 1);
     nsBackground.declare('BALL_MISS_FLAG', 1, 13);
 
     // Used by background and ball [since the ball has to replace the background
@@ -164,17 +164,17 @@ let bm;
     nsBall.alloc('RESPAWN_FLAG', 1);
 
     // Paddle fields
+    nsPaddle.declare('DECIMATOR', 1, 15);
     nsPaddle.alloc('PADDLE_POSITION', 6);
     nsPaddle.alloc('PADDLE_DEST', 3);
     nsPaddle.alloc('PADDLE_PIXEL', 1);
-    nsPaddle.alloc('DECIMATOR', 1);
 
     // Background fields for paddle
+    nsBackground.declare('DECIMATOR', 1, 15);
     nsBackground.alloc('PADDLE_POSITION', 6);
     nsBackground.alloc('PADDLE_DEST', 3);
     nsBackground.alloc('PADDLE_MOVE_DELAY_COUNTER', 3);
     nsBackground.alloc('PADDLE_PIXEL', 1);
-    nsBackground.alloc('DECIMATOR', 1);
     nsBackground.alloc('PADDLE_BUFFER_FLAG', 1);
     // We don't copy decimator because we always flip it.
     nsBackground.combine(
@@ -543,7 +543,8 @@ let bm;
 
   function handlePaddle(data, x, y) {
     let current = data[4];
-    return current;
+    let decimator = nsPaddle.DECIMATOR.isSet(current);
+    return nsPaddle.DECIMATOR.setMask(current, !decimator);
   }
 
   function handleRespawnMessage(data, x, y) {
