@@ -270,9 +270,9 @@ let bm;
     assert(_.isNumber(dest) && dest >= 0 && dest < 8);
     let paddleBaseColor = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                  nsNonbackground.PADDLE_FLAG.getMask()]);
-    let bufferBaseColor = nsBackground.BASIC_BACKGROUND.getMask();
-    bufferBaseColor =
-      nsBackground.BUFFER_X_FLAG.setMask(bufferBaseColor, true);
+    let bufferBaseColor = bm.or([nsBackground.BASIC_BACKGROUND.getMask(),
+                                 nsBackground.PADDLE_BUFFER_FLAG.getMask(),
+                                 nsBackground.BUFFER_X_FLAG.getMask()]);
     paddleBaseColor =
       nsPaddle.PADDLE_POSITION.set(paddleBaseColor, topInPaddleCoords);
     bufferBaseColor =
@@ -284,9 +284,9 @@ let bm;
         nsPaddle.PADDLE_PIXEL.set(paddleBaseColor, pixelEncoding[pixel]);
       let bufferColor =
         nsBackground.PADDLE_PIXEL.set(bufferBaseColor, pixelEncoding[pixel]);
-      if (topInPaddleCoords < BUFFER_SIZE ||
-          (topInPaddleCoords >
-           insideWallOriginY + insideWallHeight - BUFFER_SIZE)) {
+      let currentHeight = topInPaddleCoords + pixel;
+      if (currentHeight < BUFFER_SIZE ||
+          currentHeight >= insideWallHeight - BUFFER_SIZE) {
         bufferColor = nsBackground.BUFFER_Y_FLAG.setMask(bufferColor, true);
       }
       // Draw 10 rows of buffer, but 6 paddle pixels.
@@ -403,10 +403,10 @@ let bm;
     function testBounds(lower, current, higher, flag,
                         bsDepth, bsDir) {
       assert(BUFFER_SIZE === 3);
-      if (isWall(lower) || isTrough(lower)) {
+      if (isWall(lower) || isTrough(lower) || isPaddle(lower)) {
         return 'min';
       }
-      if (isWall(higher) || isTrough(higher)) {
+      if (isWall(higher) || isTrough(higher) || isPaddle(higher)) {
         return 'max';
       }
       // Beyond this line, higher and lower are either empty background, buffer,
@@ -436,15 +436,18 @@ let bm;
     // tell if we need to increment or decrement our depth counters, bounce,
     // etc.
     let current = data[4];
-    let bufferX = false;
-    let bufferY = false;
+    let bufferX;
+    let bufferY;
+    let paddleBuffer;
     if (isBall(current)) {
       bufferX = nsBall.BUFFER_X_FLAG.get(current);
       bufferY = nsBall.BUFFER_Y_FLAG.get(current);
+      paddleBuffer = nsBall.PADDLE_BUFFER_FLAG.get(current);
     } else {
       assert(isBackground(current));
       bufferX = nsBackground.BUFFER_X_FLAG.get(current);
       bufferY = nsBackground.BUFFER_Y_FLAG.get(current);
+      paddleBuffer = nsBackground.PADDLE_BUFFER_FLAG.get(current);
     }
     let bufferXDir = null;
     let bufferYDir = null;
@@ -461,6 +464,7 @@ let bm;
       yMin: bufferYDir === 'min',
       xMax: bufferXDir === 'max',
       yMax: bufferYDir === 'max',
+      paddleBuffer: paddleBuffer
     };
   }
 
@@ -769,6 +773,8 @@ let bm;
           let nextColor = bs.nextColor();
           nextColor = nsBall.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
           nextColor = nsBall.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
+          nextColor = nsBall.PADDLE_BUFFER_FLAG.set(nextColor,
+                                                    bufferBits.paddleBuffer);
           if (isBall(current)) {
             respawn = nsBall.RESPAWN_FLAG.get(current);
             if (nsBall.PADDLE_BUFFER_FLAG.isSet(current)) {
@@ -816,8 +822,8 @@ let bm;
       if (isPaddleBuffer(current)) {
         nextColor =
           nsBackground.PADDLE_BACKGROUND_BITS.set(
-            nsBackground.PADDLE_BACKGROUND_BITS.get(current),
-            nextColor);
+            nextColor,
+            nsBackground.PADDLE_BACKGROUND_BITS.get(current));
       }
     }
     if (bufferXFlag || bufferYFlag) {
