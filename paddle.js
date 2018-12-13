@@ -191,7 +191,6 @@
   const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1];
   function drawPaddle(c, left, topInPaddleCoords, dest) {
     let color = nsGlobal.PADDLE.getMask();
-    // top + 2 for black border plus wall
     color = nsPaddle.PADDLE_POSITION.set(color, topInPaddleCoords);
     color = nsPaddle.PADDLE_DEST.set(color, dest);
     for (let pixel = 0; pixel < 8; ++pixel) {

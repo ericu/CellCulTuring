@@ -66,6 +66,17 @@ let bm;
   let isPaddleBuffer, isBallInPaddleBuffer, isInPaddleBufferRegion;
   let isTopWallCenter;
   let copySets = {};
+  // TODO: Can we make these not so global?
+  let originX = 1;
+  let originY = 1;
+  let width = canvas.width - 2;
+  let height = canvas.height - 2;
+  let halfWidth = Math.floor(width / 2);
+  let halfHeight = Math.floor(height / 2);
+  let insideWallOriginX = originX + 1;
+  let insideWallOriginY = originY + 1;
+  let insideWallWidth = width - 2;
+  let insideWallHeight = height - 2;
 
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
@@ -203,7 +214,8 @@ let bm;
     isPaddle = getHasValueFunction(
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.ID_BITS.getMask()]),
-             nsNonbackground.PADDLE_FLAG.getMask());
+      bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+             nsNonbackground.PADDLE_FLAG.getMask()]));
     isTopWallCenter =
       getHasValueFunction(bm.or([nsNonbackground.ID_BITS.getMask(),
                                  nsWall.TOP_WALL_CENTER_FLAG.getMask()]),
@@ -249,18 +261,51 @@ let bm;
     }
   }
 
+  const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1, 0, 1];
+  function drawPaddle(c, isLeft, topInPaddleCoords, dest) {
+    assert(_.isBoolean(isLeft));
+    assert(_.isNumber(topInPaddleCoords));
+    assert(topInPaddleCoords >= 0);
+    assert(topInPaddleCoords + 10 <= insideWallHeight);
+    assert(_.isNumber(dest) && dest >= 0 && dest < 8);
+    let paddleBaseColor = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                 nsNonbackground.PADDLE_FLAG.getMask()]);
+    let bufferBaseColor = nsBackground.BASIC_BACKGROUND.getMask();
+    bufferBaseColor =
+      nsBackground.BUFFER_X_FLAG.setMask(bufferBaseColor, true);
+    paddleBaseColor =
+      nsPaddle.PADDLE_POSITION.set(paddleBaseColor, topInPaddleCoords);
+    bufferBaseColor =
+      nsBackground.PADDLE_POSITION.set(bufferBaseColor, topInPaddleCoords);
+//    paddleBaseColor = nsPaddle.PADDLE_DEST.set(paddleBaseColor, dest);
+//    bufferBaseColor = nsBackground.PADDLE_DEST.set(bufferBaseColor, dest);
+    for (let pixel = 0; pixel < 10; ++pixel) {
+      let paddleColor =
+        nsPaddle.PADDLE_PIXEL.set(paddleBaseColor, pixelEncoding[pixel]);
+      let bufferColor =
+        nsBackground.PADDLE_PIXEL.set(bufferBaseColor, pixelEncoding[pixel]);
+      if (topInPaddleCoords < BUFFER_SIZE ||
+          (topInPaddleCoords >
+           insideWallOriginY + insideWallHeight - BUFFER_SIZE)) {
+        bufferColor = nsBackground.BUFFER_Y_FLAG.setMask(bufferColor, true);
+      }
+      // Draw 10 rows of buffer, but 6 paddle pixels.
+      c.fillRect(bufferColor,
+                 isLeft ? insideWallOriginX + 1
+                        : insideWallOriginX + insideWallWidth - 1 - BUFFER_SIZE,
+                 topInPaddleCoords + insideWallOriginY + pixel,
+                 BUFFER_SIZE, 1);
+      if (pixel > 1 && pixel < 8) {
+        c.fillRect(paddleColor,
+                   isLeft ? insideWallOriginX
+                          : insideWallOriginX + insideWallWidth - 1,
+                   topInPaddleCoords + insideWallOriginY + pixel, 1, 1);
+      }
+    }
+  }
+
   function initBigRespawn(c) {
     initBitManager();
-    let originX = 1;
-    let originY = 1;
-    let width = canvas.width - 2;
-    let height = canvas.height - 2;
-    let halfWidth = Math.floor(width / 2);
-    let halfHeight = Math.floor(height / 2);
-    let insideWallOriginX = originX + 1;
-    let insideWallOriginY = originY + 1;
-    let insideWallWidth = width - 2;
-    let insideWallHeight = height - 2;
 
     // We fill the whole canvas, then put a wall around that corresponds to the
     // originX/originY/width/height sentinel frame.
@@ -347,6 +392,11 @@ let bm;
 
     c.fillRect(dimColor, left, top, BALL_SIZE, BALL_SIZE);
     c.fillRect(brightColor, left + 1, top + 1, 1, 1);
+
+    // Subtract 2 from height for top + bottom walls, then another to get below
+    // the power of 2.
+    drawPaddle(c, true, 0, 3);
+    drawPaddle(c, false, 56, 7);
   }
 
   function getBufferBits(data, bs) {
@@ -470,8 +520,7 @@ let bm;
 
   function handlePaddle(data, x, y) {
     let current = data[4];
-    assert(false);
-    return null;
+    return current;
   }
 
   function handleRespawnMessage(data, x, y) {
