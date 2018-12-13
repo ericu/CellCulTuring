@@ -189,11 +189,12 @@ let bm;
     isBallInPaddleBuffer = getHasValueFunction(
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.ID_BITS.getMask(),
-             nsBall.PADDLE_BUFFER_FLAG]),
+             nsBall.PADDLE_BUFFER_FLAG.getMask()]),
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.BALL_FLAG.getMask(),
-             nsBall.PADDLE_BUFFER_FLAG]));
-    isInPaddleBufferRegion = d => isPaddleBuffer(d) || isBallInPaddleBuffer(d);
+             nsBall.PADDLE_BUFFER_FLAG.getMask()]));
+    isInPaddleBufferRegion =
+      d => (isPaddleBuffer(d) || isBallInPaddleBuffer(d));
     isPaddle = getHasValueFunction(
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.ID_BITS.getMask()]),

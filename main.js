@@ -227,9 +227,11 @@ const originY = borderSize;
       view = outputView2
       assert(e.currentTarget.id === 'canvas2');
     }
-    console.log(view[addr].toString(16));
+    let value = view[addr]
+    let s = `(${x},${y}):${value.toString(16)}\n` +
+            bm.ns.getDescription(view[addr])
     // Assumes a global BitManager.
-    document.getElementById('debug').value = bm.ns.getDescription(view[addr]);
+    document.getElementById('debug').value = s;
   }
 
   let running = false;

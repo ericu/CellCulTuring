@@ -16,6 +16,7 @@ function _and(a, b) {
 }
 function _orL(list) {
   assert(_.isArray(list));
+  _.map(list, i => assert(_.isNumber(i)));
   return _.reduce(list, _or, 0);
 }
 function _andL(list) {
