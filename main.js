@@ -27,6 +27,7 @@ const originY = borderSize;
     // the width must be at least one greater than the height for the AI message
     // to be safe, otherwise a corner-sourced message might not reach all pixels
     // of the paddle, leading to it tearing in half.
+    // TODO: Let each demo set the size of the canvas itself.
     canvas = document.getElementById('canvas');
     canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
     canvas.style.height = CANVAS_SCALE * canvas.height + 'px';

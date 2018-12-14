@@ -286,7 +286,8 @@ count on the way out, but we don't actually need to--we can turn around and call
 it 3 instead of 4, and then count down too early, and ignore underflow on the
 last step out.  Hmm...will that confuse the ball-death-signal code?  We'd be at
 depth 0 while still inside.  Can we detect that situation and work around it
-somehow?
+somehow?  Ug--even if we can, this will destroy the trick we used to tell max
+from min buffers.  Nevermind.
 
 Use PADDLE_BUFFER_FLAG as a namespace bit for balls.  All the paddle buffer bits
 go in that namespace, but then we can put BUFFER_Y_FLAG in its complement, since
