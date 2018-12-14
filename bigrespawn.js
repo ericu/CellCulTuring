@@ -307,8 +307,8 @@ let bm;
       nsPaddle.PADDLE_POSITION.set(paddleBaseColor, topInPaddleCoords);
     bufferBaseColor =
       nsBackground.PADDLE_POSITION.set(bufferBaseColor, topInPaddleCoords);
-//    paddleBaseColor = nsPaddle.PADDLE_DEST.set(paddleBaseColor, dest);
-//    bufferBaseColor = nsBackground.PADDLE_DEST.set(bufferBaseColor, dest);
+    paddleBaseColor = nsPaddle.PADDLE_DEST.set(paddleBaseColor, dest);
+    bufferBaseColor = nsBackground.PADDLE_DEST.set(bufferBaseColor, dest);
     for (let pixel = 0; pixel < 10; ++pixel) {
       let paddleColor =
         nsPaddle.PADDLE_PIXEL.set(paddleBaseColor, pixelEncoding[pixel]);
@@ -418,7 +418,7 @@ let bm;
 
     // Subtract 2 from height for top + bottom walls, then another to get below
     // the power of 2.
-    drawPaddle(c, true, 42, 3);
+    drawPaddle(c, true, 42, 7);
     drawPaddle(c, false, 56, 7);
   }
 
@@ -635,10 +635,9 @@ let bm;
   function getPaddlePixel(bs, source, data, x, y) {
     assert(isInPaddleBufferRegion(data[4]));
     let column;
-    if (bs.dX > 0) {
+    if (bs.right) {
       column = [0, 3, 6];
     } else {
-      assert(bs.dX < 0);
       column = [2, 5, 8];
     }
     let d0 = data[column[0]]
@@ -712,7 +711,7 @@ let bm;
     let isP0 = isInPaddleBufferRegion(d0);
     assert(isInPaddleBufferRegion(d1));
     let isP2 = isInPaddleBufferRegion(d2);
-    assert(isP0 || isP1 || isP2);
+    assert(isP0 || isP2);
     if (!isP0) {
       return -1;
     } else if (!isP2) {
@@ -923,15 +922,15 @@ let bm;
           willBePaddleBuffer = true;
           nsSource = isBall(current) ? nsBall : nsBackground;
         } else {
-          for (let i of [1, 7]) {
+          for (let i of [4, 1, 7]) {
             let color = data[i];
             if (isInPaddleBufferRegion(color)) {
-              if (!isPaddleMotionCycleGeneral(color)) {
-                break;
+              if (i !== 4 && !isPaddleMotionCycleGeneral(color)) {
+                break; // early-out depends on trying 4 first
               }
               let ps = new PaddleState(color);
               let source = sourceDirectionFromIndex(i);
-              if (source.dY === ps.dY) {
+              if (source.dY === ps.getDY()) {
                 willBePaddleBuffer = true;
                 paddleBufferBitsSource = ps.nextColor();
                 decimator = ps.decimator;
@@ -942,12 +941,19 @@ let bm;
           }
         }
         if (willBePaddleBuffer) {
+          nextColor = nsOutput.PADDLE_BUFFER_FLAG.set(nextColor, true);
           if (willBeBall === isBall(paddleBufferBitsSource)) {
             assert(nsOutput === nsSource);
-            nextColor =
-              nsOutput.PADDLE_BALL_BITS.set(
-                nextColor,
-                nsSource.PADDLE_BALL_BITS.get(nextColor));
+            let bitFlag;
+            // TODO: Should these have the same name, despite having different
+            // members?  Maybe PADDLE_SHARED_BITS?
+            if (willBeBall) {
+              bitFlag = nsBall.PADDLE_BALL_BITS;
+            } else {
+              bitFlag = nsBackground.PADDLE_BACKGROUND_BITS;
+            }
+            nextColor = bitFlag.set(nextColor,
+                                    bitFlag.get(paddleBufferBitsSource));
           } else {
             nextColor =
               BitManager.copyBits(nsOutput, nextColor, nsSource,

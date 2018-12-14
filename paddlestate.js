@@ -41,6 +41,7 @@
     // Returns a value between -1 and 8; you may be off the end by up to 1
     // pixel.
     // Returns the pixel for the middle of the three.
+    // NOTE: This is used by paddle.js only; it won't work in bigrespawn.js.
     static getPaddlePixel(d0, d1, d2) {
       let isP0 = isPaddle(d0) ? 1 : 0;
       let isP1 = isPaddle(d1) ? 1 : 0;
@@ -57,10 +58,9 @@
         }
         return 7;
       }
-      // TODO: This is now broken.
-      switch ((ns.PADDLE_PIXEL.get(d0) << 2) |
-              (ns.PADDLE_PIXEL.get(d1) << 1) |
-              (ns.PADDLE_PIXEL.get(d2))) {
+      switch ((nsPaddle.PADDLE_PIXEL.get(d0) << 2) |
+              (nsPaddle.PADDLE_PIXEL.get(d1) << 1) |
+              (nsPaddle.PADDLE_PIXEL.get(d2))) {
         case 0:
           return 3;
         case 1:

@@ -324,7 +324,9 @@ class BallState {
   // TODO: Incorporate DECIMATOR like PaddleState does.
   nextColor() {
     let color = this.getColor();
-    color = this.bm.set('MOVE_STATE', color, this.nextState);
+    if (this.isMotionCycle()) {
+      color = this.bm.set('MOVE_STATE', color, this.nextState);
+    }
     return color;
   }
 }

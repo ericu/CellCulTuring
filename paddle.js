@@ -154,7 +154,7 @@
                           nsWall.TOP_WALL_CENTER_FLAG.getMask(),
                           nsGlobal.WALL_FLAG.getMask() |
                           nsWall.TOP_WALL_CENTER_FLAG.getMask())
-    PaddleState.init(nsPaddle, isPaddle);
+    PaddleState.init(nsPaddle, nsBall, nsBackground, isPaddle);
   }
 
   function isBallMotionCycle(c) {
