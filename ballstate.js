@@ -107,10 +107,10 @@ function processState(bs) {
 
 // Don't access color directly; it may be out of date.
 // TODO: How hard would it be to remove the explicit BitManager cleanly?  We
-// could pass in namespaces instead; it's the hasKey that may be iffy.  Possibly
-// we can tweak calls to create() as well to make it easier...that baseColor has
-// always been odd, and may not be necessary if we standardize the ball flag and
-// associated alpha bits across a few demos.
+// could pass in namespaces instead.  Possibly we can tweak calls to create() as
+// well to make it easier...that baseColor has always been odd, and may not be
+// necessary if we standardize the ball flag and associated alpha bits across
+// demos.
 class BallState {
   constructor(bm, color) {
 //    assert(bm.isSet('BALL_FLAG', color));
@@ -120,13 +120,9 @@ class BallState {
     this.down = bm.get('MOVE_D_NOT_U', color);
     this.state = bm.get('MOVE_STATE', color);
     this.index = bm.get('MOVE_INDEX', color);
-    if (this.bm.hasKey('DECIMATOR', 'BALL')) {
-      this.decimator = bm.get('DECIMATOR', color);
-    }
-    if (this.bm.hasKey('BUFFER_X_DEPTH_COUNTER')) {
-      this.depthX = bm.get('BUFFER_X_DEPTH_COUNTER', color);
-      this.depthY = bm.get('BUFFER_Y_DEPTH_COUNTER', color);
-    }
+    this.decimator = bm.get('DECIMATOR', color);
+    this.depthX = bm.get('BUFFER_X_DEPTH_COUNTER', color);
+    this.depthY = bm.get('BUFFER_Y_DEPTH_COUNTER', color);
     assert(this.index >= 0 && this.index < motionTable.length);
 
     processState(this);
@@ -318,15 +314,14 @@ class BallState {
     let color = this.color;
     color = this.bm.set('MOVE_R_NOT_L', color, this.right);
     color = this.bm.set('MOVE_D_NOT_U', color, this.down);
-    if (this.bm.hasKey('BUFFER_X_DEPTH_COUNTER')) {
-      color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
-      color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
-    }
+    color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
+    color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
     color = this.bm.set('MOVE_STATE', color, this.state);
     color = this.bm.set('MOVE_INDEX', color, this.index);
     return color;
   }
 
+  // TODO: Incorporate DECIMATOR like PaddleState does.
   nextColor() {
     let color = this.getColor();
     color = this.bm.set('MOVE_STATE', color, this.nextState);

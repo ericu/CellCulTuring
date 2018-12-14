@@ -101,6 +101,10 @@
     nsBall.alloc('MOVE_INDEX', 3);
     nsBall.alloc('MOVE_D_NOT_U', 1);
 
+    // Just to keep BallState happy.
+    nsBall.alloc('BUFFER_X_DEPTH_COUNTER', 0);
+    nsBall.alloc('BUFFER_Y_DEPTH_COUNTER', 0);
+
     // Wall fields
     nsWall.alloc('SIDE_WALL_FLAG', 1);
     nsWall.alloc('TOP_WALL_FLAG', 1);
@@ -309,7 +313,7 @@
           nsFrom = nsBackground;
         }
         return {
-          value: BitManager.copyBits(nsFrom, data[1], nsBackground, current,
+          value: BitManager.copyBits(nsBackground, current, nsFrom, data[1],
                                      copySets.RESPAWN_MESSAGE_BITS)
         };
       }

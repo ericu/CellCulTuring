@@ -1,19 +1,40 @@
 (function () {
-  let ns, isPaddle;
+  let nsPaddle, nsBall, nsBackground;
+  let isPaddle, isBallInPaddleBuffer, isPaddleBuffer;
 
   // Don't access color directly; it may be out of date.
+  // This originally just dealt with paddles.  You can now create a PaddleState
+  // from a PaddleBuffer, with or without a ball in it, so beware the underlying
+  // ball bits and type when dealing with motion.
+  // TODO: Deal with move delay when we have it.
   class PaddleState {
-    static init(_ns_, _isPaddle_) {
-      ns = _ns_;
+    static init(_nsPaddle_, _nsBall_, _nsBackground_,
+                _isPaddle_, _isBallInPaddleBuffer_, _isPaddleBuffer_) {
+      nsPaddle = _nsPaddle_;
+      nsBall = _nsBall_;
+      nsBackground = _nsBackground_;
       isPaddle = _isPaddle_;
+      isBallInPaddleBuffer = _isBallInPaddleBuffer_;
+      isPaddleBuffer = _isPaddleBuffer_;
     }
     constructor(color) {
-      assert(ns);
-      assert(isPaddle(color));
+      assert(nsPaddle);
+      assert(isPaddle(color) || isBallInPaddleBuffer(color) ||
+             isPaddleBuffer(color));
       this.color = color;
-      this.position = ns.PADDLE_POSITION.get(color);
-      this.dest = ns.PADDLE_DEST.get(color);
-      this.decimator = ns.DECIMATOR.get(color);
+      if (isPaddle(color)) {
+        this.ns = nsPaddle;
+      } else if (isBallInPaddleBuffer(color)) {
+        this.ns = nsBall;
+      } else {
+        assert(isPaddleBuffer(color));
+        this.ns = nsBackground;
+      }
+      this.position = this.ns.PADDLE_POSITION.get(color);
+      this.dest = this.ns.PADDLE_DEST.get(color);
+      this.decimator = this.ns.DECIMATOR.get(color);
+      // This is the single raw bit, not the decoded, useful value.
+      this.paddlePixelBit = this.ns.PADDLE_PIXEL.get(color);
     }
 
     // Assumes this encoding and an 8-pixel paddle for now: 01000111.
@@ -36,6 +57,7 @@
         }
         return 7;
       }
+      // TODO: This is now broken.
       switch ((ns.PADDLE_PIXEL.get(d0) << 2) |
               (ns.PADDLE_PIXEL.get(d1) << 1) |
               (ns.PADDLE_PIXEL.get(d2))) {
@@ -84,18 +106,26 @@
     }
 
     getColor() {
+      assert(this.ns);
       let color = this.color;
-      color = ns.PADDLE_DEST.set(color, this.dest);
+      color = this.ns.PADDLE_DEST.set(color, this.dest);
       return color;
     }
 
     nextColor() {
-      let color = this.getColor();
+      let color = this.getColor(this.ns);
       if (this.isMotionCycle()) {
-        color = ns.PADDLE_POSITION.set(color, this.position + this.getDY());
+        color = this.ns.PADDLE_POSITION.set(color,
+                                            this.position + this.getDY());
       }
-      color = ns.DECIMATOR.set(color, !this.decimator);
+      color = this.ns.DECIMATOR.set(color, !this.decimator);
       return color;
+    }
+
+    // This is the namespace of the source color, and thus of getColor and
+    // nextColor.
+    getNamespace() {
+      return this.ns;
     }
   }
 
