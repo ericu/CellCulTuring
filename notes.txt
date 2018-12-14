@@ -267,8 +267,9 @@ To add paddles to bigrespawn:
   trough region handle respawn. DONE
 * Then add paddles that bounce but don't move. DONE
 * Then add decimation. DONE
-* Then add paddle motion, but no AI messages.
-* Then add AI messages and move delays.
+* Then add paddle motion, but no AI messages. DONE
+* Then add sending AI messages, but not using them.
+* Then add using AI messages and move delays.
 
 * At some point, add AI messages on respawn; they could be sent early by the
 ball at destruction, which guarantees plenty of time to get there but looks a
@@ -276,14 +277,42 @@ bit weird, or could be sent at respawn itself, although that gives much less
 warning.
 
 --------------------------------------------------------------------------------
+
+Other ways to shave bits:
+
+When counting into the depth buffer, we can go to 4 instead of 3 by turning
+around at overflow instead of when we hit 3.  We can't maintain an accurate
+count on the way out, but we don't actually need to--we can turn around and call
+it 3 instead of 4, and then count down too early, and ignore underflow on the
+last step out.  Hmm...will that confuse the ball-death-signal code?  We'd be at
+depth 0 while still inside.  Can we detect that situation and work around it
+somehow?
+
+Use PADDLE_BUFFER_FLAG as a namespace bit for balls.  All the paddle buffer bits
+go in that namespace, but then we can put BUFFER_Y_FLAG in its complement, since
+that information can be derived from the paddle's position and paddlePixel.  If
+desired, we can use that one saved bit to implement a death flag instead of
+using the zeroed depth counter in the above hack.  But then we're still short a
+bit to use for decoration.
+--------------------------------------------------------------------------------
+
+Consider making DECIMATOR a global bit.  Almost everybody uses it, and it would
+be nice just to be able to grab it and negate it everywhere.  It's not much more
+work for the empty background; might even be a wash, with less checking for if
+you need it or not.  The only other minus would be having it in the scoreboard,
+which has no need for it, but that seems fairly trivial.
+
+--------------------------------------------------------------------------------
 The checkerboard ball state will probably work!  We can save a ton of bits that
 way.  Make a ball out of alternating pixels, where some have all the ball motion
-info and the others have all the collected paddle/buffer info.  When you need
-one or the other namespace of info, there's always a pixel within reach that has
-it.  The only thing to watch out for is that the leading corner when moving
-diagonally must have the ball info, as it may be the only ball pixel that the
-target pixel can see.  That's probably pretty easy to arrange, though, for most
-odd ball sizes.
+info and the others have all the collected paddle/buffer info.  Both need the
+isPaddleBuffer and isBall bits.  When you need one or the other namespace of
+info, there's always a pixel within reach that has it.  The only thing to watch
+out for is that the leading corner when moving diagonally must have the ball
+info, as it may be the only ball pixel that the target pixel can see.  That's
+probably pretty easy to arrange, though, for most odd ball sizes, and anybody
+outside the ball should be able to see the paddle buffer state directly in most
+cases, and see at least one paddle buffer pixel inside the ball otherwise.
 
 7:
    x.x
@@ -301,10 +330,15 @@ odd ball sizes.
   x.x
    x
 
-4: does that work?  Probably.
+4: does that work?  Probably.  And the bitflag would make for nice shading here,
+too.  Start with a 3x3 ball for the switchover, then grow to this once it's
+working.
 
    xx
   x..x
   x..x
    xx
 
+3: x
+  x.x
+   x

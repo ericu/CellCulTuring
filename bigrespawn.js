@@ -418,8 +418,8 @@ let bm;
 
     // Subtract 2 from height for top + bottom walls, then another to get below
     // the power of 2.
-    drawPaddle(c, true, 42, 7);
-    drawPaddle(c, false, 56, 7);
+    drawPaddle(c, true, 42, 2);
+    drawPaddle(c, false, 56, 5);
   }
 
   function getBufferBits(data, bs) {
