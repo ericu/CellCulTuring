@@ -32,14 +32,12 @@ const originY = borderSize;
     canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
     canvas.style.height = CANVAS_SCALE * canvas.height + 'px';
 
-    let background1 = canvas.parentElement;
-    let background1Parent = background1.parentElement;
-    let background2 = background1.cloneNode(true);
-    canvas2 = background2.firstElementChild;
+    let parent = canvas.parentElement;
+    canvas2 = canvas.cloneNode(true);
     canvas2.id = 'canvas2';
 
-    background1Parent.insertBefore(background2, background1);
-    background1Parent.insertBefore(background1, background2);
+    parent.insertBefore(canvas2, canvas);
+    parent.insertBefore(canvas, canvas2);
 
     canvas2.width = canvas.width;
     canvas2.height = canvas.height;
@@ -203,9 +201,9 @@ const originY = borderSize;
 
   function showTestToggled(e) {
     if (e.checked) {
-      document.getElementById('canvas2').parentElement.style.display = 'inline';
+      document.getElementById('canvas2').style.display = 'inline';
     } else {
-      document.getElementById('canvas2').parentElement.style.display = 'none';
+      document.getElementById('canvas2').style.display = 'none';
     }
   }
 

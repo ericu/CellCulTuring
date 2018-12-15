@@ -20,31 +20,20 @@ body {
   align-items: center;
   width: 100%;
   max-width: 100%;
-  canvas {
-    flex: 0 0;
-  }
 }
 
 #inner-container {
   display: flex;
   flex-direction: row;
   flex: 1 1 auto;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   width: 100%;
   justify-content: space-between;
 }
 
-.background {
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 100%;
-  background-color: #0f0f0f;
-}
-
 canvas {
   image-rendering: pixelated;
+  background-color: #000;
+  flex: 0 0 auto;
 }

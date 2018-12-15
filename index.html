@@ -1,4 +1,7 @@
 <html>
+<!-- this doesn't seem to help with mobile issues.  If we zoom in, canvases move
+off the side, and we can't scroll to them.  It's probably to do with the
+width=100%; we should fit the content instead.-->
 <meta name="viewport"
       content="width=device-width,initial-scale=1,user-scalable=true">
 <head>
@@ -25,9 +28,7 @@
       <span>FPS: <span id="fps">0.0</span></span>
     </div>
     <div id="inner-container">
-      <div class="background">
-        <canvas id="canvas" width="71" height="70"></canvas>
-      </div>
+      <canvas id="canvas" width="71" height="70"></canvas>
       <textarea rows="40" cols="40" id="debug"></textarea>
     </div>
   </div>
