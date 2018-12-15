@@ -119,14 +119,13 @@ let bm;
     nsWall = nsNonbackground.declareSubspace('WALL', 'WALL_FLAG');
     nsPaddle = nsNonbackground.declareSubspace('PADDLE', 'ID_BITS');
 
-    // Message fields [for wall and background, mostly]
+    // Message fields shared by wall and background
     nsWall.alloc('MESSAGE_R_NOT_L', 1);
     nsBackground.alloc('MESSAGE_R_NOT_L', 1);
     nsWall.declare('MESSAGE_PRESENT', 1, 14);
     nsBackground.declare('MESSAGE_PRESENT', 1, 14);
-    copySets.RESPAWN_MESSAGE_BITS = ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']
-    nsWall.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
-    nsBackground.combine('RESPAWN_MESSAGE_BITS', copySets.RESPAWN_MESSAGE_BITS);
+    nsWall.combine('RESPAWN_MESSAGE_BITS',
+                   ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
 
     // Used only by the ball.
     nsBall.declare('DECIMATOR', 1, 15);
@@ -181,6 +180,13 @@ let bm;
       'PADDLE_BACKGROUND_BITS',
       ['PADDLE_POSITION', 'PADDLE_DEST', 'PADDLE_MOVE_DELAY_COUNTER',
        'PADDLE_PIXEL', 'PADDLE_BUFFER_FLAG']);
+
+    // Background-only AI message fields
+    nsBackground.alloc('MESSAGE_H_NOT_V', 1);
+    nsBackground.alloc('MESSAGE_PADDLE_POSITION', 3);
+    nsBackground.combine('ALL_MESSAGE_BITS',
+                         ['MESSAGE_H_NOT_V', 'MESSAGE_R_NOT_L',
+                         'MESSAGE_PADDLE_POSITION', 'MESSAGE_PRESENT']);
 
     isWall = getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                        nsNonbackground.ID_BITS.getMask()]),
@@ -416,7 +422,7 @@ let bm;
 
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
 
-    drawPaddle(c, true, 42, 2);
+    drawPaddle(c, true, 42, 5);
     drawPaddle(c, false, 56, 5);
   }
 
@@ -573,33 +579,33 @@ let bm;
   function handleRespawnMessage(data, x, y) {
     let current = data[4];
     let backgroundAbove = isBackground(data[1]);
-    if (isBackground(current) && (backgroundAbove ||
-                                  isTopWallCenter(data[1]))) {
-      let nsAbove;
+    let topWallCenterAbove = isTopWallCenter(data[1]);
+    if (isBackground(current) && (backgroundAbove || topWallCenterAbove)) {
+      let activeRespawnMessage =
+        (backgroundAbove && nsBackground.MESSAGE_PRESENT.isSet(data[1]) &&
+         !nsBackground.MESSAGE_H_NOT_V.isSet(data[1])) ||
+        (topWallCenterAbove && nsWall.MESSAGE_PRESENT.isSet(data[1]))
+      let rightNotL;
       if (backgroundAbove) {
-        nsAbove = nsBackground;
+        rightNotL = nsBackground.MESSAGE_R_NOT_L.isSet(data[1]);
       } else {
-        nsAbove = nsWall
+        rightNotL = nsWall.MESSAGE_R_NOT_L.isSet(data[1]);
       }
       let decimator;
       let respawn = isRespawn(current);
       if (respawn) {
-        decimator = nsBackground.DECIMATOR.getMask(current);
+        decimator = nsBackground.DECIMATOR.isSet(current);
       }
-      let active = nsAbove.MESSAGE_PRESENT.get(data[1]);
-      if (active) {
+      if (activeRespawnMessage) {
         if (isCenterRespawn(data)) {
-          let rightNotL = nsAbove.MESSAGE_R_NOT_L.get(data[1]);
           let color = nsBackground.MESSAGE_R_NOT_L.set(current, rightNotL);
           color = nsBackground.RESPAWN_FLAG.set(color, true);
           color = nsBackground.RESPAWN_PHASE_2_FLAG.set(color, true);
           color = nsBackground.DECIMATOR.setMask(color, !decimator);
           return { value: color };
         } else {
-          let color =
-            BitManager.copyBits(nsBackground, current, nsAbove, data[1],
-                                copySets.RESPAWN_MESSAGE_BITS)
-
+          let color = nsBackground.MESSAGE_R_NOT_L.setMask(current, rightNotL);
+          color = nsBackground.MESSAGE_PRESENT.setMask(current, true);
           if (respawn) {
             color = nsBackground.DECIMATOR.setMask(color, !decimator);
           }
@@ -608,6 +614,7 @@ let bm;
       }
     }
     if (isRespawn(current)) {
+      let decimator = nsBackground.DECIMATOR.isSet(current);
       for (let d of data) {
         if (isBackground(d) && nsBackground.RESPAWN_PHASE_2_FLAG.get(d)) {
           let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(d);
@@ -617,7 +624,6 @@ let bm;
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
           var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
           let next = bs.getColor();
-          let decimator = nsBackground.DECIMATOR.getMask(current);
           next = nsBall.DECIMATOR.setMask(next, !decimator);
           return { value: next };
         }
@@ -858,6 +864,40 @@ let bm;
     return null;
   }
 
+  function getAIMessage(data, x, y, color) {
+    let current = data[4];
+    // preexisting message
+    for (let i of [0, 2, 3, 5, 6, 8]) {
+      let source = data[i];
+      let active = isBackground(source) &&
+                   nsBackground.MESSAGE_PRESENT.isSet(source) &&
+                   nsBackground.MESSAGE_H_NOT_V.isSet(source);
+      if (active &&
+          (nsBackground.MESSAGE_R_NOT_L.isSet(source) === (i % 3 === 0))) {
+        let bits = nsBackground.ALL_MESSAGE_BITS.get(source);
+        return nsBackground.ALL_MESSAGE_BITS.set(color, bits);
+      }
+    }
+    // new message
+    let above = false;
+    let messageRightNotL = false;
+    if (isBackground(current) &&
+        ((messageRightNotL = (isTrough(data[3]) || isPaddle(data[3]))) ||
+         (isTrough(data[5]) || isPaddle(data[5]))) &&
+        ((above = isBall(data[1])) || isBall(data[7]))) {
+      let ball = above ? data[1] : data[7];
+      if (!isBallMotionCycle(ball) &&
+          (nsBall.BUFFER_X_DEPTH_COUNTER.get(ball) === BUFFER_SIZE)) {
+        color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
+        color = nsBackground.MESSAGE_H_NOT_V.setMask(color, true);
+        color = nsBackground.MESSAGE_R_NOT_L.setMask(color, messageRightNotL);
+        // TODO: Put in real value.
+        return nsBackground.MESSAGE_PADDLE_POSITION.set(color, 4);
+      }
+    }
+    return nsBackground.ALL_MESSAGE_BITS.setMask(color, false);
+  }
+
   function handleBecomingOrStayingBackgroundOrStayingBall(data, x, y) {
     const current = data[4];
     let respawn;
@@ -889,8 +929,6 @@ let bm;
       bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
       bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
       isPB = isPaddleBuffer(current);
-      /*
-      */
       if (respawn || isPB) {
         decimator = nsBackground.DECIMATOR.isSet(current);
       }
@@ -907,6 +945,7 @@ let bm;
       nextColor = nsOutput.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
       nextColor = nsOutput.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
       nextColor = nsOutput.RESPAWN_FLAG.set(nextColor, respawn);
+      nextColor = getAIMessage(data, x, y, nextColor);
     }
 
     let paddleBufferBitsSource;
