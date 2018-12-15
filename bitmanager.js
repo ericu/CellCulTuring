@@ -131,10 +131,11 @@ class Namespace {
     var s;
     s = prefix + 'namespace: ' + this.name;
     prefix += '  ';
-    for (var i in this.values) {
-      var value = this.values[i];
+    let names = _.sortBy(Object.keys(this.values));
+    for (var name of names) {
+      var value = this.values[name];
       let v = value.get(packed);
-      s += '\n' + prefix + value.name + ': ' +  v.toString(16);
+      s += '\n' + prefix + name + ': 0x' +  v.toString(16);
     }
     if (this.subspaceMask) {
       let id = _and(packed, this.subspaceMask);

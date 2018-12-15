@@ -69,17 +69,16 @@ let bm;
   let isTopWallCenter;
   let copySets = {};
   // TODO: Can we make these not so global?
-  let originX = 1;
-  let originY = 1;
-  let width = canvas.width - 2;
-  let height = canvas.height - 2;
-  let halfWidth = Math.floor(width / 2);
-  let halfHeight = Math.floor(height / 2);
-  let insideWallOriginX = originX + 1;
-  let insideWallOriginY = originY + 1;
-  let insideWallWidth = width - 2;
-  let insideWallHeight = height - 2;
-
+  const originX = 1;
+  const originY = 1;
+  const width = canvas.width - 2;
+  const height = canvas.height - 2;
+  const halfWidth = Math.floor(width / 2);
+  const halfHeight = Math.floor(height / 2);
+  const insideWallOriginX = originX + 1;
+  const insideWallOriginY = originY + 1;
+  const insideWallWidth = width - 2;
+  const insideWallHeight = height - 2;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -88,7 +87,15 @@ let bm;
   const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
-  assert(BALL_SIZE === 3); // This is assumed throughout the file.
+
+  // This is assumed throughout the file, in figuring out buffer bits and ball
+  // pixels.
+  assert(BALL_SIZE === 3);
+
+  // 2 for trough/paddle
+  const paddleToPaddleBallDistance = insideWallWidth - 2 - BALL_SIZE;
+  const topWallToBottomWallBallDistance = insideWallHeight - BALL_SIZE;
+
 
   function initBitManager() {
     nsGlobal = new Namespace();
@@ -423,7 +430,7 @@ let bm;
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
 
     drawPaddle(c, true, 42, 5);
-    drawPaddle(c, false, 56, 5);
+    drawPaddle(c, false, 56, 2);
   }
 
   function getBufferBits(data, bs) {
@@ -552,6 +559,7 @@ let bm;
         return nsBackground.BALL_MISS_FLAG.set(current, 1);
       }
     }
+    // TODO: Receive AI message here.
     if (isPaddle(current) && !isPaddleMotionCycle(current)) {
       return nsPaddle.DECIMATOR.setMask(current,
                                         !nsPaddle.DECIMATOR.isSet(current))
@@ -636,17 +644,11 @@ let bm;
   // isn't completely within the paddle buffer region.  We have bs, so we know
   // that at least one ball pixel is within reach, and we know that data[4] is
   // in the paddle buffer region.
-  function getPaddlePixel(bs, source, data, x, y) {
+  function getPaddlePixel(ballDY, data, ballDataColumn, x, y) {
     assert(isInPaddleBufferRegion(data[4]));
-    let column;
-    if (bs.right) {
-      column = [0, 3, 6];
-    } else {
-      column = [2, 5, 8];
-    }
-    let d0 = data[column[0]]
-    let d1 = data[column[1]]
-    let d2 = data[column[2]]
+    let d0 = data[ballDataColumn[0]]
+    let d1 = data[ballDataColumn[1]]
+    let d2 = data[ballDataColumn[2]]
     let bTop = isBall(d0);
     let bMid = isBall(d1);
     let bBot = isBall(d2);
@@ -673,7 +675,7 @@ let bm;
     // Hmm...check them all anyway.  If you see the bottom or top edge, that
     // tells you where it is now.  If you don't that tells you too.  Then use dY
     // to tell you where it's going to be.
-    let ballNextPos = ballCurPos + bs.dY;
+    let ballNextPos = ballCurPos + ballDY;
     let paddlePixel =
       ballNextPos + getPaddlePixelHelper(data[1], data[4], data[7]);
     if (paddlePixel >= 0 && paddlePixel <= 7) {
@@ -817,8 +819,15 @@ let bm;
             // Mark the ball for bounce or destruction.
             let worthChecking =
               isPaddleBuffer(current) || isBallInPaddleBuffer(current);
-            let v;
-            if (worthChecking && (v = getPaddlePixel(bs, source, data, x, y))) {
+            let ballDataColumn, v;
+            if (bs.right) {
+              ballDataColumn = [0, 3, 6];
+            } else {
+              ballDataColumn = [2, 5, 8];
+            }
+
+            if (worthChecking &&
+                (v = getPaddlePixel(bs.dY, data, ballDataColumn, x, y))) {
               bs.bounce('x', v.value)
             } else {
               bs.setDepthX(0);
@@ -864,6 +873,44 @@ let bm;
     return null;
   }
 
+  function getNewAIMessage(data, x, y, color) {
+    let current = data[4];
+    let above = false;
+    let messageRightNotL = false;
+    if (isPaddleBuffer(current) &&
+        ((messageRightNotL = (isTrough(data[3]) || isPaddle(data[3]))) ||
+         (isTrough(data[5]) || isPaddle(data[5]))) &&
+        ((above = isBall(data[1])) || isBall(data[7]))) {
+      let ball = above ? data[1] : data[7];
+      if (!isBallMotionCycle(ball) &&
+          (nsBall.BUFFER_X_DEPTH_COUNTER.get(ball) === BUFFER_SIZE)) {
+        let bs = new BallState(bm, ball);
+        let paddlePixel = getPaddlePixel(0, data, [1, 4, 7], x, y).value;
+        let start = nsBackground.PADDLE_POSITION.get(current) + paddlePixel;
+
+        let dY = bs.getSlope() * paddleToPaddleBallDistance;
+        if (!bs.down) {
+          dY = -dY
+        }
+        let fullY = start + dY;
+        let clippedY = fullY % topWallToBottomWallBallDistance;
+        if (clippedY < 0) {
+          clippedY += topWallToBottomWallBallDistance;
+        }
+        assert(clippedY >= 0 && clippedY < topWallToBottomWallBallDistance);
+        if (Math.floor(fullY / topWallToBottomWallBallDistance) % 2) {
+          clippedY = topWallToBottomWallBallDistance - clippedY
+        }
+        color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
+        color = nsBackground.MESSAGE_H_NOT_V.setMask(color, true);
+        color = nsBackground.MESSAGE_R_NOT_L.setMask(color, messageRightNotL);
+        return { value: nsBackground.MESSAGE_PADDLE_POSITION.set(
+                          color, clippedY >>> 3) };
+      }
+    }
+    return null;
+  }
+
   function getAIMessage(data, x, y, color) {
     let current = data[4];
     // preexisting message
@@ -878,22 +925,9 @@ let bm;
         return nsBackground.ALL_MESSAGE_BITS.set(color, bits);
       }
     }
-    // new message
-    let above = false;
-    let messageRightNotL = false;
-    if (isBackground(current) &&
-        ((messageRightNotL = (isTrough(data[3]) || isPaddle(data[3]))) ||
-         (isTrough(data[5]) || isPaddle(data[5]))) &&
-        ((above = isBall(data[1])) || isBall(data[7]))) {
-      let ball = above ? data[1] : data[7];
-      if (!isBallMotionCycle(ball) &&
-          (nsBall.BUFFER_X_DEPTH_COUNTER.get(ball) === BUFFER_SIZE)) {
-        color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
-        color = nsBackground.MESSAGE_H_NOT_V.setMask(color, true);
-        color = nsBackground.MESSAGE_R_NOT_L.setMask(color, messageRightNotL);
-        // TODO: Put in real value.
-        return nsBackground.MESSAGE_PADDLE_POSITION.set(color, 4);
-      }
+    let v;
+    if (v = getNewAIMessage(data, x, y, color)) {
+      return v.value;
     }
     return nsBackground.ALL_MESSAGE_BITS.setMask(color, false);
   }
@@ -978,6 +1012,7 @@ let bm;
           }
         }
         if (willBePaddleBuffer) {
+          // TODO: Receive AI message here.
           nextColor = nsOutput.PADDLE_BUFFER_FLAG.set(nextColor, true);
           if (willBeBall === isBall(paddleBufferBitsSource)) {
             assert(nsOutput === nsSource);
@@ -1026,16 +1061,12 @@ let bm;
       return v.value;
     }
 
-    // Both ball and background need to handle incoming ball pixels and paddle
-    // buffer pixels.  Balls and paddles don't move in the same cycle.  Moving
-    // balls are handled here, background and stationary balls will be dealt
-    // with in handleBecomingOrStayingBackgroundOrStayingBall.  TODO: If AI
-    // message and ball arrive at the same time, the ball wins.
+    // Moving balls are handled here, stationary balls and background will be
+    // dealt with in handleBecomingOrStayingBackgroundOrStayingBall.
     if (v = handleIncomingBall(data, x, y)) {
       return v.value;
     }
 
-    // TODO: handle AI messages in here too.
     return handleBecomingOrStayingBackgroundOrStayingBall(data, x, y);
   }
 
