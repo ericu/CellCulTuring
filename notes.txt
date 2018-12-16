@@ -301,7 +301,8 @@ Consider making DECIMATOR a global bit.  Almost everybody uses it, and it would
 be nice just to be able to grab it and negate it everywhere.  It's not much more
 work for the empty background; might even be a wash, with less checking for if
 you need it or not.  The only other minus would be having it in the scoreboard,
-which has no need for it, but that seems fairly trivial.
+which has no need for it, but that seems fairly trivial, especially if it's not
+a very visible bit.
 
 --------------------------------------------------------------------------------
 The checkerboard ball state will probably work!  We can save a ton of bits that

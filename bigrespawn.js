@@ -94,6 +94,8 @@ let bm;
   // 2 for trough/paddle
   const paddleToPaddleBallDistance = insideWallWidth - 2 - BALL_SIZE;
   const topWallToBottomWallBallDistance = insideWallHeight - BALL_SIZE;
+  // See notes in getNewAIMessage.
+  assert(paddleToPaddleBallDistance % 6 === 1);
 
 
   function initBitManager() {
@@ -417,10 +419,10 @@ let bm;
                insideWallOriginY, 1, insideWallHeight);
 
     // arbitrarily moving ball
-    var left = Math.round(canvas.width / 2 + 4);
-    var top = Math.round(canvas.height / 2 + 4);
+    var left = Math.round(55);
+    var top = Math.round(56);
     const ballColor =
-      BallState.create(bm, 1, 1, 4, 0,
+      BallState.create(bm, 1, 1, 6, 1,
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                               nsNonbackground.BALL_FLAG.getMask(),
                               nsNonbackground.FULL_ALPHA.getMask()]))
@@ -428,8 +430,8 @@ let bm;
 
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
 
-    drawPaddle(c, true, 42, 5);
-    drawPaddle(c, false, 56, 2);
+    drawPaddle(c, true, 42, 4);
+    drawPaddle(c, false, 48, 5);
   }
 
   function getBufferBits(data, bs) {
@@ -887,6 +889,39 @@ let bm;
     return null;
   }
 
+
+  /* I had an off-by-one miss that would actually have hit if we let the
+   * Bresenham motion continue until it really banged the paddle, but since we
+   * evaluate it as soon as it's near the paddle, it misses.  If that's really
+   * the only cause of the bug, we could try to change back to checking for the
+   * real impact, but we'd need a bit for min/max buffer, as it would break the
+   * code that figures that out.
+
+   * How hard is the math for dealing with state?  When we bounce, we make sure
+   * it has a state that moves off the paddle immediately.  We know the length
+   * of its cycle from the move table.  But it's quite fiddly to determine how
+   * many Y moves happen in precisely the X distance across, I think, especially
+   * in e.g. the 2/3 case.  Hmm...what if we made the board width a multiple of
+   * 6, or a multiple of 6 plus or minus 1?  I'm still not sure that fixes it
+   * entirely, but it seems likely to be relevant.  Plus one...assume that
+   * multiple is 0.  The board's 1 pixel wide, so you get a horizontal move and
+   * hit the next paddle in 1 cycle.  But is that where we thought you'd hit?
+   * Your slope is 0, 1, 1/2, 1/3, 2/3, 3/2, 2, or 3.
+
+      Slope  First dX  First dY  Result
+      0          1        0       Fine
+      1          1        1       Fine
+      2          2        2       Fine
+      3          1        3       Fine
+      1/3        1        0       Fine [we'd round down]
+      1/2        1        0       Fine [we'd round down]
+      2/3        1        0       Fine [we'd round down]
+      3/2        1        1       Fine [we'd round up]
+
+   * That seems likely to work.  If it doesn't, a robust solution would be to
+   * make the paddles 2 pixels longer, but that would take more bits, so put
+   * that off until after we optimize storage.
+   */
   function getNewAIMessage(data, x, y, color) {
     let current = data[4];
     let above = false;
@@ -946,11 +981,13 @@ let bm;
     return nsBackground.ALL_MESSAGE_BITS.setMask(color, false);
   }
 
-  // TODO: The message is destroying some isPaddleBuffer bits.
   function handleAIMessageInPaddleBuffer(data, x, y, nextColor) {
     if (nsBackground.MESSAGE_PRESENT.isSet(nextColor)) {
       let isLeft, isLeadingEdge, isNotForUs = false;
-      if (isPaddle(data[3]) || isTrough(data[3])) {
+      if (isBall(data[3]) || isBall(data[5])) {
+        // No message for us comes while a ball is nearby.
+        isNotForUs = true;
+      } else if (isPaddle(data[3]) || isTrough(data[3])) {
         // Left paddle, left edge
         isLeft = true;
         isLeadingEdge = false;
