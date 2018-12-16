@@ -22,6 +22,7 @@
       assert(isPaddle(color) || isBallInPaddleBuffer(color) ||
              isPaddleBuffer(color));
       this.color = color;
+      this.delay = 0;
       if (isPaddle(color)) {
         this.ns = nsPaddle;
       } else if (isBallInPaddleBuffer(color)) {
@@ -29,6 +30,7 @@
       } else {
         assert(isPaddleBuffer(color));
         this.ns = nsBackground;
+        this.delay = nsBackground.PADDLE_MOVE_DELAY_COUNTER.get(color);
       }
       this.position = this.ns.PADDLE_POSITION.get(color);
       this.dest = this.ns.PADDLE_DEST.get(color);
@@ -90,6 +92,9 @@
     }
 
     getDY() {
+      if (this.delay) {
+        return 0;
+      }
       let destPos = this.dest << 3;
       if (this.position > destPos) {
         return -1;

@@ -47,7 +47,6 @@
 1     PADDLE_PIXEL
 6     PADDLE_POSITION
 3     PADDLE_DEST
-2-3   PADDLE_MOVE_DELAY_COUNTER
 1     DECIMATOR
 
   Counter/scoreboard
@@ -559,10 +558,21 @@ let bm;
         return nsBackground.BALL_MISS_FLAG.set(current, 1);
       }
     }
-    // TODO: Receive AI message here.
+    let newDest;
+    for (let i of [3, 5]) {
+      let color = data[i];
+      if (isBackground(color) && nsBackground.MESSAGE_PRESENT.isSet(color) &&
+          nsBackground.MESSAGE_R_NOT_L.isSet(color) === (i === 3)) {
+        newDest = nsBackground.MESSAGE_PADDLE_POSITION.get(color);
+      }
+    }
     if (isPaddle(current) && !isPaddleMotionCycle(current)) {
-      return nsPaddle.DECIMATOR.setMask(current,
-                                        !nsPaddle.DECIMATOR.isSet(current))
+      let nextColor =
+        nsPaddle.DECIMATOR.setMask(current, !nsPaddle.DECIMATOR.isSet(current));
+      if (newDest !== undefined) {
+        nextColor = nsPaddle.PADDLE_DEST.set(nextColor, newDest);
+      }
+      return nextColor;
     }
     for (let index of [1, 4, 7]) {
       let color = data[index];
@@ -575,7 +585,11 @@ let bm;
         if ((index === 1 && ps.getDY() > 0) ||
             (index === 4 && ps.getDY() === 0) ||
             (index === 7 && ps.getDY() < 0)) {
-          return ps.nextColor();
+          let nextColor = ps.nextColor();
+          if (newDest !== undefined) {
+            nextColor = nsPaddle.PADDLE_DEST.set(nextColor, newDest);
+          }
+          return nextColor;
         }
       }
     }
@@ -932,6 +946,70 @@ let bm;
     return nsBackground.ALL_MESSAGE_BITS.setMask(color, false);
   }
 
+  // TODO: The message is destroying some isPaddleBuffer bits.
+  function handleAIMessageInPaddleBuffer(data, x, y, nextColor) {
+    if (nsBackground.MESSAGE_PRESENT.isSet(nextColor)) {
+      let isLeft, isLeadingEdge, isNotForUs = false;
+      if (isPaddle(data[3]) || isTrough(data[3])) {
+        // Left paddle, left edge
+        isLeft = true;
+        isLeadingEdge = false;
+      } else if (isPaddle(data[5]) || isTrough(data[5])) {
+        // Right paddle, right edge
+        isLeft = false;
+        isLeadingEdge = false;
+      } else if (!isPaddleBuffer(data[3])) {
+        // Right paddle, left edge
+        isLeft = false;
+        isLeadingEdge = true;
+      } else if (!isPaddleBuffer(data[5])) {
+        // Left paddle, right edge
+        isLeft = true;
+        isLeadingEdge = true;
+      } else if (nsBackground.PADDLE_MOVE_DELAY_COUNTER.get(data[3])) {
+        // Right paddle, middle
+        isLeft = false;
+        isLeadingEdge = false;
+      } else if (nsBackground.PADDLE_MOVE_DELAY_COUNTER.get(data[5])) {
+        // Left paddle, middle
+        isLeft = true;
+        isLeadingEdge = false;
+      } else {
+        // This is a message going the wrong direction for us.
+        // Some of the above messages may not be for us, but we don't know in
+        // all cases, so we'll figure it out below.
+        isNotForUs = true;
+      }
+      // Can't get a message while we're moving.
+      assert(nsBackground.PADDLE_DEST.get(nextColor) ===
+             (nsBackground.PADDLE_POSITION.get(nextColor) >>> 3));
+      if (!isNotForUs &&
+          (nsBackground.MESSAGE_R_NOT_L.isSet(nextColor) !== isLeft)) {
+        let dest = nsBackground.MESSAGE_PADDLE_POSITION.get(nextColor);
+        nextColor = nsBackground.PADDLE_DEST.set(nextColor, dest);
+        if (isLeadingEdge) {
+          nextColor =
+            nsBackground.PADDLE_MOVE_DELAY_COUNTER.set(
+              nextColor, BUFFER_SIZE);
+        } else {
+          let counter =
+            nsBackground.PADDLE_MOVE_DELAY_COUNTER.get(
+              data[isLeft ? 5 : 3]);
+          nextColor =
+            nsBackground.PADDLE_MOVE_DELAY_COUNTER.set(nextColor,
+                                                       counter - 1);
+        }
+      }
+    } else {
+      let counter = nsBackground.PADDLE_MOVE_DELAY_COUNTER.get(nextColor);
+      if (counter > 0) {
+        nextColor = nsBackground.PADDLE_MOVE_DELAY_COUNTER.set(nextColor,
+                                                               counter - 1);
+      }
+    }
+    return nextColor;
+  }
+
   function handleBecomingOrStayingBackgroundOrStayingBall(data, x, y) {
     const current = data[4];
     let respawn;
@@ -939,7 +1017,6 @@ let bm;
     let bufferYFlag;
     let nextColor;
     let decimator;
-    let isPB = false;
     let willBeBall = false;
     let willBePaddleBuffer = false;
     let bs;
@@ -962,8 +1039,7 @@ let bm;
       respawn = isRespawn(current);
       bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
       bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
-      isPB = isPaddleBuffer(current);
-      if (respawn || isPB) {
+      if (respawn || isPaddleBuffer(current)) {
         decimator = nsBackground.DECIMATOR.isSet(current);
       }
     }
@@ -1012,7 +1088,6 @@ let bm;
           }
         }
         if (willBePaddleBuffer) {
-          // TODO: Receive AI message here.
           nextColor = nsOutput.PADDLE_BUFFER_FLAG.set(nextColor, true);
           if (willBeBall === isBall(paddleBufferBitsSource)) {
             assert(nsOutput === nsSource);
@@ -1031,6 +1106,13 @@ let bm;
               BitManager.copyBits(nsOutput, nextColor, nsSource,
                                   paddleBufferBitsSource,
                                   copySets.PADDLE_BALL_BITS)
+          }
+          // If an AI message is passing through, process it.  How can we tell
+          // whether we're a right or left paddle?  The left and right edges
+          // know, but the middle doesn't.  Ah, but it can tell by how its
+          // neighbors are reacting to the message.
+          if (!willBeBall) {
+            nextColor = handleAIMessageInPaddleBuffer(data, x, y, nextColor);
           }
         }
       }
