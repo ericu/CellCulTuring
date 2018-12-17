@@ -293,7 +293,7 @@ let bm;
     }
   }
 
-  function initBigRespawn(c) {
+  function initPong(c) {
     initBitManager();
 
     // We fill the whole canvas, then put a wall around that corresponds to the
@@ -1115,7 +1115,7 @@ let bm;
     return nextColor;
   }
 
-  function bigRespawn(data, x, y) {
+  function pong(data, x, y) {
     const current = data[4];
     let v;
 
@@ -1143,6 +1143,6 @@ let bm;
     return handleBecomingOrStayingBackgroundOrStayingBall(data, x, y);
   }
 
-  registerAnimation("big respawn", initBigRespawn, bigRespawn);
+  registerAnimation("pong", initPong, pong);
 
 })();

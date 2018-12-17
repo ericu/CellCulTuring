@@ -6,7 +6,6 @@
   // This originally just dealt with paddles.  You can now create a PaddleState
   // from a PaddleBuffer, with or without a ball in it, so beware the underlying
   // ball bits and type when dealing with motion.
-  // TODO: Deal with move delay when we have it.
   class PaddleState {
     static init(_nsPaddle_, _nsBall_, _nsBackground_,
                 _isPaddle_, _isBallInPaddleBuffer_, _isPaddleBuffer_) {
