@@ -875,6 +875,15 @@ let bm;
    * trajectory coming in 1 pixel too low, aiming for a corner hit which we no
    * longer credit.  Switching to 0 mod 6 was also not the solution.  The
    * current setup also misses eventually.
+   *
+   * Aha!  We know exactly where the ball will be in 0 mod 6 timesteps, not x
+   * steps.  Think about whether we also know in x steps...probably.  But
+   * anyway, that doesn't help for 1 mod 6, because of the quantiziation.  What
+   * does help is looking at where the ball is going in this first timestep,
+   * because that's what it'll be doing at the last timestep [assuming we're
+   * spaced at 1 mod 6].  So do the math for 0 mod 6, then add the current
+   * motion, and that should be perfect assuming x steps are as good as time
+   * steps.
    */
   function getNewAIMessage(data, x, y, color) {
     let current = data[4];
