@@ -367,7 +367,7 @@ let bm;
     var left = 55;
     var top = 46;
     const ballColor =
-      BallState.create(nsBall, 1, 1, 5, 1,
+      BallState.create(nsBall, 1, 1, 3, 1,
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                               nsNonbackground.BALL_FLAG.getMask(),
                               nsNonbackground.FULL_ALPHA.getMask()]))
@@ -376,7 +376,7 @@ let bm;
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
 
     drawPaddle(c, true, 42, 4);
-    drawPaddle(c, false, 48, 7);
+    drawPaddle(c, false, 48, 6);
   }
 
   function getBufferBits(data, bs) {
