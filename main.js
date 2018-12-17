@@ -248,9 +248,9 @@ const originY = borderSize;
     let addr = getAddr32(x, y);
     let view;
     if (e.currentTarget.id === 'canvas') {
-      view = outputView
+      view = inputView;  // Not outputView, which may differ.
     } else {
-      view = outputView2
+      view = outputView2;
       assert(e.currentTarget.id === 'canvas2');
     }
     let value = view[addr]

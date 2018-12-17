@@ -43,7 +43,7 @@ let bm;
   const paddleToPaddleBallDistance = insideWallWidth - 2 - BALL_SIZE;
   const topWallToBottomWallBallDistance = insideWallHeight - BALL_SIZE;
   // See notes in getNewAIMessage.
-  assert(paddleToPaddleBallDistance % 6 === 1);
+  assert(paddleToPaddleBallDistance % 6 === 0);
 
 
   function initBitManager() {
@@ -367,10 +367,10 @@ let bm;
                insideWallOriginY, 1, insideWallHeight);
 
     // arbitrarily moving ball
-    var left = Math.round(55);
-    var top = Math.round(56);
+    var left = 55;
+    var top = 46;
     const ballColor =
-      BallState.create(nsBall, 1, 1, 6, 1,
+      BallState.create(nsBall, 1, 1, 5, 1,
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                               nsNonbackground.BALL_FLAG.getMask(),
                               nsNonbackground.FULL_ALPHA.getMask()]))
@@ -379,7 +379,7 @@ let bm;
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
 
     drawPaddle(c, true, 42, 4);
-    drawPaddle(c, false, 48, 5);
+    drawPaddle(c, false, 48, 7);
   }
 
   function getBufferBits(data, bs) {
@@ -577,7 +577,7 @@ let bm;
           return { value: color };
         } else {
           let color = nsBackground.MESSAGE_R_NOT_L.setMask(current, rightNotL);
-          color = nsBackground.MESSAGE_PRESENT.setMask(current, true);
+          color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
           if (respawn) {
             color = nsBackground.DECIMATOR.setMask(color, !decimator);
           }
@@ -869,6 +869,12 @@ let bm;
    * That seems likely to work.  If it doesn't, a robust solution would be to
    * make the paddles 2 pixels longer, but that would take more bits, so put
    * that off until after we optimize storage.
+   *
+   * Ugh.  It didn't work.  My suspicion is that the larger slopes are the
+   * issue.  At least one manifestation is with move index 5 and a 2-bounce
+   * trajectory coming in 1 pixel too low, aiming for a corner hit which we no
+   * longer credit.  Switching to 0 mod 6 was also not the solution.  The
+   * current setup also misses eventually.
    */
   function getNewAIMessage(data, x, y, color) {
     let current = data[4];

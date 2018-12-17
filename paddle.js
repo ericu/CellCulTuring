@@ -42,7 +42,7 @@
                originX + halfWidth, originY + halfHeight, 1, 1);
 
     var bs = BallState.create(nsBall, 1, 1, 4, 0, nsGlobal.BALL.getMask());
-    c.fillRect(bs.nextColor(), 62, 58, 1, 1);
+    c.fillRect(bs.nextColor(), 56, 58, 1, 1);
   }
 
   let isWall, isBackground, isBall, isPaddle, isRespawn, isTopWallCenter;
@@ -384,7 +384,7 @@
         // just bounced, so as to send the AI message only once.
         if ((bs.dY > 0 && isWall(data[7])) ||
             (bs.dY < 0 && isWall(data[1]))) {
-          bs.bounce('y')
+          bs.bounceWide('y')
           assert(!((bs.dY > 0 && isWall(data[7])) ||
                    (bs.dY < 0 && isWall(data[1]))));
         }
@@ -400,14 +400,14 @@
           } else {
             paddlePixel = getPaddlePixel(data[0], data[3], data[6]);
           }
-          bs.bounce('x', paddlePixel);
+          bs.bounceWide('x', paddlePixel);
         }
         // It may bounce again, if pinned between the edge of the paddle and
         // the wall, so you get bounces off e.g. bottom wall, bottom corner of
         // paddle, bottom wall; in a single cycle.
         if ((bs.dY > 0 && isWall(data[7])) ||
             (bs.dY < 0 && isWall(data[1]))) {
-          bs.bounce('y')
+          bs.bounceWide('y')
         }
         let next = nsBall.RESPAWN_FLAG.set(bs.getColor(), isRespawn(data[4]));
         return { value: nsBall.DECIMATOR.setMask(next, false) };
