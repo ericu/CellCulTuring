@@ -42,9 +42,6 @@ let bm;
   // 2 for trough/paddle
   const paddleToPaddleBallDistance = insideWallWidth - 2 - BALL_SIZE;
   const topWallToBottomWallBallDistance = insideWallHeight - BALL_SIZE;
-  // See notes in getNewAIMessage.
-  assert(paddleToPaddleBallDistance % 6 === 0);
-
 
   function initBitManager() {
     nsGlobal = new Namespace();
@@ -837,53 +834,15 @@ let bm;
     return null;
   }
 
-
-  /* I had an off-by-one miss that would actually have hit if we let the
-   * Bresenham motion continue until it really banged the paddle, but since we
-   * evaluate it as soon as it's near the paddle, it misses.  If that's really
-   * the only cause of the bug, we could try to change back to checking for the
-   * real impact, but we'd need a bit for min/max buffer, as it would break the
-   * code that figures that out.
-
-   * How hard is the math for dealing with state?  When we bounce, we make sure
-   * it has a state that moves off the paddle immediately.  We know the length
-   * of its cycle from the move table.  But it's quite fiddly to determine how
-   * many Y moves happen in precisely the X distance across, I think, especially
-   * in e.g. the 2/3 case.  Hmm...what if we made the board width a multiple of
-   * 6, or a multiple of 6 plus or minus 1?  I'm still not sure that fixes it
-   * entirely, but it seems likely to be relevant.  Plus one...assume that
-   * multiple is 0.  The board's 1 pixel wide, so you get a horizontal move and
-   * hit the next paddle in 1 cycle.  But is that where we thought you'd hit?
-   * Your slope is 0, 1, 1/2, 1/3, 2/3, 3/2, 2, or 3.
-
-      Slope  First dX  First dY  Result
-      0          1        0       Fine
-      1          1        1       Fine
-      2          2        2       Fine
-      3          1        3       Fine
-      1/3        1        0       Fine [we'd round down]
-      1/2        1        0       Fine [we'd round down]
-      2/3        1        0       Fine [we'd round down]
-      3/2        1        1       Fine [we'd round up]
-
-   * That seems likely to work.  If it doesn't, a robust solution would be to
-   * make the paddles 2 pixels longer, but that would take more bits, so put
-   * that off until after we optimize storage.
-   *
-   * Ugh.  It didn't work.  My suspicion is that the larger slopes are the
-   * issue.  At least one manifestation is with move index 5 and a 2-bounce
-   * trajectory coming in 1 pixel too low, aiming for a corner hit which we no
-   * longer credit.  Switching to 0 mod 6 was also not the solution.  The
-   * current setup also misses eventually.
-   *
-   * Aha!  We know exactly where the ball will be in 0 mod 6 timesteps, not x
-   * steps.  Think about whether we also know in x steps...probably.  But
-   * anyway, that doesn't help for 1 mod 6, because of the quantiziation.  What
-   * does help is looking at where the ball is going in this first timestep,
-   * because that's what it'll be doing at the last timestep [assuming we're
-   * spaced at 1 mod 6].  So do the math for 0 mod 6, then add the current
-   * motion, and that should be perfect assuming x steps are as good as time
-   * steps.
+  /* When we bounce, we make sure the ball has a state that moves off the paddle
+     immediately.  We know the length of its cycle from the move table.  But
+     it's quite fiddly to determine how many Y moves happen in precisely the X
+     distance across, due to quantization and the Bresenham algorithm.  To
+     figure out exactly when the ball will strike the far end, we restrict the
+     width of the field to be 1 mod 6, since all slopes divide 6.  We use the
+     width without that extra 1 as the distance for the slope calculation, then
+     add back in the known motion from the current ball state for the last
+     pixel.
    */
   function getNewAIMessage(data, x, y, color) {
     let current = data[4];
@@ -893,26 +852,39 @@ let bm;
         ((messageRightNotL = (isTrough(data[3]) || isPaddle(data[3]))) ||
          (isTrough(data[5]) || isPaddle(data[5]))) &&
         ((above = isBall(data[1])) || isBall(data[7]))) {
+      assert(paddleToPaddleBallDistance % 6 === 1);
+
       let ball = above ? data[1] : data[7];
       if (!isBallMotionCycle(ball) &&
           (nsBall.BUFFER_X_DEPTH_COUNTER.get(ball) === BUFFER_SIZE)) {
         let bs = new BallState(nsBall, ball);
+        console.log('bs', bs);
         let paddlePixel = getPaddlePixel(0, data, [1, 4, 7], x, y).value;
+        console.log('paddlePixel', paddlePixel);
         let start = nsBackground.PADDLE_POSITION.get(current) + paddlePixel;
+        console.log('start', start);
 
-        let dY = bs.getSlope() * paddleToPaddleBallDistance;
+        let dY = bs.getSlope() * (paddleToPaddleBallDistance - 1);
+        console.log('dY', dY);
         if (!bs.down) {
           dY = -dY
+          console.log('dY', dY);
         }
+        dY += bs.dY;  // add in the dY for the last pixel of x traveled
         let fullY = start + dY;
+        console.log('fullY', fullY);
         let clippedY = fullY % topWallToBottomWallBallDistance;
+        console.log('clippedY', clippedY);
         if (clippedY < 0) {
           clippedY += topWallToBottomWallBallDistance;
+          console.log('clippedY', clippedY);
         }
         assert(clippedY >= 0 && clippedY < topWallToBottomWallBallDistance);
         if (Math.floor(fullY / topWallToBottomWallBallDistance) % 2) {
           clippedY = topWallToBottomWallBallDistance - clippedY
+          console.log('clippedY', clippedY);
         }
+        console.log('clippedY >>> 3', clippedY >>> 3);
         color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
         color = nsBackground.MESSAGE_H_NOT_V.setMask(color, true);
         color = nsBackground.MESSAGE_R_NOT_L.setMask(color, messageRightNotL);
