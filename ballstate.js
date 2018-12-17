@@ -112,17 +112,17 @@ function processState(bs) {
 // necessary if we standardize the ball flag and associated alpha bits across
 // demos.
 class BallState {
-  constructor(bm, color) {
-//    assert(bm.isSet('BALL_FLAG', color));
-    this.bm = bm;
+  constructor(ns, color) {
+//    assert(ns.BALL_FLAG.isSet(color));
+    this.ns = ns;
     this.color = color;
-    this.right = bm.get('MOVE_R_NOT_L', color);
-    this.down = bm.get('MOVE_D_NOT_U', color);
-    this.state = bm.get('MOVE_STATE', color);
-    this.index = bm.get('MOVE_INDEX', color);
-    this.decimator = bm.get('DECIMATOR', color);
-    this.depthX = bm.get('BUFFER_X_DEPTH_COUNTER', color);
-    this.depthY = bm.get('BUFFER_Y_DEPTH_COUNTER', color);
+    this.right = ns.MOVE_R_NOT_L.get(color);
+    this.down = ns.MOVE_D_NOT_U.get(color);
+    this.state = ns.MOVE_STATE.get(color);
+    this.index = ns.MOVE_INDEX.get(color);
+    this.decimator = ns.DECIMATOR.get(color);
+    this.depthX = ns.BUFFER_X_DEPTH_COUNTER.get(color);
+    this.depthY = ns.BUFFER_Y_DEPTH_COUNTER.get(color);
     assert(this.index >= 0 && this.index < motionTable.length);
 
     processState(this);
@@ -132,13 +132,13 @@ class BallState {
     return this.decimator;
   }
 
-  static create(bm, right, down, index, state, baseColor) {
+  static create(ns, right, down, index, state, baseColor) {
     let color = baseColor; // TODO: Remove baseColor?
-    color = bm.set('MOVE_R_NOT_L', color, right);
-    color = bm.set('MOVE_D_NOT_U', color, down);
-    color = bm.set('MOVE_INDEX', color, index);
-    color = bm.set('MOVE_STATE', color, state);
-    return new BallState(bm, color);
+    color = ns.MOVE_R_NOT_L.set(color, right);
+    color = ns.MOVE_D_NOT_U.set(color, down);
+    color = ns.MOVE_INDEX.set(color, index);
+    color = ns.MOVE_STATE.set(color, state);
+    return new BallState(ns, color);
   }
 
   reflect(axis) {
@@ -174,11 +174,11 @@ class BallState {
     processState(this);
     // Here we want the *next* state to be the one moving off the wall, not the
     // current one, since that's the one we'll be returning.
-    let nextBs = new BallState(this.bm, this.nextColor());
+    let nextBs = new BallState(this.ns, this.nextColor());
     while(Math.abs(nextBs[d]) < 0.5) {
       ++this.state;
       processState(this);
-      nextBs = new BallState(this.bm, this.nextColor());
+      nextBs = new BallState(this.ns, this.nextColor());
     }
   }
 
@@ -263,11 +263,11 @@ class BallState {
       processState(this);
       // Here we want the *next* state to be the one moving off the wall, not
       // the current one, since that's the one we'll be returning.
-      let nextBs = new BallState(this.bm, this.nextColor());
+      let nextBs = new BallState(this.ns, this.nextColor());
       while(Math.abs(nextBs[d]) < 0.5) {
         ++this.state;
         processState(this);
-        nextBs = new BallState(this.bm, this.nextColor());
+        nextBs = new BallState(this.ns, this.nextColor());
       }
     }
   }
@@ -312,12 +312,12 @@ class BallState {
 
   getColor() {
     let color = this.color;
-    color = this.bm.set('MOVE_R_NOT_L', color, this.right);
-    color = this.bm.set('MOVE_D_NOT_U', color, this.down);
-    color = this.bm.set('BUFFER_X_DEPTH_COUNTER', color, this.depthX);
-    color = this.bm.set('BUFFER_Y_DEPTH_COUNTER', color, this.depthY);
-    color = this.bm.set('MOVE_STATE', color, this.state);
-    color = this.bm.set('MOVE_INDEX', color, this.index);
+    color = this.ns.MOVE_R_NOT_L.set(color, this.right);
+    color = this.ns.MOVE_D_NOT_U.set(color, this.down);
+    color = this.ns.BUFFER_X_DEPTH_COUNTER.set(color, this.depthX);
+    color = this.ns.BUFFER_Y_DEPTH_COUNTER.set(color, this.depthY);
+    color = this.ns.MOVE_STATE.set(color, this.state);
+    color = this.ns.MOVE_INDEX.set(color, this.index);
     return color;
   }
 
@@ -325,7 +325,7 @@ class BallState {
   nextColor() {
     let color = this.getColor();
     if (this.isMotionCycle()) {
-      color = this.bm.set('MOVE_STATE', color, this.nextState);
+      color = this.ns.MOVE_STATE.set(color, this.nextState);
     }
     return color;
   }

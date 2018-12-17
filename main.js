@@ -168,7 +168,8 @@ const originY = borderSize;
       botData.push(inputView[botAddr++])
       botData.push(inputView[botAddr++])
 
-      for (; i < canvas.width - borderSize; ++i) {
+      let outputAddr = getAddr32(i, j);
+      for (; i < canvas.width - borderSize; ++i, ++outputAddr) {
         topData.shift();
         topData.push(inputView[topAddr++])
         midData.shift();
@@ -177,7 +178,7 @@ const originY = borderSize;
         botData.push(inputView[botAddr++])
 
         let value = f(_.flatten([topData, midData, botData]), i, j)
-        outputView[getAddr32(i, j)] = value;
+        outputView[outputAddr] = value;
       }
     }
   }

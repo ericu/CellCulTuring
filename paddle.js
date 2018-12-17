@@ -41,7 +41,7 @@
     c.fillRect(nsBackground.RESPAWN_FLAG.setMask(color, true),
                originX + halfWidth, originY + halfHeight, 1, 1);
 
-    var bs = BallState.create(bm, 1, 1, 4, 0, nsGlobal.BALL.getMask());
+    var bs = BallState.create(nsBall, 1, 1, 4, 0, nsGlobal.BALL.getMask());
     c.fillRect(bs.nextColor(), 62, 58, 1, 1);
   }
 
@@ -216,7 +216,7 @@
       for (let i = 0; i < 9; ++i) {
         let color = data[i];
         if (isBall(color) && isBallMotionCycle(color)) {
-          let bs = new BallState(bm, color);
+          let bs = new BallState(nsBall, color);
           let source = sourceDirectionFromIndex(i);
           if (source.dX === bs.dX && source.dY === bs.dY) {
             // There's a ball hitting us.
@@ -302,7 +302,7 @@
         let rightNotL = nsBackground.MESSAGE_R_NOT_L.get(data[1]);
         let color = nsGlobal.BALL.setMask(0, true);
         color = nsBall.RESPAWN_FLAG.set(color, 1);
-        var bs = BallState.create(bm, rightNotL, 1, 5, 0, color);
+        var bs = BallState.create(nsBall, rightNotL, 1, 5, 0, color);
         let decimator = nsBackground.DECIMATOR.isSet(current);
         return { value: nsBall.DECIMATOR.set(bs.getColor(), !decimator) };
       } else {
@@ -325,12 +325,12 @@
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
       if (isBall(color) && isBallMotionCycle(color)) {
-        let bs = new BallState(bm, color);
+        let bs = new BallState(nsBall, color);
         let source = sourceDirectionFromIndex(i);
         if (source.dX !== bs.dX || source.dY !== bs.dY) {
           break; // There's only 1 ball; exit early.
         }
-        bs = new BallState(bm, bs.nextColor());
+        bs = new BallState(nsBall, bs.nextColor());
         // It's a hit; lets see if it's also bouncing.
         // Do the y reflection first, so that when the x bounce resets the
         // state, it sticks.  We use the reset state to know when the ball has
@@ -399,7 +399,7 @@
         }
       }
       if (isBall(color)) {
-        let bs = new BallState(bm, color);
+        let bs = new BallState(nsBall, color);
         if (!bs.isMotionCycle() && bs.dX !== 0) {
           // If there's a ball above or below us, we know it's not moving onto
           // us [that's handled above], but check if we need to announce where
@@ -495,7 +495,7 @@
       let color = data[i];
       if (isBall(color)) {
         if (isBallMotionCycle(color)) {
-          let bs = new BallState(bm, color);
+          let bs = new BallState(nsBall, color);
           let source = sourceDirectionFromIndex(i);
           if (source.dX !== bs.dX || source.dY !== bs.dY) {
             break; // There's only 1 ball; exit early.
