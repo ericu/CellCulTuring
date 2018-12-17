@@ -102,7 +102,6 @@ let bm;
 
     nsWall.alloc('SIDE_WALL_FLAG', 1);
     nsWall.alloc('TOP_WALL_FLAG', 1);
-
     nsWall.alloc('TOP_WALL_CENTER_FLAG', 1);
 
     nsBackground.alloc('RESPAWN_FLAG', 1);

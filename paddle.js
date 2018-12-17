@@ -321,6 +321,53 @@
     return null;
   }
 
+  // Assumes this encoding and an 8-pixel paddle: 01000111.
+  // Returns a value between -1 and 8; you may be off the end by up to 1
+  // pixel.
+  // Returns the pixel for the middle of the three.
+  function getPaddlePixel(d0, d1, d2) {
+    let isP0 = isPaddle(d0) ? 1 : 0;
+    let isP1 = isPaddle(d1) ? 1 : 0;
+    let isP2 = isPaddle(d2) ? 1 : 0;
+    assert(isP0 || isP1 || isP2);
+    if (!isP0) {
+      if (!isP1) {
+        return -1;
+      }
+      return 0;
+    } else if (!isP2) {
+      if (!isP1) {
+        return 8;
+      }
+      return 7;
+    }
+    switch ((nsPaddle.PADDLE_PIXEL.get(d0) << 2) |
+            (nsPaddle.PADDLE_PIXEL.get(d1) << 1) |
+            (nsPaddle.PADDLE_PIXEL.get(d2))) {
+      case 0:
+        return 3;
+      case 1:
+        return 4;
+      case 2:
+        return 1;
+      case 3:
+        return 5;
+      case 4:
+        return 2;
+      case 5:
+        assert(false);
+        break;
+      case 6:
+        assert(false);
+        break;
+      case 7:
+        return 6;
+      default:
+        assert(false);
+        break;
+    }
+  }
+
   function handleBallEnteringBackground(data, x, y) {
     for (let i = 0; i < 9; ++i) {
       let color = data[i];
@@ -349,11 +396,9 @@
             (bs.right && !bs.down && isPaddle(data[2]))) {
           let paddlePixel;
           if (bs.right) {
-            paddlePixel = 
-              PaddleState.getPaddlePixel(data[2], data[5], data[8]);
+            paddlePixel = getPaddlePixel(data[2], data[5], data[8]);
           } else {
-            paddlePixel = 
-              PaddleState.getPaddlePixel(data[0], data[3], data[6]);
+            paddlePixel = getPaddlePixel(data[0], data[3], data[6]);
           }
           bs.bounce('x', paddlePixel);
         }
@@ -416,11 +461,9 @@
           if (ps && (leftPaddle === bs.right)) {
             let paddlePixel;
             if (leftPaddle) {
-              paddlePixel =
-                PaddleState.getPaddlePixel(data[0], data[3], data[6]);
+              paddlePixel = getPaddlePixel(data[0], data[3], data[6]);
             } else {
-              paddlePixel =
-                PaddleState.getPaddlePixel(data[2], data[5], data[8]);
+              paddlePixel = getPaddlePixel(data[2], data[5], data[8]);
             }
             let ballOffset = (index === 1) ? -1 : 1;
             let start = ps.position + paddlePixel + ballOffset;
