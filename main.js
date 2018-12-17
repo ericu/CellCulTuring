@@ -184,7 +184,7 @@ const originY = borderSize;
   }
 
   function test() {
-    runConv3x3Step(curFunc, inputView, outputView2)
+    runConv3x3Step(curFunc, inputView, outputView2);
 
     // TODO: Remove this?
     context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
@@ -194,7 +194,7 @@ const originY = borderSize;
   }
 
   function step() {
-    runConv3x3Step(curFunc, inputView, outputView)
+    runConv3x3Step(curFunc, inputView, outputView);
 //    context.clearRect(originX, originY, width, height);
     context.putImageData(outputBuffer, 0, 0, originX, originY, width, height);
     inputView.set(outputView);
@@ -213,6 +213,32 @@ const originY = borderSize;
       document.getElementById('debug').style.display = 'inline';
     } else {
       document.getElementById('debug').style.display = 'none';
+    }
+  }
+
+  let frameReady = false;
+  let frameInProgress = false;
+  function asyncStep() {
+    runConv3x3Step(curFunc, inputView, outputView);
+    frameReady = true;
+    frameInProgress = false;
+  }
+
+  function asyncAnimationFrame(timestamp) {
+    if (running) {
+      if (frameReady) {
+        frameReady = false;
+        context.putImageData(outputBuffer, 0, 0,
+                             originX, originY, width, height);
+        inputView.set(outputView);
+        window.setTimeout(asyncStep, 0);
+        updateFPS(timestamp);
+      } else if (!frameInProgress) {
+        window.setTimeout(asyncStep, 0);
+      }
+      requestAnimationFrame(asyncAnimationFrame);
+    } else {
+      resetFPS();
     }
   }
 
@@ -245,10 +271,18 @@ const originY = borderSize;
     }
   }
 
+  /* On frame callback:
+     If you have a frame ready to show, copy it in, tell updateFPS about it, and
+     kick off the next compute in the background.
+     Update FPS.
+     Request the next frame.
+
+     On frame completion: mark the frame ready to show.
+     */
   function toggleRun() {
     running = !running;
     if (running) {
-      requestAnimationFrame(animationFrame);
+      requestAnimationFrame(asyncAnimationFrame);
     }
   }
 
