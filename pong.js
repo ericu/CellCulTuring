@@ -16,6 +16,7 @@ let bm;
   let isTopWallCenter;
   let copySets = {};
   const OBVIOUS_COLORS = true;
+  const LONG_DEMO = true;
   // TODO: Can we make these not so global?
   const originX = 1;
   const originY = 1;
@@ -105,9 +106,15 @@ let bm;
       ['PADDLE_POSITION', 'PADDLE_DEST', 'PADDLE_PIXEL', 'PADDLE_BUFFER_FLAG']
     nsBall.combine('PADDLE_BALL_BITS', copySets.PADDLE_BALL_BITS);
 
-    nsWall.alloc('SIDE_WALL_FLAG', 1);
-    nsWall.alloc('TOP_WALL_FLAG', 1);
-    nsWall.alloc('TOP_WALL_CENTER_FLAG', 1);
+    nsWall.alloc('LISTEN_DOWN', 1);
+    nsWall.alloc('LISTEN_UP', 1);
+    nsWall.alloc('LISTEN_LEFT', 1);
+    nsWall.alloc('LISTEN_RIGHT', 1);
+    nsWall.combine('TOP_WALL_FLAG', ['LISTEN_LEFT', 'LISTEN_RIGHT']);
+    nsWall.alloc('TALK_DOWN_TO_BACKGROUND', 1);
+    nsWall.combine('TOP_WALL_CENTER_FLAG',
+                   ['TOP_WALL_FLAG', 'TALK_DOWN_TO_BACKGROUND']);
+    nsWall.alias('SIDE_WALL_FLAG', 'LISTEN_DOWN');
 
     nsBackground.alloc('RESPAWN_FLAG', 1);
     nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
@@ -322,13 +329,15 @@ let bm;
                        nsNonbackground.FULL_ALPHA.getMask()]);
     c.strokeRect(color, originX, originY, width - 1, height - 1);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
-             originX, originY, 1, height - 1);
+             originX, originY + 1, 1, height - 2);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
-             originX + width - 1, originY, 1, height - 1);
+             originX + width - 1, originY + 1, 1, height - 2);
     c.orRect(nsWall.TOP_WALL_FLAG.getMask(),
              originX, originY, width, 1);
     c.orRect(nsWall.TOP_WALL_CENTER_FLAG.getMask(),
              originX + halfWidth, originY, 1, 1);
+    c.orRect(nsWall.LISTEN_DOWN.getMask(), originX, originY, 1, 1);
+    c.orRect(nsWall.LISTEN_DOWN.getMask(), originX + width - 1, originY, 1, 1);
 
     // buffer regions
     let bufferX = nsBackground.BUFFER_X_FLAG.getMask();
@@ -368,8 +377,13 @@ let bm;
 
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
 
-    drawPaddle(c, true, 42, 4);
-    drawPaddle(c, false, 48, 6);
+    if (LONG_DEMO) {
+      drawPaddle(c, true, 42, 4);
+      drawPaddle(c, false, 48, 6);
+    } else {
+      drawPaddle(c, true, 42, 1);
+      drawPaddle(c, false, 48, 1);
+    }
   }
 
   function getBufferBits(data, bs) {
@@ -441,12 +455,15 @@ let bm;
     };
   }
 
+  // TODO: Switch over to using the LISTEN_* flags.
   function handleWall(data, x, y) {
     const current = data[4];
 
     if (nsWall.SIDE_WALL_FLAG.isSet(current)) {
       if (nsWall.MESSAGE_PRESENT.isSet(data[7])) {
-        return data[7];
+        var next = nsWall.MESSAGE_PRESENT.set(current, 1);
+        var rNotL = nsWall.MESSAGE_R_NOT_L.get(data[7]);
+        return nsWall.MESSAGE_R_NOT_L.set(next, rNotL);
       }
       if (isTrough(data[3]) &&
           nsBackground.BALL_MISS_FLAG.isSet(data[3])) {
@@ -471,12 +488,13 @@ let bm;
       if (isWall(data[5]) && nsWall.MESSAGE_PRESENT.isSet(data[5]) &&
           !nsWall.MESSAGE_R_NOT_L.isSet(data[5]) &&
           !nsWall.TOP_WALL_CENTER_FLAG.isSet(data[5])) {
-        return data[5];
+        return nsWall.MESSAGE_PRESENT.set(current, 1);
       }
       if (isWall(data[3]) && nsWall.MESSAGE_PRESENT.isSet(data[3]) &&
           nsWall.MESSAGE_R_NOT_L.isSet(data[3]) &&
           !nsWall.TOP_WALL_CENTER_FLAG.isSet(data[3])) {
-        return data[3];
+        var next = nsWall.MESSAGE_PRESENT.set(current, 1);
+        return nsWall.MESSAGE_R_NOT_L.set(next, 1);
       }
       if (isWall(data[7]) && nsWall.MESSAGE_PRESENT.isSet(data[7])) {
         let message = nsWall.RESPAWN_MESSAGE_BITS.get(data[7]);
