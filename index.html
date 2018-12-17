@@ -17,15 +17,24 @@ width=100%; we should fit the content instead.-->
       <select id="animation" onchange="onSelectAnimation()">
       </select>
       <button type="button" onclick="toggleRun()">toggleRun</button>
+      <div id="fps_parent">
+        <span>FPS: </span>
+        <span id="fps">0.0</span>
+      </div>
       <button type="button" onclick="step()">step</button>
       <button type="button" onclick="test()">test</button>
-      <input type="checkbox" checked onclick="showTestToggled(this)">
+      <label for="toggle_test">
+        <input type="checkbox" id="toggle_test" checked
+               onclick="showTestToggled(this)">
+        </input>
         Show test canvas
-      </input>
-      <input type="checkbox" checked onclick="showDebugToggled(this)">
+      </label>
+      <label for="toggle_debug">
+        <input type="checkbox" id="toggle_debug" checked
+               onclick="showDebugToggled(this)">
+        </input>
         Show debug area
-      </input>
-      <span>FPS: <span id="fps">0.0</span></span>
+      </label>
     </div>
     <div id="inner-container">
       <canvas id="canvas" width="76" height="70"></canvas>

@@ -6,11 +6,41 @@ body {
   margin: 0;
 }
 
+button {
+  min-width: 100px;
+  min-height: 40px;
+}
+
+input[type="checkbox"] {
+  min-width: 30px;
+  min-height: 30px;
+  vertical-align: middle;
+}
+
+#fps_parent {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: middle;
+}
+
+select {
+  min-width: 100px;
+  min-height: 40px;
+}
+
 #controls {
   display: flex;
   flex-direction: row;
   flex: 0 0 auto;
   height: auto;
+  align-items: center;
+}
+#controls * {
+  margin: 5px;
 }
 
 #container {
@@ -36,4 +66,6 @@ canvas {
   image-rendering: pixelated;
   background-color: #000;
   flex: 0 0 auto;
+  max-width: 100%;
+  max-height: 100%;
 }
