@@ -15,6 +15,7 @@ let bm;
   let isPaddleMotionCycleHelper, isPaddleBufferMotionCycleHelper;
   let isTopWallCenter;
   let copySets = {};
+  const OBVIOUS_COLORS = true;
   // TODO: Can we make these not so global?
   const originX = 1;
   const originY = 1;
@@ -26,6 +27,10 @@ let bm;
   const insideWallOriginY = originY + 1;
   const insideWallWidth = width - 2;
   const insideWallHeight = height - 2;
+  const ballAreaOriginX = insideWallOriginX + 1; // skip the trough
+  const ballAreaOriginY = insideWallOriginY;
+  const ballAreaWidth = insideWallWidth - 2;
+  const ballAreaHeight = insideWallHeight;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -40,8 +45,8 @@ let bm;
   assert(BALL_SIZE === 3);
 
   // 2 for trough/paddle
-  const paddleToPaddleBallDistance = insideWallWidth - 2 - BALL_SIZE;
-  const topWallToBottomWallBallDistance = insideWallHeight - BALL_SIZE;
+  const paddleToPaddleBallDistance = ballAreaWidth - BALL_SIZE;
+  const topWallToBottomWallBallDistance = ballAreaHeight - BALL_SIZE;
 
   function initBitManager() {
     nsGlobal = new Namespace();
@@ -64,9 +69,12 @@ let bm;
     nsNonbackground.alias('PADDLE_FLAG', 'ID_BITS');
 
     nsNonbackground.declare('FULL_ALPHA', 3, 28);
-//    nsBackground.declare('FULL_ALPHA', 3, 28);
-//    nsBackground.alias('BASIC_BACKGROUND', 'FULL_ALPHA');
-    nsBackground.alloc('BASIC_BACKGROUND', 0, 0);
+    if (OBVIOUS_COLORS) {
+      nsBackground.declare('FULL_ALPHA', 3, 28);
+      nsBackground.alias('BASIC_BACKGROUND', 'FULL_ALPHA');
+    } else {
+      nsBackground.alloc('BASIC_BACKGROUND', 0, 0);
+    }
 
     nsNonbackground.setSubspaceMask('ID_BITS');
     nsBall = nsNonbackground.declareSubspace('BALL', 'BALL_FLAG');
@@ -280,9 +288,9 @@ let bm;
       }
       // Draw 10 rows of buffer, but 6 paddle pixels.
       c.fillRect(bufferColor,
-                 isLeft ? insideWallOriginX + 1
-                        : insideWallOriginX + insideWallWidth - 1 - BUFFER_SIZE,
-                 topInPaddleCoords + insideWallOriginY + pixel,
+                 isLeft ? ballAreaOriginX
+                        : ballAreaOriginX + ballAreaWidth - BUFFER_SIZE,
+                 topInPaddleCoords + ballAreaOriginY + pixel,
                  BUFFER_SIZE, 1);
       if (pixel > 1 && pixel < 8) {
         c.fillRect(paddleColor,
@@ -304,7 +312,7 @@ let bm;
     c.fillRect(background, 0, 0, canvas.width, canvas.height);
 
     // respawn square
-    c.fillRect(nsBackground.RESPAWN_FLAG.setMask(background, true),
+    c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
       originX + halfWidth - 1, originY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
 
 
@@ -312,48 +320,33 @@ let bm;
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.WALL_FLAG.getMask(),
                        nsNonbackground.FULL_ALPHA.getMask()]);
-    c.fillRect(color, originX, height, width, 1);
-    c.fillRect(nsWall.SIDE_WALL_FLAG.setMask(color, true), originX, originY,
-               1, height - 1);
-    c.fillRect(nsWall.SIDE_WALL_FLAG.setMask(color, true), originX + width - 1,
-               originY, 1,
-               height - 1);
-    c.fillRect(nsWall.TOP_WALL_FLAG.setMask(color, true), originX, originY,
-               width, 1);
-    c.fillRect(nsWall.TOP_WALL_CENTER_FLAG.setMask(color, true),
-               originX + halfWidth,
-               originY, 1, 1);
+    c.strokeRect(color, originX, originY, width - 1, height - 1);
+    c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
+             originX, originY, 1, height - 1);
+    c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
+             originX + width - 1, originY, 1, height - 1);
+    c.orRect(nsWall.TOP_WALL_FLAG.getMask(),
+             originX, originY, width, 1);
+    c.orRect(nsWall.TOP_WALL_CENTER_FLAG.getMask(),
+             originX + halfWidth, originY, 1, 1);
 
     // buffer regions
-    let bufferX = bm.or([nsBackground.BUFFER_X_FLAG.getMask(), background]);
-    let bufferY = bm.or([nsBackground.BUFFER_Y_FLAG.getMask(), background]);
-    c.fillRect(bufferX,
-               insideWallOriginX + 1, insideWallOriginY + BUFFER_SIZE,
-               BUFFER_SIZE, insideWallHeight - 2 * BUFFER_SIZE);
-    c.fillRect(bufferX,
-               insideWallOriginX + insideWallWidth - BUFFER_SIZE - 1,
-               insideWallOriginY + BUFFER_SIZE,
-               BUFFER_SIZE, insideWallHeight - 2 * BUFFER_SIZE);
-    c.fillRect(bufferY,
-               insideWallOriginX + BUFFER_SIZE + 1, insideWallOriginY,
-               insideWallWidth - 2 * BUFFER_SIZE - 2, BUFFER_SIZE);
-    c.fillRect(bufferY,
-               insideWallOriginX + BUFFER_SIZE + 1,
-               insideWallOriginY + insideWallHeight - BUFFER_SIZE,
-               insideWallWidth - 2 * BUFFER_SIZE - 2, BUFFER_SIZE);
-    c.fillRect(bm.or([bufferX, bufferY]),
-               insideWallOriginX + 1, insideWallOriginY,
-               BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.or([bufferX, bufferY]),
-               insideWallOriginX + insideWallWidth - BUFFER_SIZE - 1,
-               insideWallOriginY + insideWallHeight - BUFFER_SIZE,
-               BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.or([bufferX, bufferY]), insideWallOriginX +
-               insideWallWidth - BUFFER_SIZE - 1,
-               insideWallOriginY, BUFFER_SIZE, BUFFER_SIZE);
-    c.fillRect(bm.or([bufferX, bufferY]), insideWallOriginX + 1,
-               insideWallOriginY + insideWallHeight - BUFFER_SIZE,
-               BUFFER_SIZE, BUFFER_SIZE);
+    let bufferX = nsBackground.BUFFER_X_FLAG.getMask();
+    let bufferY = nsBackground.BUFFER_Y_FLAG.getMask();
+    c.orRect(bufferX,
+             ballAreaOriginX, ballAreaOriginY,
+             BUFFER_SIZE, ballAreaHeight);
+    c.orRect(bufferX,
+             ballAreaOriginX + ballAreaWidth - BUFFER_SIZE,
+             ballAreaOriginY,
+             BUFFER_SIZE, ballAreaHeight);
+    c.orRect(bufferY,
+             ballAreaOriginX, ballAreaOriginY,
+             ballAreaWidth, BUFFER_SIZE);
+    c.orRect(bufferY,
+             ballAreaOriginX,
+             ballAreaOriginY + ballAreaHeight - BUFFER_SIZE,
+             ballAreaWidth, BUFFER_SIZE);
 
 
     // trough lines

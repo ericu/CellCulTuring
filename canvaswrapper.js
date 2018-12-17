@@ -10,7 +10,9 @@ class CanvasWrapper {
     return i + this.data.width * j
   }
 
-  fillRect(color, x, y, w, h) {
+  fillRectWith(color, op, x, y, w, h) {
+    assert(_.isNumber(color));
+    assert(_.isString(op));
     if (x < 0) {
       x = 0;
     }
@@ -31,9 +33,22 @@ class CanvasWrapper {
     }
     for (let i = 0; i < w; ++i) {
       for (let j = 0; j < h; ++j) {
-        this.view[this.getAddr32(i + x, j + y)] = color;
+        if (op === 'or') {
+          this.view[this.getAddr32(i + x, j + y)] |= color;
+        } else {
+          assert(op === 'set');
+          this.view[this.getAddr32(i + x, j + y)] = color;
+        }
       }
     }
+  }
+
+  orRect(color, x, y, w, h) {
+    return this.fillRectWith(color, 'or', x, y, w, h);
+  }
+
+  fillRect(color, x, y, w, h) {
+    return this.fillRectWith(color, 'set', x, y, w, h);
   }
 
   strokeRect(color, x, y, w, h) {
