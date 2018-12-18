@@ -16,7 +16,7 @@ let bm;
   let isTopWallCenter;
   let copySets = {};
   const OBVIOUS_COLORS = true;
-  const LONG_DEMO = true;
+  const LONG_DEMO = false;
   // TODO: Can we make these not so global?
   const originX = 1;
   const originY = 1;
@@ -110,11 +110,9 @@ let bm;
     nsWall.alloc('LISTEN_UP', 1);
     nsWall.alloc('LISTEN_LEFT', 1);
     nsWall.alloc('LISTEN_RIGHT', 1);
-    nsWall.combine('TOP_WALL_FLAG', ['LISTEN_LEFT', 'LISTEN_RIGHT']);
     nsWall.alloc('TALK_DOWN_TO_BACKGROUND', 1);
-    nsWall.combine('TOP_WALL_CENTER_FLAG',
-                   ['TOP_WALL_FLAG', 'TALK_DOWN_TO_BACKGROUND']);
-    nsWall.alias('SIDE_WALL_FLAG', 'LISTEN_DOWN');
+    nsWall.alias('TOP_WALL_CENTER_FLAG', 'TALK_DOWN_TO_BACKGROUND');
+    nsWall.alloc('SIDE_WALL_FLAG', 1);
 
     nsBackground.alloc('RESPAWN_FLAG', 1);
     nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
@@ -318,10 +316,11 @@ let bm;
     let background = nsBackground.BASIC_BACKGROUND.getMask();
     c.fillRect(background, 0, 0, canvas.width, canvas.height);
 
+    let topWallCenterX = Math.ceil(width / 2);
+
     // respawn square
     c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
-      originX + halfWidth - 1, originY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
-
+      topWallCenterX - 1, originY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
 
     // walls
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
@@ -330,14 +329,18 @@ let bm;
     c.strokeRect(color, originX, originY, width - 1, height - 1);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
              originX, originY + 1, 1, height - 2);
+    c.orRect(nsWall.LISTEN_DOWN.getMask(),
+             originX, originY, 1, height - 1);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
              originX + width - 1, originY + 1, 1, height - 2);
-    c.orRect(nsWall.TOP_WALL_FLAG.getMask(),
-             originX, originY, width, 1);
+    c.orRect(nsWall.LISTEN_DOWN.getMask(),
+             originX + width - 1, originY, 1, height - 1);
+    c.orRect(nsWall.LISTEN_LEFT.getMask(),
+             originX + 1, originY, topWallCenterX - originX, 1);
+    c.orRect(nsWall.LISTEN_RIGHT.getMask(),
+             topWallCenterX, originY, width - topWallCenterX, 1);
     c.orRect(nsWall.TOP_WALL_CENTER_FLAG.getMask(),
-             originX + halfWidth, originY, 1, 1);
-    c.orRect(nsWall.LISTEN_DOWN.getMask(), originX, originY, 1, 1);
-    c.orRect(nsWall.LISTEN_DOWN.getMask(), originX + width - 1, originY, 1, 1);
+             topWallCenterX, originY, 1, 1);
 
     // buffer regions
     let bufferX = nsBackground.BUFFER_X_FLAG.getMask();
@@ -455,16 +458,31 @@ let bm;
     };
   }
 
-  // TODO: Switch over to using the LISTEN_* flags.
   function handleWall(data, x, y) {
     const current = data[4];
 
+    function getMessageFrom(d) {
+      var next = nsWall.MESSAGE_PRESENT.set(current, 1);
+      var rNotL = nsWall.MESSAGE_R_NOT_L.get(d);
+      return nsWall.MESSAGE_R_NOT_L.set(next, rNotL);
+    }
+
+    if (nsWall.LISTEN_DOWN.isSet(current) &&
+        nsWall.MESSAGE_PRESENT.isSet(data[7])) {
+      return getMessageFrom(data[7]);
+    }
+    if (nsWall.LISTEN_RIGHT.isSet(current) &&
+        nsWall.MESSAGE_PRESENT.isSet(data[5]) &&
+        !nsWall.MESSAGE_R_NOT_L.isSet(data[5])) {
+      return getMessageFrom(data[5]);
+    }
+    if (nsWall.LISTEN_LEFT.isSet(current) &&
+        nsWall.MESSAGE_PRESENT.isSet(data[3]) &&
+        nsWall.MESSAGE_R_NOT_L.isSet(data[3])) {
+      return getMessageFrom(data[3]);
+    }
+    // There's no LISTEN_UP yet.
     if (nsWall.SIDE_WALL_FLAG.isSet(current)) {
-      if (nsWall.MESSAGE_PRESENT.isSet(data[7])) {
-        var next = nsWall.MESSAGE_PRESENT.set(current, 1);
-        var rNotL = nsWall.MESSAGE_R_NOT_L.get(data[7]);
-        return nsWall.MESSAGE_R_NOT_L.set(next, rNotL);
-      }
       if (isTrough(data[3]) &&
           nsBackground.BALL_MISS_FLAG.isSet(data[3])) {
         return nsWall.MESSAGE_PRESENT.set(current, 1);
@@ -472,33 +490,6 @@ let bm;
                  nsBackground.BALL_MISS_FLAG.isSet(data[5])) {
         var next = nsWall.MESSAGE_PRESENT.set(current, 1);
         return nsWall.MESSAGE_R_NOT_L.set(next, 1);
-      }
-    } else if (nsWall.TOP_WALL_CENTER_FLAG.isSet(current)) {
-      if (nsWall.MESSAGE_PRESENT.isSet(data[5])) {
-        assert(nsWall.MESSAGE_R_NOT_L.get(data[5]) === 0);
-        let message = nsWall.RESPAWN_MESSAGE_BITS.get(data[5]);
-        return nsWall.RESPAWN_MESSAGE_BITS.set(current, message);
-      }
-      if (nsWall.MESSAGE_PRESENT.isSet(data[3])) {
-        assert(nsWall.MESSAGE_R_NOT_L.get(data[3]) === 1);
-        let message = nsWall.RESPAWN_MESSAGE_BITS.get(data[3]);
-        return nsWall.RESPAWN_MESSAGE_BITS.set(current, message);
-      }
-    } else if (nsWall.TOP_WALL_FLAG.isSet(current)) {
-      if (isWall(data[5]) && nsWall.MESSAGE_PRESENT.isSet(data[5]) &&
-          !nsWall.MESSAGE_R_NOT_L.isSet(data[5]) &&
-          !nsWall.TOP_WALL_CENTER_FLAG.isSet(data[5])) {
-        return nsWall.MESSAGE_PRESENT.set(current, 1);
-      }
-      if (isWall(data[3]) && nsWall.MESSAGE_PRESENT.isSet(data[3]) &&
-          nsWall.MESSAGE_R_NOT_L.isSet(data[3]) &&
-          !nsWall.TOP_WALL_CENTER_FLAG.isSet(data[3])) {
-        var next = nsWall.MESSAGE_PRESENT.set(current, 1);
-        return nsWall.MESSAGE_R_NOT_L.set(next, 1);
-      }
-      if (isWall(data[7]) && nsWall.MESSAGE_PRESENT.isSet(data[7])) {
-        let message = nsWall.RESPAWN_MESSAGE_BITS.get(data[7]);
-        return nsWall.RESPAWN_MESSAGE_BITS.set(current, message);
       }
     }
     return nsWall.RESPAWN_MESSAGE_BITS.set(current, 0);
@@ -869,33 +860,23 @@ let bm;
       if (!isBallMotionCycle(ball) &&
           (nsBall.BUFFER_X_DEPTH_COUNTER.get(ball) === BUFFER_SIZE)) {
         let bs = new BallState(nsBall, ball);
-        console.log('bs', bs);
         let paddlePixel = getPaddlePixel(0, data, [1, 4, 7], x, y).value;
-        console.log('paddlePixel', paddlePixel);
         let start = nsBackground.PADDLE_POSITION.get(current) + paddlePixel;
-        console.log('start', start);
 
         let dY = bs.getSlope() * (paddleToPaddleBallDistance - 1);
-        console.log('dY', dY);
         if (!bs.down) {
           dY = -dY
-          console.log('dY', dY);
         }
         dY += bs.dY;  // add in the dY for the last pixel of x traveled
         let fullY = start + dY;
-        console.log('fullY', fullY);
         let clippedY = fullY % topWallToBottomWallBallDistance;
-        console.log('clippedY', clippedY);
         if (clippedY < 0) {
           clippedY += topWallToBottomWallBallDistance;
-          console.log('clippedY', clippedY);
         }
         assert(clippedY >= 0 && clippedY < topWallToBottomWallBallDistance);
         if (Math.floor(fullY / topWallToBottomWallBallDistance) % 2) {
           clippedY = topWallToBottomWallBallDistance - clippedY
-          console.log('clippedY', clippedY);
         }
-        console.log('clippedY >>> 3', clippedY >>> 3);
         color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
         color = nsBackground.MESSAGE_H_NOT_V.setMask(color, true);
         color = nsBackground.MESSAGE_R_NOT_L.setMask(color, messageRightNotL);
