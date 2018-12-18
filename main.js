@@ -87,6 +87,9 @@ const originY = borderSize;
   function onSelectAnimation() {
     const select = document.getElementById('animation');
     if (select.selectedIndex >= 0) {
+      // TODO: Add a callback here for the selected animation to set the canvas
+      // size before initBuffers().  Maybe split init() into init() and
+      // drawInitialState().
       initBuffers();
       let c = new CanvasWrapper(outputBuffer);
       c.fillRect(0, 0, 0, canvas.width, canvas.height);
