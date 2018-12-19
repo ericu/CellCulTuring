@@ -84,7 +84,9 @@
     if (select.selectedIndex >= 0) {
       const animationIndex = select.options[select.selectedIndex].value;
       const animation = animations[animationIndex];
-      setDimensions(animation.width, animation.height);
+      // Add 2 for the sentinel borders, which the animation doesn't think
+      // about.
+      setDimensions(animation.width + 2, animation.height + 2);
       initBuffers();
       let c = new CanvasWrapper(outputBuffer);
       c.fillRect(0, 0, 0, canvas.width, canvas.height);

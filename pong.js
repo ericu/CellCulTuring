@@ -25,6 +25,7 @@ let bm;
   const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
+  const SCOREBOARD_HEIGHT = 10;
 
   // This is assumed throughout the file, in figuring out buffer bits and ball
   // pixels.
@@ -254,10 +255,14 @@ let bm;
     // the AI message to be safe, otherwise a corner-sourced message might not
     // reach all pixels of the paddle, leading to it tearing in half.
     assert(width + 1 + BUFFER_SIZE >= height);
-    const insideWallOriginX = originX + 1;
-    const insideWallOriginY = originY + 1;
-    const insideWallWidth = width - 2;
-    const insideWallHeight = height - 2;
+    const gameOriginX = originX;
+    const gameOriginY = originY + SCOREBOARD_HEIGHT;
+    const gameWidth = width;
+    const gameHeight = height - SCOREBOARD_HEIGHT;
+    const insideWallOriginX = gameOriginX + 1;
+    const insideWallOriginY = gameOriginY + 1;
+    const insideWallWidth = gameWidth - 2;
+    const insideWallHeight = gameHeight - 2;
     const ballAreaOriginX = insideWallOriginX + 1; // skip the trough
     const ballAreaOriginY = insideWallOriginY;
     // 2 for trough/paddle
@@ -313,37 +318,38 @@ let bm;
     initBitManager();
 
     // We fill the whole canvas, then put a wall around that corresponds to the
-    // originX/originY/width/height sentinel frame.
+    // gameOriginX/gameOriginY/width/height sentinel frame.
 
     // background
     let background = nsBackground.BASIC_BACKGROUND.getMask();
     c.fillRect(background, 0, 0, canvas.width, canvas.height);
 
-    let topWallCenterX = Math.ceil(width / 2);
+    let topWallCenterX = Math.ceil(gameWidth / 2);
 
     // respawn square
     c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
-      topWallCenterX - 1, originY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
+      topWallCenterX - 1, gameOriginY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
 
     // walls
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.WALL_FLAG.getMask(),
                        nsNonbackground.FULL_ALPHA.getMask()]);
-    c.strokeRect(color, originX, originY, width - 1, height - 1);
+    c.strokeRect(color, gameOriginX, gameOriginY,
+                 gameWidth - 1, gameHeight - 1);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
-             originX, originY + 1, 1, height - 2);
+             gameOriginX, gameOriginY + 1, 1, gameHeight - 2);
     c.orRect(nsWall.LISTEN_DOWN.getMask(),
-             originX, originY, 1, height - 1);
+             gameOriginX, gameOriginY, 1, gameHeight - 1);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
-             originX + width - 1, originY + 1, 1, height - 2);
+             gameOriginX + gameWidth - 1, gameOriginY + 1, 1, gameHeight - 2);
     c.orRect(nsWall.LISTEN_DOWN.getMask(),
-             originX + width - 1, originY, 1, height - 1);
+             gameOriginX + gameWidth - 1, gameOriginY, 1, gameHeight - 1);
     c.orRect(nsWall.LISTEN_LEFT.getMask(),
-             originX + 1, originY, topWallCenterX - originX, 1);
+             gameOriginX + 1, gameOriginY, topWallCenterX - gameOriginX, 1);
     c.orRect(nsWall.LISTEN_RIGHT.getMask(),
-             topWallCenterX, originY, width - topWallCenterX, 1);
+             topWallCenterX, gameOriginY, gameWidth - topWallCenterX, 1);
     c.orRect(nsWall.TOP_WALL_CENTER_FLAG.getMask(),
-             topWallCenterX, originY, 1, 1);
+             topWallCenterX, gameOriginY, 1, 1);
 
     // buffer regions
     let bufferX = nsBackground.BUFFER_X_FLAG.getMask();
@@ -1138,6 +1144,10 @@ let bm;
     return handleBecomingOrStayingBackgroundOrStayingBall(data, x, y);
   }
 
-  registerAnimation("pong", 76, 70, initPong, pong);
+  let desiredBallAreaHeight = 66;
+  let desiredBallAreaWidth = 70;
+  let width = desiredBallAreaWidth + 4; // 2x trough, 2x wall
+  let height = desiredBallAreaHeight + 2 + SCOREBOARD_HEIGHT; // 2x wall
+  registerAnimation("pong", width, height, initPong, pong);
 
 })();
