@@ -4,6 +4,8 @@ The things that need to scale up for a larger ball are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
 need to get their MAX and MIN bits back, the paddle move delay
 counter...anything else?  Maybe another shading pixel for the ball's edges?]
+
+TODO: Bug: assert on bounce after new respawn.
 */
 
 let bm;
@@ -323,20 +325,25 @@ let bm;
 
     initBitManager();
 
+    let leftScoreboardRightEdge = originX + SCOREBOARD_WIDTH - 1;
+    let rightScoreboardLeftEdge = originX + width - SCOREBOARD_WIDTH;
+    let leftRespawnDownPathX = leftScoreboardRightEdge - 1;
+    let rightRespawnDownPathX = rightScoreboardLeftEdge + 1;
+
     // background
     let background = nsBackground.BASIC_BACKGROUND.getMask();
     c.fillRect(background, 0, 0, canvas.width, canvas.height);
 
     let topWallCenterX = Math.ceil(gameWidth / 2);
 
-    // respawn square
+    // respawn squares
     c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
-      topWallCenterX - 1, gameOriginY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
+      leftRespawnDownPathX - 1, gameOriginY + halfHeight - 1,
+      BALL_SIZE, BALL_SIZE);
+    c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
+      rightRespawnDownPathX - 1, gameOriginY + halfHeight - 1,
+      BALL_SIZE, BALL_SIZE);
 
-    let leftScoreboardRightEdge = originX + SCOREBOARD_WIDTH - 1;
-    let rightScoreboardLeftEdge = originX + width - SCOREBOARD_WIDTH;
-    let leftRespawnDownPathX = leftScoreboardRightEdge - 1;
-    let rightRespawnDownPathX = rightScoreboardLeftEdge + 1;
     // walls
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.WALL_FLAG.getMask(),
@@ -652,7 +659,7 @@ let bm;
                              nsNonbackground.BALL_FLAG.getMask(),
                              nsNonbackground.FULL_ALPHA.getMask()]);
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
-          var bs = BallState.create(nsBall, rightNotL, 1, 5, 0, color);
+          var bs = BallState.create(nsBall, rightNotL, 1, 2, 0, color);
           let next = bs.getColor();
           next = nsBall.DECIMATOR.setMask(next, !decimator);
           return { value: next };
