@@ -97,6 +97,8 @@ let bm;
     nsWall.alloc('LISTEN_DOWN', 1);
     nsWall.alloc('LISTEN_UP_FOR_L', 1);
     nsWall.alloc('LISTEN_UP_FOR_R', 1);
+    nsWall.alloc('LISTEN_RIGHT_FOR_R', 1);
+    nsWall.alloc('LISTEN_LEFT_FOR_L', 1);
     nsWall.alloc('LISTEN_LEFT', 1);
     nsWall.alloc('LISTEN_RIGHT', 1);
     nsWall.alloc('TALK_DOWN_TO_BACKGROUND', 1);
@@ -331,6 +333,10 @@ let bm;
     c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
       topWallCenterX - 1, gameOriginY + halfHeight - 1, BALL_SIZE, BALL_SIZE);
 
+    let leftScoreboardRightEdge = originX + SCOREBOARD_WIDTH - 1;
+    let rightScoreboardLeftEdge = originX + width - SCOREBOARD_WIDTH;
+    let leftRespawnDownPathX = leftScoreboardRightEdge - 1;
+    let rightRespawnDownPathX = rightScoreboardLeftEdge + 1;
     // walls
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.WALL_FLAG.getMask(),
@@ -354,21 +360,23 @@ let bm;
     c.orRect(nsWall.LISTEN_LEFT.getMask(),
              originX + 1, originY, width - SCOREBOARD_WIDTH, 1);
     c.orRect(nsWall.LISTEN_RIGHT.getMask(),
-             originX + SCOREBOARD_WIDTH - 1, originY,
+             leftScoreboardRightEdge, originY,
              width - SCOREBOARD_WIDTH, 1);
     c.orRect(nsWall.LISTEN_UP_FOR_L.getMask(),
-             originX + SCOREBOARD_WIDTH - 1, originY + 1,
-             1, SCOREBOARD_HEIGHT);
-    // TODO: Problem.  The LISTEN_LEFT stuff assumes the messages never turn
-    // around.  We need to turn them around to come back to the other side.
-    // Have the LISTEN_UP_FOR_* do a flip, perhaps, and have a plain LISTEN_UP
-    // that doesn't care what direction for the middles of lines?  But the
-    // second flip should happen without going down, and we don't want it to go
-    // back the way it came...might need a hack now whereas the real scoreboard 
-    // won't have this problem.
+             leftScoreboardRightEdge, originY + 1, 1, SCOREBOARD_HEIGHT);
     c.orRect(nsWall.LISTEN_UP_FOR_R.getMask(),
-             originX + width - SCOREBOARD_WIDTH, originY + 1,
-             1, SCOREBOARD_HEIGHT);
+             rightScoreboardLeftEdge, originY + 1, 1, SCOREBOARD_HEIGHT);
+
+    c.orRect(nsWall.LISTEN_LEFT_FOR_L.getMask(),
+             leftScoreboardRightEdge + 1, originY + SCOREBOARD_HEIGHT,
+             rightRespawnDownPathX - leftScoreboardRightEdge, 1);
+    c.orRect(nsWall.LISTEN_RIGHT_FOR_R.getMask(),
+             leftRespawnDownPathX, originY + SCOREBOARD_HEIGHT,
+             width - SCOREBOARD_WIDTH * 2 + 2, 1);
+    c.orRect(nsWall.TALK_DOWN_TO_BACKGROUND.getMask(),
+             leftRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
+    c.orRect(nsWall.TALK_DOWN_TO_BACKGROUND.getMask(),
+             rightRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
     /*
     c.orRect(nsWall.TOP_WALL_CENTER_FLAG.getMask(),
              topWallCenterX, gameOriginY, 1, 1);
@@ -513,7 +521,26 @@ let bm;
         nsWall.MESSAGE_R_NOT_L.isSet(data[3])) {
       return getMessageFrom(data[3]);
     }
-    // There's no LISTEN_UP yet.
+    if (nsWall.LISTEN_RIGHT_FOR_R.isSet(current) &&
+        nsWall.MESSAGE_PRESENT.isSet(data[5]) &&
+        nsWall.MESSAGE_R_NOT_L.isSet(data[5])) {
+      return getMessageFrom(data[5]);
+    }
+    if (nsWall.LISTEN_LEFT_FOR_L.isSet(current) &&
+        nsWall.MESSAGE_PRESENT.isSet(data[3]) &&
+        !nsWall.MESSAGE_R_NOT_L.isSet(data[3])) {
+      return getMessageFrom(data[3]);
+    }
+    if (nsWall.LISTEN_UP_FOR_L.isSet(current) &&
+        nsWall.MESSAGE_PRESENT.isSet(data[1]) &&
+        !nsWall.MESSAGE_R_NOT_L.isSet(data[1])) {
+      return getMessageFrom(data[1]);
+    }
+    if (nsWall.LISTEN_UP_FOR_R.isSet(current) &&
+        nsWall.MESSAGE_PRESENT.isSet(data[1]) &&
+        nsWall.MESSAGE_R_NOT_L.isSet(data[1])) {
+      return getMessageFrom(data[1]);
+    }
     if (nsWall.SIDE_WALL_FLAG.isSet(current)) {
       if (isTrough(data[3]) &&
           nsBackground.BALL_MISS_FLAG.isSet(data[3])) {
