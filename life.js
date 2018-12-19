@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-   function init(c) {
+   function init(c, originX, originY, width, height) {
      initArbitraryPattern(c);
    }
 
@@ -23,6 +23,6 @@
      return dead32
    }
 
-   registerAnimation("life", init, lifeCell2);
+   registerAnimation("life", 60, 80, init, lifeCell2);
 
 })()

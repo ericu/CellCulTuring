@@ -16,22 +16,7 @@ let bm;
   let isTopWallCenter;
   let copySets = {};
   const OBVIOUS_COLORS = true;
-  const LONG_DEMO = false;
-  // TODO: Can we make these not so global?
-  const originX = 1;
-  const originY = 1;
-  const width = canvas.width - 2;
-  const height = canvas.height - 2;
-  const halfWidth = Math.floor(width / 2);
-  const halfHeight = Math.floor(height / 2);
-  const insideWallOriginX = originX + 1;
-  const insideWallOriginY = originY + 1;
-  const insideWallWidth = width - 2;
-  const insideWallHeight = height - 2;
-  const ballAreaOriginX = insideWallOriginX + 1; // skip the trough
-  const ballAreaOriginY = insideWallOriginY;
-  const ballAreaWidth = insideWallWidth - 2;
-  const ballAreaHeight = insideWallHeight;
+  const LONG_DEMO = true;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -45,9 +30,10 @@ let bm;
   // pixels.
   assert(BALL_SIZE === 3);
 
-  // 2 for trough/paddle
-  const paddleToPaddleBallDistance = ballAreaWidth - BALL_SIZE;
-  const topWallToBottomWallBallDistance = ballAreaHeight - BALL_SIZE;
+  let ballAreaWidth;
+  let ballAreaHeight;
+  let paddleToPaddleBallDistance;
+  let topWallToBottomWallBallDistance;
 
   function initBitManager() {
     nsGlobal = new Namespace();
@@ -263,50 +249,67 @@ let bm;
     }
   }
 
-  const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1, 0, 1];
-  function drawPaddle(c, isLeft, topInPaddleCoords, dest) {
-    assert(_.isBoolean(isLeft));
-    assert(_.isNumber(topInPaddleCoords));
-    assert(topInPaddleCoords >= 0);
-    assert(topInPaddleCoords + 10 <= insideWallHeight);
-    assert(_.isNumber(dest) && dest >= 0 && dest < 8);
-    let paddleBaseColor = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
-                                 nsNonbackground.PADDLE_FLAG.getMask()]);
-    let bufferBaseColor = bm.or([nsBackground.BASIC_BACKGROUND.getMask(),
-                                 nsBackground.PADDLE_BUFFER_FLAG.getMask(),
-                                 nsBackground.BUFFER_X_FLAG.getMask()]);
-    paddleBaseColor =
-      nsPaddle.PADDLE_POSITION.set(paddleBaseColor, topInPaddleCoords);
-    bufferBaseColor =
-      nsBackground.PADDLE_POSITION.set(bufferBaseColor, topInPaddleCoords);
-    paddleBaseColor = nsPaddle.PADDLE_DEST.set(paddleBaseColor, dest);
-    bufferBaseColor = nsBackground.PADDLE_DEST.set(bufferBaseColor, dest);
-    for (let pixel = 0; pixel < 10; ++pixel) {
-      let paddleColor =
-        nsPaddle.PADDLE_PIXEL.set(paddleBaseColor, pixelEncoding[pixel]);
-      let bufferColor =
-        nsBackground.PADDLE_PIXEL.set(bufferBaseColor, pixelEncoding[pixel]);
-      let currentHeight = topInPaddleCoords + pixel;
-      if (currentHeight < BUFFER_SIZE ||
-          currentHeight >= insideWallHeight - BUFFER_SIZE) {
-        bufferColor = nsBackground.BUFFER_Y_FLAG.setMask(bufferColor, true);
-      }
-      // Draw 10 rows of buffer, but 6 paddle pixels.
-      c.fillRect(bufferColor,
-                 isLeft ? ballAreaOriginX
-                        : ballAreaOriginX + ballAreaWidth - BUFFER_SIZE,
-                 topInPaddleCoords + ballAreaOriginY + pixel,
-                 BUFFER_SIZE, 1);
-      if (pixel > 1 && pixel < 8) {
-        c.fillRect(paddleColor,
-                   isLeft ? insideWallOriginX
-                          : insideWallOriginX + insideWallWidth - 1,
-                   topInPaddleCoords + insideWallOriginY + pixel, 1, 1);
+  function initPong(c, originX, originY, width, height) {
+    // width must be at least one plus BUFFER_SIZE greater than the height for
+    // the AI message to be safe, otherwise a corner-sourced message might not
+    // reach all pixels of the paddle, leading to it tearing in half.
+    assert(width + 1 + BUFFER_SIZE >= height);
+    const insideWallOriginX = originX + 1;
+    const insideWallOriginY = originY + 1;
+    const insideWallWidth = width - 2;
+    const insideWallHeight = height - 2;
+    const ballAreaOriginX = insideWallOriginX + 1; // skip the trough
+    const ballAreaOriginY = insideWallOriginY;
+    // 2 for trough/paddle
+    ballAreaWidth = insideWallWidth - 2;
+    ballAreaHeight = insideWallHeight;
+    const halfHeight = Math.floor(height / 2);
+    paddleToPaddleBallDistance = ballAreaWidth - BALL_SIZE;
+    topWallToBottomWallBallDistance = ballAreaHeight - BALL_SIZE;
+
+    const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1, 0, 1];
+    function drawPaddle(c, isLeft, topInPaddleCoords, dest) {
+      assert(_.isBoolean(isLeft));
+      assert(_.isNumber(topInPaddleCoords));
+      assert(topInPaddleCoords >= 0);
+      assert(topInPaddleCoords + 10 <= insideWallHeight);
+      assert(_.isNumber(dest) && dest >= 0 && dest < 8);
+      let paddleBaseColor = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                   nsNonbackground.PADDLE_FLAG.getMask()]);
+      let bufferBaseColor = bm.or([nsBackground.BASIC_BACKGROUND.getMask(),
+                                   nsBackground.PADDLE_BUFFER_FLAG.getMask(),
+                                   nsBackground.BUFFER_X_FLAG.getMask()]);
+      paddleBaseColor =
+        nsPaddle.PADDLE_POSITION.set(paddleBaseColor, topInPaddleCoords);
+      bufferBaseColor =
+        nsBackground.PADDLE_POSITION.set(bufferBaseColor, topInPaddleCoords);
+      paddleBaseColor = nsPaddle.PADDLE_DEST.set(paddleBaseColor, dest);
+      bufferBaseColor = nsBackground.PADDLE_DEST.set(bufferBaseColor, dest);
+      for (let pixel = 0; pixel < 10; ++pixel) {
+        let paddleColor =
+          nsPaddle.PADDLE_PIXEL.set(paddleBaseColor, pixelEncoding[pixel]);
+        let bufferColor =
+          nsBackground.PADDLE_PIXEL.set(bufferBaseColor, pixelEncoding[pixel]);
+        let currentHeight = topInPaddleCoords + pixel;
+        if (currentHeight < BUFFER_SIZE ||
+            currentHeight >= insideWallHeight - BUFFER_SIZE) {
+          bufferColor = nsBackground.BUFFER_Y_FLAG.setMask(bufferColor, true);
+        }
+        // Draw 10 rows of buffer, but 6 paddle pixels.
+        c.fillRect(bufferColor,
+                   isLeft ? ballAreaOriginX
+                          : ballAreaOriginX + ballAreaWidth - BUFFER_SIZE,
+                   topInPaddleCoords + ballAreaOriginY + pixel,
+                   BUFFER_SIZE, 1);
+        if (pixel > 1 && pixel < 8) {
+          c.fillRect(paddleColor,
+                     isLeft ? insideWallOriginX
+                            : insideWallOriginX + insideWallWidth - 1,
+                     topInPaddleCoords + insideWallOriginY + pixel, 1, 1);
+        }
       }
     }
-  }
 
-  function initPong(c) {
     initBitManager();
 
     // We fill the whole canvas, then put a wall around that corresponds to the
@@ -1135,6 +1138,6 @@ let bm;
     return handleBecomingOrStayingBackgroundOrStayingBall(data, x, y);
   }
 
-  registerAnimation("pong", initPong, pong);
+  registerAnimation("pong", 76, 70, initPong, pong);
 
 })();

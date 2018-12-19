@@ -1,12 +1,5 @@
 "use strict";
 
-let width;
-let height;
-// TODO: This isn't general.
-const borderSize = 1; // Leave a 1-pixel sentinel border.
-const originX = borderSize;
-const originY = borderSize;
-
 (function () {
 
   let canvas, canvas2;
@@ -20,38 +13,40 @@ const originY = borderSize;
   let outputBuffer2;
   let outputView;
   let outputView2;
+  let activeWidth;
+  let activeHeight;
+  const borderSize = 1; // Leave a 1-pixel sentinel border.
+  const originX = borderSize;
+  const originY = borderSize;
 
   let CANVAS_SCALE = 8;
   function init() {
-    // TODO: Ensure that the proportions of the canvas are safe.  In particular,
-    // the width must be at least one greater than the height for the AI message
-    // to be safe, otherwise a corner-sourced message might not reach all pixels
-    // of the paddle, leading to it tearing in half.
-    // TODO: Let each demo set the size of the canvas itself.
     canvas = document.getElementById('canvas');
-    canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
-    canvas.style.height = CANVAS_SCALE * canvas.height + 'px';
-
     let parent = canvas.parentElement;
     canvas2 = canvas.cloneNode(true);
     canvas2.id = 'canvas2';
-
     parent.insertBefore(canvas2, canvas);
     parent.insertBefore(canvas, canvas2);
-
-    canvas2.width = canvas.width;
-    canvas2.height = canvas.height;
-    canvas2.style.width = CANVAS_SCALE * canvas.width + 'px';
-    canvas2.style.height = CANVAS_SCALE * canvas.height + 'px';
     context = canvas.getContext('2d');
     context2 = canvas2.getContext('2d');
     context.clearRect(0, 0, canvas.width, canvas.height);
     context2.clearRect(0, 0, canvas.width, canvas.height);
-    width = canvas.width - 2 * borderSize;
-    height = canvas.height - 2 * borderSize;
     onSelectAnimation();
     canvas.addEventListener('click', onCanvasClicked);
     canvas2.addEventListener('click', onCanvasClicked);
+  }
+
+  function setDimensions(w, h) {
+    canvas.width = w;
+    canvas.height = h;
+    canvas2.width = w;
+    canvas2.height = h;
+    canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
+    canvas.style.height = CANVAS_SCALE * canvas.height + 'px';
+    canvas2.style.width = CANVAS_SCALE * canvas.width + 'px';
+    canvas2.style.height = CANVAS_SCALE * canvas.height + 'px';
+    activeWidth = canvas.width - 2 * borderSize;
+    activeHeight = canvas.height - 2 * borderSize;
   }
 
   function initBuffers() {
@@ -67,8 +62,8 @@ const originY = borderSize;
     c.fillRect(0xffffff00, 0, 0, canvas.width, canvas.height);
     let fillStyleBlack = 0xff000000;
     let fillStyleWhite = 0xffffffff;
-    for (let i = 0; i < width; ++i) {
-      for (let j = 0; j < height; ++j) {
+    for (let i = 0; i < activeWidth; ++i) {
+      for (let j = 0; j < activeHeight; ++j) {
         c.fillRect(i < j ? fillStyleBlack : fillStyleWhite,
                    i + originX, j + originY, 1, 1);
       }
@@ -87,25 +82,30 @@ const originY = borderSize;
   function onSelectAnimation() {
     const select = document.getElementById('animation');
     if (select.selectedIndex >= 0) {
-      // TODO: Add a callback here for the selected animation to set the canvas
-      // size before initBuffers().  Maybe split init() into init() and
-      // drawInitialState().
+      const animationIndex = select.options[select.selectedIndex].value;
+      const animation = animations[animationIndex];
+      setDimensions(animation.width, animation.height);
       initBuffers();
       let c = new CanvasWrapper(outputBuffer);
       c.fillRect(0, 0, 0, canvas.width, canvas.height);
-      const animation = select.options[select.selectedIndex].value;
-      animations[animation].init(c);
+      animation.init(c, originX, originY, activeWidth, activeHeight);
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.putImageData(outputBuffer, 0, 0);
       inputView.set(outputView);
-      curFunc = animations[animation].f;
+      curFunc = animation.f;
     }
   }
   window.onSelectAnimation = onSelectAnimation;
 
   var animations = {}
-  function registerAnimation(name, init, f) {
-    animations[name] = { init: init, f: f, name: name }
+  function registerAnimation(name, width, height, init, f) {
+    animations[name] = {
+      init: init,
+      f: f,
+      name: name,
+      width: width,
+      height: height
+    };
     let select = document.getElementById('animation');
     let opt = document.createElement('option');
     opt.value = name;
@@ -188,18 +188,14 @@ const originY = borderSize;
 
   function test() {
     runConv3x3Step(curFunc, inputView, outputView2);
-
-    // TODO: Remove this?
-    context2.fillStyle = 'rgba(0, 255, 0, 1.0)';
-    context2.fillRect(0, 0, canvas2.width, canvas2.height);
-
     context2.putImageData(outputBuffer2, 0, 0);
   }
 
   function step() {
     runConv3x3Step(curFunc, inputView, outputView);
 //    context.clearRect(originX, originY, width, height);
-    context.putImageData(outputBuffer, 0, 0, originX, originY, width, height);
+    context.putImageData(outputBuffer, 0, 0,
+                         originX, originY, activeWidth, activeHeight);
     inputView.set(outputView);
   }
 
@@ -232,7 +228,7 @@ const originY = borderSize;
       if (frameReady) {
         frameReady = false;
         context.putImageData(outputBuffer, 0, 0,
-                             originX, originY, width, height);
+                             originX, originY, activeWidth, activeHeight);
         inputView.set(outputView);
         window.setTimeout(asyncStep, 0);
         updateFPS(timestamp);

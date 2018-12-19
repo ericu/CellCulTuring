@@ -74,10 +74,10 @@
                l, w);
   }
 
-  function initCounter(c) {
+  function initCounter(c, originX, originY, width, height) {
     initBitManager();
 
-    c.fillRect(0, 0, 0, canvas.width, canvas.height);
+    c.fillRect(0, originX, originY, width, height);
     c.fillRect(nsGlobal.STARTER_FLAG.getMask(), 3, 3, 1, 1);
     const TOP = 10;
     const LEFT = 5;
@@ -121,6 +121,6 @@
     }
   }
 
-  registerAnimation("counter", initCounter, counter);
+  registerAnimation("counter", 48, 44, initCounter, counter);
 
 })();
