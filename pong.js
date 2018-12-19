@@ -26,6 +26,7 @@ let bm;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
   const SCOREBOARD_HEIGHT = 10;
+  const SCOREBOARD_WIDTH = 15;
 
   // This is assumed throughout the file, in figuring out buffer bits and ball
   // pixels.
@@ -94,7 +95,8 @@ let bm;
     nsBall.combine('PADDLE_BALL_BITS', copySets.PADDLE_BALL_BITS);
 
     nsWall.alloc('LISTEN_DOWN', 1);
-    nsWall.alloc('LISTEN_UP', 1);
+    nsWall.alloc('LISTEN_UP_FOR_L', 1);
+    nsWall.alloc('LISTEN_UP_FOR_R', 1);
     nsWall.alloc('LISTEN_LEFT', 1);
     nsWall.alloc('LISTEN_RIGHT', 1);
     nsWall.alloc('TALK_DOWN_TO_BACKGROUND', 1);
@@ -102,6 +104,8 @@ let bm;
     nsWall.alloc('SIDE_WALL_FLAG', 1);
 
     nsBackground.alloc('RESPAWN_FLAG', 1);
+    // TODO: We can do without this, by figuring out which respawn pixel we're
+    // on and watching the message hit the center one, in a 3x3 ball.
     nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
     nsBackground.alloc('TROUGH_FLAG', 1);
     nsBackground.declare('BALL_MISS_FLAG', 1, 13);
@@ -317,9 +321,6 @@ let bm;
 
     initBitManager();
 
-    // We fill the whole canvas, then put a wall around that corresponds to the
-    // gameOriginX/gameOriginY/width/height sentinel frame.
-
     // background
     let background = nsBackground.BASIC_BACKGROUND.getMask();
     c.fillRect(background, 0, 0, canvas.width, canvas.height);
@@ -334,22 +335,44 @@ let bm;
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.WALL_FLAG.getMask(),
                        nsNonbackground.FULL_ALPHA.getMask()]);
+    c.strokeRect(color, originX, originY,
+                 SCOREBOARD_WIDTH, SCOREBOARD_HEIGHT + 1);
+    c.strokeRect(color, originX + width - SCOREBOARD_WIDTH, originY,
+                 SCOREBOARD_WIDTH, SCOREBOARD_HEIGHT + 1);
+    c.strokeRect(color, originX, originY,
+                 width, SCOREBOARD_HEIGHT + 1);
     c.strokeRect(color, gameOriginX, gameOriginY,
-                 gameWidth - 1, gameHeight - 1);
+                 gameWidth, gameHeight);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
              gameOriginX, gameOriginY + 1, 1, gameHeight - 2);
     c.orRect(nsWall.LISTEN_DOWN.getMask(),
-             gameOriginX, gameOriginY, 1, gameHeight - 1);
+             originX, originY, 1, height - 1);
     c.orRect(nsWall.SIDE_WALL_FLAG.getMask(),
              gameOriginX + gameWidth - 1, gameOriginY + 1, 1, gameHeight - 2);
     c.orRect(nsWall.LISTEN_DOWN.getMask(),
-             gameOriginX + gameWidth - 1, gameOriginY, 1, gameHeight - 1);
+             originX + width - 1, originY, 1, height - 1);
     c.orRect(nsWall.LISTEN_LEFT.getMask(),
-             gameOriginX + 1, gameOriginY, topWallCenterX - gameOriginX, 1);
+             originX + 1, originY, width - SCOREBOARD_WIDTH, 1);
     c.orRect(nsWall.LISTEN_RIGHT.getMask(),
-             topWallCenterX, gameOriginY, gameWidth - topWallCenterX, 1);
+             originX + SCOREBOARD_WIDTH - 1, originY,
+             width - SCOREBOARD_WIDTH, 1);
+    c.orRect(nsWall.LISTEN_UP_FOR_L.getMask(),
+             originX + SCOREBOARD_WIDTH - 1, originY + 1,
+             1, SCOREBOARD_HEIGHT);
+    // TODO: Problem.  The LISTEN_LEFT stuff assumes the messages never turn
+    // around.  We need to turn them around to come back to the other side.
+    // Have the LISTEN_UP_FOR_* do a flip, perhaps, and have a plain LISTEN_UP
+    // that doesn't care what direction for the middles of lines?  But the
+    // second flip should happen without going down, and we don't want it to go
+    // back the way it came...might need a hack now whereas the real scoreboard 
+    // won't have this problem.
+    c.orRect(nsWall.LISTEN_UP_FOR_R.getMask(),
+             originX + width - SCOREBOARD_WIDTH, originY + 1,
+             1, SCOREBOARD_HEIGHT);
+    /*
     c.orRect(nsWall.TOP_WALL_CENTER_FLAG.getMask(),
              topWallCenterX, gameOriginY, 1, 1);
+    */
 
     // buffer regions
     let bufferX = nsBackground.BUFFER_X_FLAG.getMask();

@@ -70,6 +70,7 @@ class CanvasWrapper {
     if (y + h >= this.data.height) {
       h = this.data.height - y;
     }
+    --w; --h;
     for (let i = 0; i < w; ++i) {
       this.view[this.getAddr32(i + x, y)] = color;
       this.view[this.getAddr32(i + x, y + h)] = color;
