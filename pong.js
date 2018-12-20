@@ -13,7 +13,7 @@ let bm;
   let isPaddleBuffer, isBallInPaddleBuffer, isInPaddleBufferRegion;
   let isBallMotionCycleHelper;
   let isPaddleMotionCycleHelper, isPaddleBufferMotionCycleHelper;
-  let isTopWallCenter;
+  let isMessageSourceAbove;
   let copySets = {};
   const OBVIOUS_COLORS = true;
   const LONG_DEMO = true;
@@ -39,6 +39,7 @@ let bm;
 
   function initBitManager() {
     nsGlobal = new Namespace();
+    canvas.ns = nsGlobal;
     bm = new BitManager(nsGlobal);
     // Bits are 0xAABBGGRR because of endianness; TODO: Make endian-independent.
 
@@ -101,8 +102,7 @@ let bm;
     nsWall.alloc('LISTEN_LEFT_FOR_L', 1);
     nsWall.alloc('LISTEN_LEFT', 1);
     nsWall.alloc('LISTEN_RIGHT', 1);
-    nsWall.alloc('TALK_DOWN_TO_BACKGROUND', 1);
-    nsWall.alias('TOP_WALL_CENTER_FLAG', 'TALK_DOWN_TO_BACKGROUND');
+    nsWall.alloc('TALK_DOWN', 1);
     nsWall.alloc('SIDE_WALL_FLAG', 1);
 
     nsBackground.alloc('RESPAWN_FLAG', 1);
@@ -188,18 +188,13 @@ let bm;
              nsNonbackground.ID_BITS.getMask()]),
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.PADDLE_FLAG.getMask()]));
-    isTopWallCenter =
-      getHasValueFunction(bm.or([nsNonbackground.ID_BITS.getMask(),
-                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]),
-                          bm.or([nsNonbackground.WALL_FLAG.getMask(),
-                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]))
-    isTopWallCenter =
+    isMessageSourceAbove =
       getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                  nsNonbackground.ID_BITS.getMask(),
-                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]),
+                                 nsWall.TALK_DOWN.getMask()]),
                           bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                  nsNonbackground.WALL_FLAG.getMask(),
-                                 nsWall.TOP_WALL_CENTER_FLAG.getMask()]));
+                                 nsWall.TALK_DOWN.getMask()]));
     PaddleState.init(nsPaddle, nsBall, nsBackground, isPaddle,
                      isBallInPaddleBuffer, isPaddleBuffer);
     nsGlobal.dumpStatus();
@@ -378,14 +373,10 @@ let bm;
     c.orRect(nsWall.LISTEN_RIGHT_FOR_R.getMask(),
              leftRespawnDownPathX, originY + SCOREBOARD_HEIGHT,
              width - SCOREBOARD_WIDTH * 2 + 2, 1);
-    c.orRect(nsWall.TALK_DOWN_TO_BACKGROUND.getMask(),
+    c.orRect(nsWall.TALK_DOWN.getMask(),
              leftRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
-    c.orRect(nsWall.TALK_DOWN_TO_BACKGROUND.getMask(),
+    c.orRect(nsWall.TALK_DOWN.getMask(),
              rightRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
-    /*
-    c.orRect(nsWall.TOP_WALL_CENTER_FLAG.getMask(),
-             topWallCenterX, gameOriginY, 1, 1);
-    */
 
     // buffer regions
     let bufferX = nsBackground.BUFFER_X_FLAG.getMask();
@@ -614,12 +605,12 @@ let bm;
   function handleRespawnMessage(data, x, y) {
     let current = data[4];
     let backgroundAbove = isBackground(data[1]);
-    let topWallCenterAbove = isTopWallCenter(data[1]);
-    if (isBackground(current) && (backgroundAbove || topWallCenterAbove)) {
+    let messageSourceAbove = isMessageSourceAbove(data[1]);
+    if (isBackground(current) && (backgroundAbove || messageSourceAbove)) {
       let activeRespawnMessage =
         (backgroundAbove && nsBackground.MESSAGE_PRESENT.isSet(data[1]) &&
          !nsBackground.MESSAGE_H_NOT_V.isSet(data[1])) ||
-        (topWallCenterAbove && nsWall.MESSAGE_PRESENT.isSet(data[1]))
+        (messageSourceAbove && nsWall.MESSAGE_PRESENT.isSet(data[1]))
       let rightNotL;
       if (backgroundAbove) {
         rightNotL = nsBackground.MESSAGE_R_NOT_L.isSet(data[1]);

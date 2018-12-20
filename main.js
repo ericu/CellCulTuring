@@ -255,9 +255,9 @@
       assert(e.currentTarget.id === 'canvas2');
     }
     let value = view[addr]
+    // Assumes the animation attaches ns to canvas on selection.
     let s = `(${x},${y}):${value.toString(16)}\n` +
-            bm.ns.getDescription(view[addr])
-    // Assumes a global BitManager.
+            canvas.ns.getDescription(view[addr])
     document.getElementById('debug').value = s;
   }
 
