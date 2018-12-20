@@ -4,8 +4,6 @@ The things that need to scale up for a larger ball are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
 need to get their MAX and MIN bits back, the paddle move delay
 counter...anything else?  Maybe another shading pixel for the ball's edges?]
-
-TODO: Bug: assert on bounce after new respawn.
 */
 
 let bm;
@@ -857,6 +855,7 @@ let bm;
 
             if (worthChecking &&
                 (v = getPaddlePixel(bs.dY, data, ballDataColumn, x, y))) {
+              // This bounce kicks us away from the wall immediately.
               bs.bounce('x', v.value)
             } else {
               bs.setDepthX(0);
@@ -864,7 +863,13 @@ let bm;
           }
           if (bs.getDepthY() >= BUFFER_SIZE) {
             assert(bs.getDepthY() <= BUFFER_SIZE);
-            bs.reflect('y')
+            if ((bufferYMax && bs.down) ||
+                (bufferYMin && !bs.down)) {
+              // Reflect doesn't do any extra kick away from the wall, so a ball
+              // can remain at full depth for several cycles.  We only want to
+              // reflect if we're heading toward the wall.
+              bs.reflect('y')
+            }
           }
           let respawn;
           let bufferXFlag = bufferXMin || bufferXMax;
