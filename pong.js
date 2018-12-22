@@ -8,12 +8,14 @@ counter...anything else?  Maybe another shading pixel for the ball's edges?]
 
 let bm;
 (function () {
-  let nsBall, nsWall, nsPaddle, nsBackground, nsGlobal, nsNonbackground;
+  let nsBall, nsWall, nsPaddle, nsScoreboard;
+  let nsBackground, nsGlobal, nsNonbackground;
   let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
   let isPaddleBuffer, isBallInPaddleBuffer, isInPaddleBufferRegion;
   let isBallMotionCycleHelper;
   let isPaddleMotionCycleHelper, isPaddleBufferMotionCycleHelper;
-  let isMessageSourceAbove;
+  let isScoreboard;
+  let isSendingLeftMessageDown, isSendingRightMessageDown;
   let copySets = {};
   const OBVIOUS_COLORS = true;
   const LONG_DEMO = true;
@@ -70,12 +72,13 @@ let bm;
     nsBall = nsNonbackground.declareSubspace('BALL', 'BALL_FLAG');
     nsWall = nsNonbackground.declareSubspace('WALL', 'WALL_FLAG');
     nsPaddle = nsNonbackground.declareSubspace('PADDLE', 'ID_BITS');
+    nsScoreboard = nsNonbackground.declareSubspace('SCOREBOARD', 0);
 
     // Message fields shared by wall and background
     nsWall.alloc('MESSAGE_R_NOT_L', 1);
     nsBackground.alloc('MESSAGE_R_NOT_L', 1);
-    nsWall.declare('MESSAGE_PRESENT', 1, 14);
-    nsBackground.declare('MESSAGE_PRESENT', 1, 14);
+    nsWall.declare('MESSAGE_PRESENT', 1, 15);
+    nsBackground.declare('MESSAGE_PRESENT', 1, 15);
     nsWall.combine('RESPAWN_MESSAGE_BITS',
                    ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
 
@@ -102,7 +105,8 @@ let bm;
     nsWall.alloc('LISTEN_LEFT_FOR_L', 1);
     nsWall.alloc('LISTEN_LEFT', 1);
     nsWall.alloc('LISTEN_RIGHT', 1);
-    nsWall.alloc('TALK_DOWN', 1);
+    nsWall.alloc('TALK_DOWN_FOR_L', 1);
+    nsWall.alloc('TALK_DOWN_FOR_R', 1);
     nsWall.alloc('SIDE_WALL_FLAG', 1);
 
     nsBackground.alloc('RESPAWN_FLAG', 1);
@@ -188,16 +192,41 @@ let bm;
              nsNonbackground.ID_BITS.getMask()]),
       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
              nsNonbackground.PADDLE_FLAG.getMask()]));
-    isMessageSourceAbove =
+    isSendingLeftMessageDown =
       getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                  nsNonbackground.ID_BITS.getMask(),
-                                 nsWall.TALK_DOWN.getMask()]),
+                                 nsWall.TALK_DOWN_FOR_L.getMask(),
+                                 nsWall.MESSAGE_PRESENT.getMask(),
+                                 nsWall.MESSAGE_R_NOT_L.getMask()]),
                           bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                                  nsNonbackground.WALL_FLAG.getMask(),
-                                 nsWall.TALK_DOWN.getMask()]));
+                                 nsWall.TALK_DOWN_FOR_L.getMask(),
+                                 nsWall.MESSAGE_PRESENT.getMask()]));
+    isSendingRightMessageDown =
+      getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                 nsNonbackground.ID_BITS.getMask(),
+                                 nsWall.TALK_DOWN_FOR_R.getMask(),
+                                 nsWall.MESSAGE_PRESENT.getMask(),
+                                 nsWall.MESSAGE_R_NOT_L.getMask()]),
+                          bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                 nsNonbackground.WALL_FLAG.getMask(),
+                                 nsWall.TALK_DOWN_FOR_R.getMask(),
+                                 nsWall.MESSAGE_PRESENT.getMask(),
+                                 nsWall.MESSAGE_R_NOT_L.getMask()]));
+    isScoreboard =
+      getHasValueFunction(bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                                 nsNonbackground.ID_BITS.getMask()]),
+                          nsGlobal.IS_NOT_BACKGROUND.getMask());
+    initScoreboard(nsScoreboard, nsGlobal.IS_NOT_BACKGROUND.getMask(),
+                   nsNonbackground.FULL_ALPHA, isScoreboard,
+                   isSendingMessageDown);
     PaddleState.init(nsPaddle, nsBall, nsBackground, isPaddle,
                      isBallInPaddleBuffer, isPaddleBuffer);
     nsGlobal.dumpStatus();
+  }
+
+  function isSendingMessageDown(c) {
+    return isSendingLeftMessageDown(c) || isSendingRightMessageDown(c);
   }
 
   function isBallMotionCycle(c) {
@@ -320,8 +349,8 @@ let bm;
 
     let leftScoreboardRightEdge = originX + SCOREBOARD_WIDTH - 1;
     let rightScoreboardLeftEdge = originX + width - SCOREBOARD_WIDTH;
-    let leftRespawnDownPathX = leftScoreboardRightEdge - 1;
-    let rightRespawnDownPathX = rightScoreboardLeftEdge + 1;
+    let leftRespawnDownPathX = leftScoreboardRightEdge - 2;
+    let rightRespawnDownPathX = rightScoreboardLeftEdge + 2;
 
     // background
     let background = nsBackground.BASIC_BACKGROUND.getMask();
@@ -357,25 +386,38 @@ let bm;
              gameOriginX + gameWidth - 1, gameOriginY + 1, 1, gameHeight - 2);
     c.orRect(nsWall.LISTEN_DOWN.getMask(),
              originX + width - 1, originY, 1, height - 1);
+
     c.orRect(nsWall.LISTEN_LEFT.getMask(),
-             originX + 1, originY, width - SCOREBOARD_WIDTH, 1);
+             originX + 1, originY, rightScoreboardLeftEdge - originX + 1, 1);
     c.orRect(nsWall.LISTEN_RIGHT.getMask(),
-             leftScoreboardRightEdge, originY,
-             width - SCOREBOARD_WIDTH, 1);
+             leftScoreboardRightEdge - 1, originY,
+             width - SCOREBOARD_WIDTH + 1, 1);
+
+    c.orRect(nsWall.TALK_DOWN_FOR_L.getMask(),
+             leftScoreboardRightEdge - 1, originY, 1, 1);
+    c.orRect(nsWall.TALK_DOWN_FOR_R.getMask(),
+             rightScoreboardLeftEdge + 1, originY, 1, 1);
     c.orRect(nsWall.LISTEN_UP_FOR_L.getMask(),
-             leftScoreboardRightEdge, originY + 1, 1, SCOREBOARD_HEIGHT);
+             leftScoreboardRightEdge - 1, originY + SCOREBOARD_HEIGHT, 1, 1);
     c.orRect(nsWall.LISTEN_UP_FOR_R.getMask(),
-             rightScoreboardLeftEdge, originY + 1, 1, SCOREBOARD_HEIGHT);
+             rightScoreboardLeftEdge + 1, originY + SCOREBOARD_HEIGHT, 1, 1);
+
+/*
+    c.orRect(nsWall.LISTEN_UP_FOR_L.getMask(),
+             leftScoreboardRightEdge - 1, originY, 1, 1);
+    c.orRect(nsWall.LISTEN_UP_FOR_R.getMask(),
+             rightScoreboardLeftEdge + 1, originY, 1, 1);
+    */
 
     c.orRect(nsWall.LISTEN_LEFT_FOR_L.getMask(),
-             leftScoreboardRightEdge + 1, originY + SCOREBOARD_HEIGHT,
-             rightRespawnDownPathX - leftScoreboardRightEdge, 1);
+             leftScoreboardRightEdge, originY + SCOREBOARD_HEIGHT,
+             rightRespawnDownPathX - leftScoreboardRightEdge + 1, 1);
     c.orRect(nsWall.LISTEN_RIGHT_FOR_R.getMask(),
              leftRespawnDownPathX, originY + SCOREBOARD_HEIGHT,
-             width - SCOREBOARD_WIDTH * 2 + 2, 1);
-    c.orRect(nsWall.TALK_DOWN.getMask(),
+             rightScoreboardLeftEdge - leftRespawnDownPathX + 1, 1);
+    c.orRect(nsWall.TALK_DOWN_FOR_R.getMask(),
              leftRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
-    c.orRect(nsWall.TALK_DOWN.getMask(),
+    c.orRect(nsWall.TALK_DOWN_FOR_L.getMask(),
              rightRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
 
     // buffer regions
@@ -423,6 +465,10 @@ let bm;
       drawPaddle(c, true, 42, 1);
       drawPaddle(c, false, 48, 1);
     }
+    drawScoreboard(c, originX + 1, originY + 1,
+                   SCOREBOARD_WIDTH - 2, SCOREBOARD_HEIGHT - 1);
+    drawScoreboard(c, rightScoreboardLeftEdge + 1, originY + 1,
+                   SCOREBOARD_WIDTH - 2, SCOREBOARD_HEIGHT - 1);
   }
 
   function getBufferBits(data, bs) {
@@ -503,6 +549,11 @@ let bm;
       return nsWall.MESSAGE_R_NOT_L.set(next, rNotL);
     }
 
+    function getMessageFromScoreboard(rNotL) {
+      var next = nsWall.MESSAGE_PRESENT.set(current, 1);
+      return nsWall.MESSAGE_R_NOT_L.setMask(next, rNotL);
+    }
+
     if (nsWall.LISTEN_DOWN.isSet(current) &&
         nsWall.MESSAGE_PRESENT.isSet(data[7])) {
       return getMessageFrom(data[7]);
@@ -527,15 +578,27 @@ let bm;
         !nsWall.MESSAGE_R_NOT_L.isSet(data[3])) {
       return getMessageFrom(data[3]);
     }
-    if (nsWall.LISTEN_UP_FOR_L.isSet(current) &&
-        nsWall.MESSAGE_PRESENT.isSet(data[1]) &&
-        !nsWall.MESSAGE_R_NOT_L.isSet(data[1])) {
-      return getMessageFrom(data[1]);
+    if (nsWall.LISTEN_UP_FOR_L.isSet(current)) {
+      if (isWall(data[1]) &&
+          nsWall.MESSAGE_PRESENT.isSet(data[1]) &&
+          !nsWall.MESSAGE_R_NOT_L.isSet(data[1])) {
+        return getMessageFrom(data[1]);
+      }
+      if (isScoreboard(data[1]) &&
+          nsScoreboard.SCOREBOARD_CHANGED.isSet(data[1])) {
+        return getMessageFromScoreboard(false);
+      }
     }
-    if (nsWall.LISTEN_UP_FOR_R.isSet(current) &&
-        nsWall.MESSAGE_PRESENT.isSet(data[1]) &&
-        nsWall.MESSAGE_R_NOT_L.isSet(data[1])) {
-      return getMessageFrom(data[1]);
+    if (nsWall.LISTEN_UP_FOR_R.isSet(current)) {
+      if (isWall(data[1]) &&
+          nsWall.MESSAGE_PRESENT.isSet(data[1]) &&
+          nsWall.MESSAGE_R_NOT_L.isSet(data[1])) {
+        return getMessageFrom(data[1]);
+      }
+      if (isScoreboard(data[1]) &&
+          nsScoreboard.SCOREBOARD_CHANGED.isSet(data[1])) {
+        return getMessageFromScoreboard(true);
+      }
     }
     if (nsWall.SIDE_WALL_FLAG.isSet(current)) {
       if (isTrough(data[3]) &&
@@ -605,12 +668,11 @@ let bm;
   function handleRespawnMessage(data, x, y) {
     let current = data[4];
     let backgroundAbove = isBackground(data[1]);
-    let messageSourceAbove = isMessageSourceAbove(data[1]);
-    if (isBackground(current) && (backgroundAbove || messageSourceAbove)) {
-      let activeRespawnMessage =
+    let wallMessageAbove = isSendingMessageDown(data[1]);
+    if (isBackground(current) && (backgroundAbove || wallMessageAbove)) {
+      let activeRespawnMessage = wallMessageAbove ||
         (backgroundAbove && nsBackground.MESSAGE_PRESENT.isSet(data[1]) &&
-         !nsBackground.MESSAGE_H_NOT_V.isSet(data[1])) ||
-        (messageSourceAbove && nsWall.MESSAGE_PRESENT.isSet(data[1]))
+         !nsBackground.MESSAGE_H_NOT_V.isSet(data[1]));
       let rightNotL;
       if (backgroundAbove) {
         rightNotL = nsBackground.MESSAGE_R_NOT_L.isSet(data[1]);
@@ -1172,6 +1234,10 @@ let bm;
   function pong(data, x, y) {
     const current = data[4];
     let v;
+
+    if (isScoreboard(current)) {
+      return handleScoreboard(data, x, y);
+    }
 
     if (isWall(current)) {
       return handleWall(data, x, y);
