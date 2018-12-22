@@ -2,12 +2,12 @@
 
 (function () {
   let nsScoreboard, isScoreboard;
-  let baseColor, fullAlpha;
+  let scoreboardColor, fullAlpha;
   let isSendingMessageDown;
-  function initScoreboard(_nsScoreboard_, _baseColor_, _fullAlpha_,
+  function initScoreboard(_nsScoreboard_, _scoreboardColor_, _fullAlpha_,
       _isScoreboard_, _isSendingMessageDown_) {
     nsScoreboard = _nsScoreboard_;
-    baseColor = _baseColor_; // the flags that make us a scoreboard pixel
+    scoreboardColor = _scoreboardColor_;
     fullAlpha = _fullAlpha_; // the on alpha mask
     isScoreboard = _isScoreboard_;
     isSendingMessageDown = _isSendingMessageDown_;
@@ -24,32 +24,60 @@
   window.initScoreboard = initScoreboard;
 
   function drawDigit(c, digitBit, x, y, l, w) {
-    let color = nsScoreboard.SCOREBOARD_HIGH_DIGIT.set(baseColor, digitBit);
+    let value = 0;
+    let onMask = bm.or([nsScoreboard.SCOREBOARD_COLOR.getMask(),
+                        fullAlpha.getMask()]);
+    let baseColor =
+      nsScoreboard.SCOREBOARD_HIGH_DIGIT.set(scoreboardColor, digitBit);
+    baseColor = nsScoreboard.SCOREBOARD_BITS.set(baseColor, value);
 
+    let color, on;
+
+    on = isSegmentOn(digitBit, 1, value);
+    color = nsScoreboard.SCOREBOARD_COLOR.setMask(baseColor, on);
+    color = fullAlpha.setMask(color, on);
     c.orRect(nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 1),
              x + w,
              y,
              l, w);
+    on = isSegmentOn(digitBit, 2, value);
+    color = nsScoreboard.SCOREBOARD_COLOR.setMask(baseColor, on);
+    color = fullAlpha.setMask(color, on);
     c.orRect(nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 2),
              x + l + w,
              y + w,
              w, l);
+    on = isSegmentOn(digitBit, 3, value);
+    color = nsScoreboard.SCOREBOARD_COLOR.setMask(baseColor, on);
+    color = fullAlpha.setMask(color, on);
     c.orRect(nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 3),
              x + l + w,
              y + 2 * w + l,
              w, l);
+    on = isSegmentOn(digitBit, 4, value);
+    color = nsScoreboard.SCOREBOARD_COLOR.setMask(baseColor, on);
+    color = fullAlpha.setMask(color, on);
     c.orRect(nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 4),
              x + w,
              y + 2 * w + 2 * l,
              l, w);
+    on = isSegmentOn(digitBit, 5, value);
+    color = nsScoreboard.SCOREBOARD_COLOR.setMask(baseColor, on);
+    color = fullAlpha.setMask(color, on);
     c.orRect(nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 5),
              x,
              y + 2 * w + l,
              w, l);
+    on = isSegmentOn(digitBit, 6, value);
+    color = nsScoreboard.SCOREBOARD_COLOR.setMask(baseColor, on);
+    color = fullAlpha.setMask(color, on);
     c.orRect(nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 6),
              x,
              y + w,
              w, l);
+    on = isSegmentOn(digitBit, 7, value);
+    color = nsScoreboard.SCOREBOARD_COLOR.setMask(baseColor, on);
+    color = fullAlpha.setMask(color, on);
     c.orRect(nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 7),
              x + w,
              y + w + l,
@@ -57,7 +85,7 @@
   }
 
   function drawScoreboard(c, left, top, width, height) {
-    let initValue = nsScoreboard.SCOREBOARD_BITS.set(baseColor, 8);
+    let initValue = nsScoreboard.SCOREBOARD_BITS.set(scoreboardColor, 8);
     c.fillRect(initValue, left, top, width, height);
     const SEGMENT_LENGTH =
       Math.floor(Math.min((width - 7) / 2,
@@ -81,6 +109,16 @@
     [0, 0, 1, 1, 1, 1, 1, 0, 1, 1]
   ]
 
+  function isSegmentOn(highDigit, segment, value) {
+    let digit;
+    if (highDigit) {
+      digit = Math.floor((value + 0.5) / 10) % 10;
+    } else {
+      digit = value % 10;
+    }
+    return SEGMENT_TABLE[segment][digit] === 1;
+  }
+
   function handleScoreboard(data, x, y) {
     let current = data[4];
     assert(isScoreboard(current));
@@ -95,13 +133,8 @@
     }
     if (changed) {
       let segment = nsScoreboard.SCOREBOARD_SEGMENT_ID.get(current);
-      let digit;
-      if (nsScoreboard.SCOREBOARD_HIGH_DIGIT.isSet(current)) {
-        digit = Math.floor((value + 0.5) / 10) % 10;
-      } else {
-        digit = value % 10;
-      }
-      let on = SEGMENT_TABLE[segment][digit] === 1;
+      let highDigit = nsScoreboard.SCOREBOARD_HIGH_DIGIT.isSet(current);
+      let on = isSegmentOn(highDigit, segment, value);
       let next = nsScoreboard.SCOREBOARD_BITS.set(current, value);
       next = nsScoreboard.SCOREBOARD_COLOR.setMask(next, on);
       next = fullAlpha.setMask(next, true);

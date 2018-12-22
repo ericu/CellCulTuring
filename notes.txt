@@ -142,6 +142,9 @@ that information can be derived from the paddle's position and paddlePixel.  If
 desired, we can use that one saved bit to implement a death flag instead of
 using the zeroed depth counter in the above hack.  But then we're still short a
 bit to use for decoration.
+
+FULL_ALPHA is currently 3 bits; we certainly wouldn't miss the bottom one, and
+could function without the bottom two if necessary.
 --------------------------------------------------------------------------------
 
 Consider making DECIMATOR a global bit.  Almost everybody uses it, and it would
@@ -191,3 +194,10 @@ working.
 3: x
   x.x
    x
+--------------------------------------------------------------------------------
+TODO:
+Add AI message on respawn.
+Add GAME OVER message [flashing?] and of course game-end logic.
+Add user input.
+Add UI for color choice.
+

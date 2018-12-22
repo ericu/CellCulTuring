@@ -450,7 +450,7 @@ let bm;
     var left = 55;
     var top = 46;
     const ballColor =
-      BallState.create(nsBall, 1, 1, 3, 1,
+      BallState.create(nsBall, 1, 1, 5, 1,
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                               nsNonbackground.BALL_FLAG.getMask(),
                               nsNonbackground.FULL_ALPHA.getMask()]))
@@ -460,7 +460,7 @@ let bm;
 
     if (LONG_DEMO) {
       drawPaddle(c, true, 42, 4);
-      drawPaddle(c, false, 48, 6);
+      drawPaddle(c, false, 48, 7);
     } else {
       drawPaddle(c, true, 42, 1);
       drawPaddle(c, false, 48, 1);
