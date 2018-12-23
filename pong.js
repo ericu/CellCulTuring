@@ -17,7 +17,7 @@ let bm;
   let isScoreboard;
   let isSendingLeftMessageDown, isSendingRightMessageDown;
   let copySets = {};
-  const OBVIOUS_COLORS = true;
+  const OBVIOUS_COLORS = false;
   const LONG_DEMO = true;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
@@ -298,7 +298,7 @@ let bm;
     // 2 for trough/paddle
     ballAreaWidth = insideWallWidth - 2;
     ballAreaHeight = insideWallHeight;
-    const halfHeight = Math.floor(height / 2);
+    const gameHalfHeight = Math.floor(gameHeight / 2);
     paddleToPaddleBallDistance = ballAreaWidth - BALL_SIZE;
     topWallToBottomWallBallDistance = ballAreaHeight - BALL_SIZE;
 
@@ -360,10 +360,10 @@ let bm;
 
     // respawn squares
     c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
-      leftRespawnDownPathX - 1, gameOriginY + halfHeight - 1,
+      leftRespawnDownPathX - 1, gameOriginY + gameHalfHeight - 1,
       BALL_SIZE, BALL_SIZE);
     c.orRect(nsBackground.RESPAWN_FLAG.getMask(),
-      rightRespawnDownPathX - 1, gameOriginY + halfHeight - 1,
+      rightRespawnDownPathX - 1, gameOriginY + gameHalfHeight - 1,
       BALL_SIZE, BALL_SIZE);
 
     // walls
@@ -447,8 +447,8 @@ let bm;
                insideWallOriginY, 1, insideWallHeight);
 
     // arbitrarily moving ball
-    var left = 55;
-    var top = 46;
+    var left = gameOriginX + 55;
+    var top = gameOriginY + 45;
     const ballColor =
       BallState.create(nsBall, 1, 1, 5, 1,
                        bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
