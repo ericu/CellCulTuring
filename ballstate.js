@@ -182,9 +182,7 @@ class BallState {
     }
   }
 
-  // Here just for paddle.js; it's got a wider range of paddlePixel values for
-  // now.
-  bounceWide(axis, paddlePixel) {
+  bounce(axis, paddlePixel) {
     if (!this.index) {
       // It's level, so pretend the slope matches the paddle direction.
       this.down = paddlePixel > 3 ? 1 : 0;
@@ -193,14 +191,6 @@ class BallState {
     if (paddlePixel !== undefined) {
       assert(axis === 'x');
       switch (paddlePixel) {
-        case -1:
-        case 8:
-          if ((this.down !== 0) !== (paddlePixel === 8)) {
-            this.down = this.down ^ 1;
-          }
-          this.index = 7;
-          setIndex = true;
-          break;
         case 0:
         case 7:
           if ((this.down !== 0) === (paddlePixel === 7)) {
@@ -213,7 +203,6 @@ class BallState {
             }
           }
           setIndex = true;
-          break;
         case 1:
         case 6:
           if ((this.down !== 0) === (paddlePixel === 6)) {
@@ -233,83 +222,6 @@ class BallState {
             this.index = Math.min(this.index + 1, 7);
           } else {
             this.index = this.index - 1;
-            if (this.index < 0) {
-              this.index = -this.index;
-              this.down = this.down ^ 1;
-            }
-          }
-          break;
-        case 3: // natural reflection
-        case 4:
-          break;
-      }
-    }
-    let d;
-    if (axis === 'x') {
-      this.right = this.right ^ 1;
-      d = 'dX'
-    }
-    else if (axis === 'y') {
-      this.down = this.down ^ 1;
-      d = 'dY'
-      processState(this);
-    } else {
-      assert(false);
-    }
-    if (setIndex || axis === 'x') {
-      // Any time you change index, you may have to update state to a value
-      // legal for the new index.  Since we want the ball to come off the paddle
-      // the cycle after it hits to avoid duplicate AI messages, we pick a state
-      // that forces that.
-      this.state = 0;
-      processState(this);
-      // Here we want the *next* state to be the one moving off the wall, not
-      // the current one, since that's the one we'll be returning.
-      let nextBs = new BallState(this.ns, this.nextColor());
-      while(Math.abs(nextBs[d]) < 0.5) {
-        ++this.state;
-        processState(this);
-        nextBs = new BallState(this.ns, this.nextColor());
-      }
-    }
-  }
-
-  bounce(axis, paddlePixel) {
-    if (!this.index) {
-      // It's level, so pretend the slope matches the paddle direction.
-      this.down = paddlePixel > 3 ? 1 : 0;
-    }
-    let setIndex = false;
-    if (paddlePixel !== undefined) {
-      assert(axis === 'x');
-      switch (paddlePixel) {
-        case 0:
-        case 7:
-          if ((this.down !== 0) !== (paddlePixel === 7)) {
-            this.down = this.down ^ 1;
-          }
-          this.index = 7;
-          setIndex = true;
-          break;
-        case 1:
-        case 6:
-          if ((this.down !== 0) === (paddlePixel === 6)) {
-            this.index = Math.min(this.index + 3, 7);
-          } else {
-            this.index = this.index - 3;
-            if (this.index < 0) {
-              this.index = -this.index;
-              this.down = this.down ^ 1;
-            }
-          }
-          setIndex = true;
-          break;
-        case 2:
-        case 5:
-          if ((this.down !== 0) === (paddlePixel === 5)) {
-            this.index = Math.min(this.index + 2, 7);
-          } else {
-            this.index = this.index - 2;
             if (this.index < 0) {
               this.index = -this.index;
               this.down = this.down ^ 1;
