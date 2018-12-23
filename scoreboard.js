@@ -85,8 +85,7 @@
   }
 
   function drawScoreboard(c, left, top, width, height) {
-    let initValue = nsScoreboard.SCOREBOARD_BITS.set(scoreboardColor, 8);
-    c.fillRect(initValue, left, top, width, height);
+    c.fillRect(scoreboardColor, left, top, width, height);
     const SEGMENT_LENGTH =
       Math.floor(Math.min((width - 7) / 2,
                           (height - 5) / 2));

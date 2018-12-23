@@ -27,8 +27,8 @@ let bm;
   const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
-  const SCOREBOARD_HEIGHT = 10;
-  const SCOREBOARD_WIDTH = 15;
+  const SCOREBOARD_HEIGHT = 12;  // 10x15 looks good
+  const SCOREBOARD_WIDTH = 18;
 
   // This is assumed throughout the file, in figuring out buffer bits and ball
   // pixels.
@@ -284,11 +284,11 @@ let bm;
     // width must be at least one plus BUFFER_SIZE greater than the height for
     // the AI message to be safe, otherwise a corner-sourced message might not
     // reach all pixels of the paddle, leading to it tearing in half.
-    assert(width + 1 + BUFFER_SIZE >= height);
     const gameOriginX = originX;
     const gameOriginY = originY + SCOREBOARD_HEIGHT;
     const gameWidth = width;
     const gameHeight = height - SCOREBOARD_HEIGHT;
+    assert(gameWidth + 1 + BUFFER_SIZE >= gameHeight);
     const insideWallOriginX = gameOriginX + 1;
     const insideWallOriginY = gameOriginY + 1;
     const insideWallWidth = gameWidth - 2;
