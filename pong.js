@@ -17,8 +17,8 @@ let bm;
   let isScoreboard;
   let isSendingLeftMessageDown, isSendingRightMessageDown;
   let copySets = {};
-  const OBVIOUS_COLORS = false;
-  const LONG_DEMO = true;
+  const OBVIOUS_COLORS = true;
+  const LONG_DEMO = false;
   const BALL_SIZE_BITS = 2;
   // We need to keep the depth counter from overflowing, so the buffer can't be
   // as deep as 1 << BALL_SIZE_BITS.
@@ -29,6 +29,9 @@ let bm;
   const BUFFER_SIZE = BALL_SIZE;
   const SCOREBOARD_HEIGHT = 12;  // 10x15 looks good
   const SCOREBOARD_WIDTH = 18;
+  const RESPAWN_INDEX = 5;
+  const RESPAWN_DOWN = 1;
+  const RESPAWN_Y = 25 - SCOREBOARD_HEIGHT - 2;
 
   // This is assumed throughout the file, in figuring out buffer bits and ball
   // pixels.
@@ -710,7 +713,8 @@ let bm;
                              nsNonbackground.BALL_FLAG.getMask(),
                              nsNonbackground.FULL_ALPHA.getMask()]);
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
-          var bs = BallState.create(nsBall, rightNotL, 1, 2, 0, color);
+          var bs = BallState.create(nsBall, rightNotL, RESPAWN_DOWN,
+                                    RESPAWN_INDEX, 0, color);
           let next = bs.getColor();
           next = nsBall.DECIMATOR.setMask(next, !decimator);
           return { value: next };
@@ -960,6 +964,14 @@ let bm;
     return null;
   }
 
+  function setAIMessage(color, messageRightNotL, yInPaddleCoords) {
+    color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
+    color = nsBackground.MESSAGE_H_NOT_V.setMask(color, true);
+    color = nsBackground.MESSAGE_R_NOT_L.setMask(color, messageRightNotL);
+    return nsBackground.MESSAGE_PADDLE_POSITION.set(color,
+                                                    yInPaddleCoords >>> 3);
+  }
+
   /* When we bounce, we make sure the ball has a state that moves off the paddle
      immediately.  We know the length of its cycle from the move table.  But
      it's quite fiddly to determine how many Y moves happen in precisely the X
@@ -1001,11 +1013,7 @@ let bm;
         if (Math.floor(fullY / topWallToBottomWallBallDistance) % 2) {
           clippedY = topWallToBottomWallBallDistance - clippedY
         }
-        color = nsBackground.MESSAGE_PRESENT.setMask(color, true);
-        color = nsBackground.MESSAGE_H_NOT_V.setMask(color, true);
-        color = nsBackground.MESSAGE_R_NOT_L.setMask(color, messageRightNotL);
-        return { value: nsBackground.MESSAGE_PADDLE_POSITION.set(
-                          color, clippedY >>> 3) };
+        return { value: setAIMessage(color, messageRightNotL, clippedY) };
       }
     }
     return null;
@@ -1222,6 +1230,21 @@ let bm;
             nextColor = handleAIMessageInPaddleBuffer(data, x, y, nextColor);
           }
         }
+      }
+    }
+    if (!willBeBall && !willBePaddleBuffer) {
+      if (isRespawn(data[3]) && isRespawn(data[7]) &&
+          nsBackground.MESSAGE_PRESENT.isSet(data[3]) &&
+          !nsBackground.MESSAGE_H_NOT_V.isSet(data[3]) &&
+          nsBackground.MESSAGE_R_NOT_L.isSet(data[3])) {
+        // Depends on RESPAWN_DOWN and RESPAWN_INDEX
+        nextColor = setAIMessage(nextColor, true, RESPAWN_Y);
+      } else if (isRespawn(data[5]) && isRespawn(data[7]) &&
+          nsBackground.MESSAGE_PRESENT.isSet(data[5]) &&
+          !nsBackground.MESSAGE_H_NOT_V.isSet(data[5]) &&
+          !nsBackground.MESSAGE_R_NOT_L.isSet(data[5])) {
+        // Depends on RESPAWN_DOWN and RESPAWN_INDEX
+        nextColor = setAIMessage(nextColor, false, RESPAWN_Y);
       }
     }
     if (willBeBall || willBePaddleBuffer || info.respawn) {
