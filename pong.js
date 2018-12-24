@@ -58,8 +58,8 @@ let bm;
     nsNonbackground = nsGlobal.declareSubspace('NONBACKGROUND',
                                                'IS_NOT_BACKGROUND');
 
-    nsNonbackground.declare('ID_0', 1, 7);
-    nsNonbackground.declare('ID_1', 1, 23);
+    nsNonbackground.declare('ID_0', 1, 15);
+    nsNonbackground.declare('ID_1', 1, 7);
 
     // Sentinel bits that determine type:
     nsNonbackground.alias('WALL_FLAG', 'ID_0');
@@ -78,19 +78,28 @@ let bm;
     nsNonbackground.setSubspaceMask('ID_BITS');
     nsBall = nsNonbackground.declareSubspace('BALL', 'BALL_FLAG');
     nsWall = nsNonbackground.declareSubspace('WALL', 'WALL_FLAG');
-    nsPaddle = nsNonbackground.declareSubspace('PADDLE', 'ID_BITS');
+    nsPaddle = nsNonbackground.declareSubspace('PADDLE', 'PADDLE_FLAG');
     nsScoreboard = nsNonbackground.declareSubspace('SCOREBOARD', 0);
 
     // Message fields shared by wall and background
     nsWall.alloc('MESSAGE_R_NOT_L', 1);
     nsBackground.alloc('MESSAGE_R_NOT_L', 1);
-    nsWall.declare('MESSAGE_PRESENT', 1, 15);
-    nsBackground.declare('MESSAGE_PRESENT', 1, 15);
+    if (obviousColors) {
+      nsWall.declare('MESSAGE_PRESENT', 1, 14);
+      nsBackground.declare('MESSAGE_PRESENT', 1, 15);
+    } else {
+      nsWall.alloc('MESSAGE_PRESENT', 1);
+      nsBackground.alloc('MESSAGE_PRESENT', 1);
+    }
     nsWall.combine('RESPAWN_MESSAGE_BITS',
                    ['MESSAGE_PRESENT', 'MESSAGE_R_NOT_L']);
 
     // Used only by the ball.
-    nsBall.alloc('DECIMATOR', 1);
+    if (obviousColors) {
+      nsBall.declare('DECIMATOR', 1, 22);
+    } else {
+      nsBall.declare('DECIMATOR', 1, 24);
+    }
     nsBall.alloc('PADDLE_POSITION', 6);
     nsBall.alloc('PADDLE_DEST', 3);
     nsBall.alloc('MOVE_INDEX', 3);
@@ -116,12 +125,17 @@ let bm;
     nsWall.alloc('TALK_DOWN_FOR_R', 1);
     nsWall.alloc('SIDE_WALL_FLAG', 1);
 
-    nsBackground.alloc('RESPAWN_FLAG', 1);
     // TODO: We can do without this, by figuring out which respawn pixel we're
     // on and watching the message hit the center one, in a 3x3 ball.
     nsBackground.alloc('RESPAWN_PHASE_2_FLAG', 1);
     nsBackground.alloc('TROUGH_FLAG', 1);
-    nsBackground.declare('BALL_MISS_FLAG', 1, 13);
+    if (obviousColors) {
+      nsBackground.declare('BALL_MISS_FLAG', 1, 13);
+      nsBackground.declare('RESPAWN_FLAG', 1, 6);
+    } else {
+      nsBackground.alloc('BALL_MISS_FLAG', 1);
+      nsBackground.alloc('RESPAWN_FLAG', 1);
+    }
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
@@ -133,17 +147,33 @@ let bm;
     nsBall.alloc('RESPAWN_FLAG', 1);
 
     // Paddle fields
-    nsPaddle.alloc('DECIMATOR', 1);
+    if (obviousColors) {
+      nsPaddle.declare('DECIMATOR', 1, 22);
+    } else {
+      nsPaddle.declare('DECIMATOR', 1, 24);
+    }
     nsPaddle.alloc('PADDLE_POSITION', 6);
     nsPaddle.alloc('PADDLE_DEST', 3);
-    nsPaddle.alloc('PADDLE_PIXEL', 1);
+    if (obviousColors) {
+      nsPaddle.declare('PADDLE_PIXEL', 1, 14);
+    } else {
+      nsPaddle.declare('PADDLE_PIXEL', 1, 18);
+    }
 
     // Background fields for paddle
-    nsBackground.alloc('DECIMATOR', 1);
+    if (obviousColors) {
+      nsBackground.declare('DECIMATOR', 1, 22);
+    } else {
+      nsBackground.declare('DECIMATOR', 1, 24);
+    }
     nsBackground.alloc('PADDLE_POSITION', 6);
     nsBackground.alloc('PADDLE_DEST', 3);
     nsBackground.alloc('PADDLE_MOVE_DELAY_COUNTER', 3);
-    nsBackground.alloc('PADDLE_PIXEL', 1);
+    if (obviousColors) {
+      nsBackground.declare('PADDLE_PIXEL', 1, 14);
+    } else {
+      nsBackground.alloc('PADDLE_PIXEL', 1);
+    }
     nsBackground.alloc('PADDLE_BUFFER_FLAG', 1);
     // We don't copy decimator because we always flip it.
     nsBackground.combine(
@@ -469,8 +499,8 @@ let bm;
       drawPaddle(c, true, 42, 4);
       drawPaddle(c, false, 48, 7);
     } else {
-      drawPaddle(c, true, 42, 1);
-      drawPaddle(c, false, 48, 1);
+      drawPaddle(c, true, 40, 5);
+      drawPaddle(c, false, 48, 6);
     }
     drawScoreboard(c, originX + 1, originY + 1,
                    SCOREBOARD_WIDTH - 2, SCOREBOARD_HEIGHT - 1);

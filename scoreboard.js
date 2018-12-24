@@ -12,15 +12,15 @@
     isScoreboard = _isScoreboard_;
     isSendingMessageDown = _isSendingMessageDown_;
     // Sentinel bits that determine type:
-    nsScoreboard.declare('SCOREBOARD_COLOR', 2, 14);
-    nsScoreboard.alloc('SCOREBOARD_HIGH_DIGIT', 1);
-    nsScoreboard.alloc('SCOREBOARD_BITS', 6);
-    nsScoreboard.alloc('SCOREBOARD_SEGMENT_ID', 3);
+    nsScoreboard.declare('SCOREBOARD_COLOR', 2, 22);
     if (obviousColors) {
-      nsScoreboard.declare('SCOREBOARD_CHANGED', 3, 20);
+      nsScoreboard.declare('SCOREBOARD_CHANGED', 3, 4);
     } else {
       nsScoreboard.alloc('SCOREBOARD_CHANGED', 1);
     }
+    nsScoreboard.alloc('SCOREBOARD_BITS', 6);
+    nsScoreboard.alloc('SCOREBOARD_SEGMENT_ID', 3);
+    nsScoreboard.alloc('SCOREBOARD_HIGH_DIGIT', 1);
 
     window.drawScoreboard = drawScoreboard;
     window.handleScoreboard = handleScoreboard;
