@@ -5,7 +5,7 @@
   let scoreboardColor, fullAlpha;
   let isSendingMessageDown;
   function initScoreboard(_nsScoreboard_, _scoreboardColor_, _fullAlpha_,
-      _isScoreboard_, _isSendingMessageDown_) {
+      _isScoreboard_, _isSendingMessageDown_, obviousColors) {
     nsScoreboard = _nsScoreboard_;
     scoreboardColor = _scoreboardColor_;
     fullAlpha = _fullAlpha_; // the on alpha mask
@@ -16,7 +16,11 @@
     nsScoreboard.alloc('SCOREBOARD_HIGH_DIGIT', 1);
     nsScoreboard.alloc('SCOREBOARD_BITS', 6);
     nsScoreboard.alloc('SCOREBOARD_SEGMENT_ID', 3);
-    nsScoreboard.declare('SCOREBOARD_CHANGED', 3, 20);
+    if (obviousColors) {
+      nsScoreboard.declare('SCOREBOARD_CHANGED', 3, 20);
+    } else {
+      nsScoreboard.alloc('SCOREBOARD_CHANGED', 1);
+    }
 
     window.drawScoreboard = drawScoreboard;
     window.handleScoreboard = handleScoreboard;

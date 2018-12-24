@@ -3,11 +3,22 @@
 The things that need to scale up for a larger ball are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
 need to get their MAX and MIN bits back, the paddle move delay
-counter...anything else?  Maybe another shading pixel for the ball's edges?]
+counter, the isCenterRespawn detection and RESPAWN_PHASE_2_FLAG stuff...anything
+else?  Maybe another shading pixel for the ball's edges?]
 */
 
 let bm;
 (function () {
+  const HIT_FIRST_SERVE = false;
+  const BALL_SIZE_BITS = 2;
+  // We need to keep the depth counter from overflowing, so the buffer can't be
+  // as deep as 1 << BALL_SIZE_BITS.
+  const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
+  // Paddle is 6, covers 6 + BALL_SIZE - 1 ball positions.  We encode for 8
+  // paddle destinations in the AI message.  There's an extra BALL_SIZE - 1
+  // covered at the end due to how overlaps of the gaps work.
+  const DESIRED_BALL_AREA_HEIGHT = (6 + BALL_SIZE - 1) * 8 + BALL_SIZE - 1;
+  const DESIRED_BALL_AREA_WIDTH = DESIRED_BALL_AREA_HEIGHT + BALL_SIZE + 1;
   let nsBall, nsWall, nsPaddle, nsScoreboard;
   let nsBackground, nsGlobal, nsNonbackground;
   let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
@@ -17,13 +28,6 @@ let bm;
   let isScoreboard;
   let isSendingLeftMessageDown, isSendingRightMessageDown;
   let copySets = {};
-  const OBVIOUS_COLORS = true;
-  const LONG_DEMO = false;
-  const BALL_SIZE_BITS = 2;
-  // We need to keep the depth counter from overflowing, so the buffer can't be
-  // as deep as 1 << BALL_SIZE_BITS.
-  const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
-  //const BALL_SIZE = 4;
   const BUFFER_X_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_Y_DEPTH_COUNTER_BITS = BALL_SIZE_BITS;
   const BUFFER_SIZE = BALL_SIZE;
@@ -42,7 +46,7 @@ let bm;
   let paddleToPaddleBallDistance;
   let topWallToBottomWallBallDistance;
 
-  function initBitManager() {
+  function initBitManager(obviousColors) {
     nsGlobal = new Namespace();
     canvas.ns = nsGlobal;
     bm = new BitManager(nsGlobal);
@@ -64,7 +68,7 @@ let bm;
     nsNonbackground.alias('PADDLE_FLAG', 'ID_BITS');
 
     nsNonbackground.declare('FULL_ALPHA', 3, 28);
-    if (OBVIOUS_COLORS) {
+    if (obviousColors) {
       nsBackground.declare('FULL_ALPHA', 3, 28);
       nsBackground.alias('BASIC_BACKGROUND', 'FULL_ALPHA');
     } else {
@@ -222,7 +226,7 @@ let bm;
                           nsGlobal.IS_NOT_BACKGROUND.getMask());
     initScoreboard(nsScoreboard, nsGlobal.IS_NOT_BACKGROUND.getMask(),
                    nsNonbackground.FULL_ALPHA, isScoreboard,
-                   isSendingMessageDown);
+                   isSendingMessageDown, obviousColors);
     PaddleState.init(nsPaddle, nsBall, nsBackground, isPaddle,
                      isBallInPaddleBuffer, isPaddleBuffer);
     nsGlobal.dumpStatus();
@@ -283,7 +287,7 @@ let bm;
     }
   }
 
-  function initPong(c, originX, originY, width, height) {
+  function initPong(c, originX, originY, width, height, obviousColors) {
     // width must be at least one plus BUFFER_SIZE greater than the height for
     // the AI message to be safe, otherwise a corner-sourced message might not
     // reach all pixels of the paddle, leading to it tearing in half.
@@ -348,7 +352,7 @@ let bm;
       }
     }
 
-    initBitManager();
+    initBitManager(obviousColors);
 
     let leftScoreboardRightEdge = originX + SCOREBOARD_WIDTH - 1;
     let rightScoreboardLeftEdge = originX + width - SCOREBOARD_WIDTH;
@@ -461,7 +465,7 @@ let bm;
 
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
 
-    if (LONG_DEMO) {
+    if (HIT_FIRST_SERVE) {
       drawPaddle(c, true, 42, 4);
       drawPaddle(c, false, 48, 7);
     } else {
@@ -1286,10 +1290,8 @@ let bm;
     return handleBecomingOrStayingBackgroundOrStayingBall(data, x, y);
   }
 
-  let desiredBallAreaHeight = 66;
-  let desiredBallAreaWidth = 70;
-  let width = desiredBallAreaWidth + 4; // 2x trough, 2x wall
-  let height = desiredBallAreaHeight + 2 + SCOREBOARD_HEIGHT; // 2x wall
+  let width = DESIRED_BALL_AREA_WIDTH + 4; // 2x trough, 2x wall
+  let height = DESIRED_BALL_AREA_HEIGHT + 2 + SCOREBOARD_HEIGHT; // 2x wall
   registerAnimation("pong", width, height, initPong, pong);
 
 })();

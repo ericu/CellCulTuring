@@ -90,7 +90,8 @@
       initBuffers();
       let c = new CanvasWrapper(outputBuffer);
       c.fillRect(0, 0, 0, canvas.width, canvas.height);
-      animation.init(c, originX, originY, activeWidth, activeHeight);
+      animation.init(c, originX, originY, activeWidth, activeHeight,
+                     OBVIOUS_COLORS);
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.putImageData(outputBuffer, 0, 0);
       inputView.set(outputView);
@@ -217,6 +218,12 @@
     }
   }
 
+  let OBVIOUS_COLORS = true;
+  function showObviousToggled(e) {
+    OBVIOUS_COLORS = e.checked;
+    onSelectAnimation();
+  }
+
   let frameReady = false;
   let frameInProgress = false;
   function asyncStep() {
@@ -319,5 +326,6 @@
   window.test = test;
   window.showTestToggled = showTestToggled;
   window.showDebugToggled = showDebugToggled;
+  window.showObviousToggled = showObviousToggled;
 })()
 

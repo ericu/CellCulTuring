@@ -196,7 +196,6 @@ working.
    x
 --------------------------------------------------------------------------------
 TODO:
-Add AI message on respawn.
 Add GAME OVER message [flashing?] and of course game-end logic.
 Add user input.
-Add UI for color choice.
+Nicer scoreboard font using 1-hot encoding?
