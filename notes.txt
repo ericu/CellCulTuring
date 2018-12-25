@@ -1,133 +1,25 @@
-Message-passing:
+TODO:
+Add GAME OVER message [flashing?] and of course game-end logic.
+Add user input.
+Nicer scoreboard font using 1-hot encoding?
 
-The end walls pass scoring info outward to the scoreboard, and must also pass
-the ball-spawn message to the respawn point.  Perhaps we should have 2 respawn
-points, one on each side.  Pass the message up to the top, along the wall,
-then down to the respawn point.  It would be good if the respawn happened
-after the score increment.  It would also be good if the score on the left
-corresponded to the paddle on the left, although if I want the score to count
-up, which I do, that's tricky.  So scoring messages have to get across to a
-scoreboard on the opposite side, then respawn the ball on the way back,
-perhaps?
+Consider that crazy optimization for more bits, to do a larger ball with better
+shading?  How many bits do we need, and how many do we have?
 
-
-      -----------------------------------------------------------
- S S  |                                                         | S S
-      |                                                         |
-      |                                                        P|
-      |                                                        P|
-      |                                  B                     P|
-      |                                                         |
-      |P                                                        |
-      |P                                                        |
-      |P                                                        |
-      |                                                         |
-      |                                                         |
-      -----------------------------------------------------------
-
-
-Here the scores are at the top-center.  Let's make the message wave
-visible, so you can watch it move up the wall, to the center.  There it splits
-and sends a scoring message up to the scoreboard [saying which player to
-increment] and down to the respawn point.  We can either send the score the
-whole way there, in which case the walls have to know the score through their
-whole length, or we can just send an increment, in which case it's hard to know
-when the game ends before respawning.
-
-The respawn point can also be the center of a "game over" message if the message
-splitter at the top keeps track of when the game ends.
-
-                            | S S  |  S S  |
-      -----------------------------------------------------------
-      |                            |                            |
-      |                            |                            |
-      |                            |                           P|
-      |                            |                           P|
-      |                            |     B                     P|
-      |                            r                            |
-      |P                                                        |
-      |P                                                        |
-      |P                                                        |
-      |                                                         |
-      |                                                         |
-      -----------------------------------------------------------
-
-Bits we want visible:
-isBall, isWall, isPaddle, counter + message displays, the scoring message
-moving up the wall from a ball impact.
-Bits we want invisible or at least somewhat subtle:
-The AI message.
-Bits I'm not sure about yet:
-The ball respawn message coming down from the top.
-
-Counter messages through the counter region:
-  Direction bit for routing: No, all directions.
-  Spread: all directions
-  Payload: score counter, likely 4 bits.
-
-Board layout:
-
-We'll need to interpret the ball-hit message before the respawn, so that we
-don't respawn on game over.  We can do that at the top-wall-center pixel.  If it
-keeps track of the score of each player, it can decide when the game is over and
-either send the respawn message or not.  It can also initiate the game-over
-message, wherever we want to display that.
-
-So top-wall-center needs, in addition to 2 type bits, 1 subtype bit, and 2
-message bits [present + direction] a counter for each score, say at least 4 bits
-with game going to 15.  Messages will always go up, and will only go down on
-score less than the max, so we'll need a separate signal for up messages vs.
-down, so at least 1 more bit there for message and a second for game-over.
-That's still only 15 or so, so no problem there.
-
-----------------------------------------------------------------
-|       1 4         |   G A M E   O V E R   |       0 3        |
-----------------------------------------------------------------
-|                                                              |
-|                                                              |
-|                                                              |
-|                                                              |
-|                                                              |
-|                                                              |
-|                                                              |
-----------------------------------------------------------------
-
-Here the GAME OVER is in the middle, which looks good, but if the message comes
-from the middle, it would naturally appear before the final score increment.  
-We can put a delay in there by using the counter display for the game over; just
-have the whole message trigger on a high number, and have the message trigger a
-single-cell counter that counts up to it and then stops there.
-
-Another option for game-over and score/respawn messages: the message comes up
-from the paddle, across all the way to the opposite score [as its direction
-tells the fork under each score whether to grab it or not], up into the score,
-and then spreads out, hitting the border of game-over.  game-over looks for a
-score increment, and lights up on the final score.  There's a cell at its bottom
-center that sees an increment that's not the final score, and triggers a
-straight-down respawn message with LR in it.  We'd just need a few wall subtypes
-to deal with the routing.
-
---------------------------------------------------------------------------------
-
-To add paddles to bigrespawn:
-* First add a trough for the paddle, moving the side buffers in and making the
-  trough region handle respawn. DONE
-* Then add paddles that bounce but don't move. DONE
-* Then add decimation. DONE
-* Then add paddle motion, but no AI messages. DONE
-* Then add sending AI messages, but not using them.
-* Then add using AI messages and move delays.
-
-* At some point, add AI messages on respawn; they could be sent early by the
-ball at destruction, which guarantees plenty of time to get there but looks a
-bit weird, or could be sent at respawn itself, although that gives much less
-warning.
-
+Needed:
+  2:ball:BUFFER_X/Y_DEPTH_COUNTER,
+  2:bg+ball:MIN/MAX for BUFFER_X/Y_FLAG,
+  1+:ball:shading,
+  0+:ball+bg+paddle bigger paddle means ideally a larger paddlePixel range,
+  1:bg+ball?:isCenterRespawn/respawnPhase2 will probably need at least one more
+  bit, but may be background-only.
+  1:bg+ball:PADDLE_MOVE_DELAY_COUNTER.
+  Minimum of 6 for ball.
 --------------------------------------------------------------------------------
 
 Other ways to shave bits:
 
-When counting into the depth buffer, we can go to 4 instead of 3 by turning
+0: When counting into the depth buffer, we can go to 4 instead of 3 by turning
 around at overflow instead of when we hit 3.  We can't maintain an accurate
 count on the way out, but we don't actually need to--we can turn around and call
 it 3 instead of 4, and then count down too early, and ignore underflow on the
@@ -136,15 +28,15 @@ depth 0 while still inside.  Can we detect that situation and work around it
 somehow?  Ug--even if we can, this will destroy the trick we used to tell max
 from min buffers.  Nevermind.
 
-Use PADDLE_BUFFER_FLAG as a namespace bit for balls.  All the paddle buffer bits
-go in that namespace, but then we can put BUFFER_Y_FLAG in its complement, since
-that information can be derived from the paddle's position and paddlePixel.  If
-desired, we can use that one saved bit to implement a death flag instead of
-using the zeroed depth counter in the above hack.  But then we're still short a
-bit to use for decoration.
+1: Use PADDLE_BUFFER_FLAG as a namespace bit for balls.  All the paddle buffer
+bits go in that namespace, but then we can put BUFFER_Y_FLAG in its complement,
+since that information can be derived from the paddle's position and
+paddlePixel.  If desired, we can use that one saved bit to implement a death
+flag instead of using the zeroed depth counter in the above hack.  But then
+we're still short a bit to use for decoration.
 
-FULL_ALPHA is currently 3 bits; we certainly wouldn't miss the bottom one, and
-could function without the bottom two if necessary.
+2: FULL_ALPHA is currently 3 bits; we certainly wouldn't miss the bottom one,
+and could function without the bottom two if necessary.
 --------------------------------------------------------------------------------
 
 Consider making DECIMATOR a global bit.  Almost everybody uses it, and it would
@@ -194,8 +86,3 @@ working.
 3: x
   x.x
    x
---------------------------------------------------------------------------------
-TODO:
-Add GAME OVER message [flashing?] and of course game-end logic.
-Add user input.
-Nicer scoreboard font using 1-hot encoding?

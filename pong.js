@@ -63,9 +63,9 @@ let bm;
 
     // Sentinel bits that determine type:
     nsNonbackground.alias('WALL_FLAG', 'ID_0');
-    nsNonbackground.alias('BALL_FLAG', 'ID_1');
+    nsNonbackground.alias('PADDLE_FLAG', 'ID_1');
     nsNonbackground.combine('ID_BITS', ['ID_0', 'ID_1']);
-    nsNonbackground.alias('PADDLE_FLAG', 'ID_BITS');
+    nsNonbackground.alias('BALL_FLAG', 'ID_BITS');
 
     nsNonbackground.declare('FULL_ALPHA', 3, 28);
     if (obviousColors) {
