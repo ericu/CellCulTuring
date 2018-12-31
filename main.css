@@ -38,6 +38,8 @@ select {
   flex: 0 0 auto;
   height: auto;
   align-items: center;
+  width: 90vw;
+  flex-wrap: wrap;
 }
 #controls * {
   margin: 5px;
