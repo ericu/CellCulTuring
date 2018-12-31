@@ -56,16 +56,32 @@ select {
   display: flex;
   flex-direction: row;
   flex: 1 1 auto;
-  align-items: center;
+  align-items: stretch;
   flex-wrap: wrap;
   width: 100%;
   justify-content: space-between;
 }
 
+.canvas-container {
+  position: relative;
+  max-height: 100%;
+  flex: 1 1 auto;
+}
+
+.canvas-container:before {
+  content: "";
+  display: block;
+  padding-top: 100%;
+}
+
 canvas {
   image-rendering: pixelated;
   background-color: #000;
-  flex: 0 0 auto;
+  height: 100%;
   max-width: 100%;
-  max-height: 100%;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }

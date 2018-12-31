@@ -19,19 +19,19 @@
   const originX = borderSize;
   const originY = borderSize;
 
-  let CANVAS_SCALE = 8;
+  let CANVAS_SCALE = 1;
   function init() {
     canvas = document.getElementById('canvas');
-    let parent = canvas.parentElement;
-    canvas2 = canvas.cloneNode(true);
-    canvas2.id = 'canvas2';
-    parent.insertBefore(canvas2, canvas);
-    parent.insertBefore(canvas, canvas2);
+    canvas2 = document.getElementById('canvas2');
+    canvas2.width = canvas.width;
+    canvas2.height = canvas.height;
     context = canvas.getContext('2d');
     context2 = canvas2.getContext('2d');
     context.clearRect(0, 0, canvas.width, canvas.height);
-    context2.clearRect(0, 0, canvas.width, canvas.height);
-    onSelectAnimation();
+    context2.clearRect(0, 0, canvas2.width, canvas2.height);
+    showTestToggled();
+    showDebugToggled();
+    showObviousToggled();
     canvas.addEventListener('click', onCanvasClicked);
     canvas2.addEventListener('click', onCanvasClicked);
   }
@@ -41,10 +41,10 @@
     canvas.height = h;
     canvas2.width = w;
     canvas2.height = h;
-    canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
-    canvas.style.height = CANVAS_SCALE * canvas.height + 'px';
-    canvas2.style.width = CANVAS_SCALE * canvas.width + 'px';
-    canvas2.style.height = CANVAS_SCALE * canvas.height + 'px';
+//    canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
+//    canvas.style.height = CANVAS_SCALE * canvas.height + 'px';
+//    canvas2.style.width = CANVAS_SCALE * canvas.width + 'px';
+//    canvas2.style.height = CANVAS_SCALE * canvas.height + 'px';
     activeWidth = canvas.width - 2 * borderSize;
     activeHeight = canvas.height - 2 * borderSize;
   }
@@ -202,25 +202,25 @@
     inputView.set(outputView);
   }
 
-  function showTestToggled(e) {
-    if (e.checked) {
-      document.getElementById('canvas2').style.display = 'inline';
+  function showTestToggled() {
+    if (document.getElementById('toggle_test').checked) {
+      document.getElementById('canvas2').parentElement.style.display = 'inline';
     } else {
-      document.getElementById('canvas2').style.display = 'none';
+      document.getElementById('canvas2').parentElement.style.display = 'none';
     }
   }
 
-  function showDebugToggled(e) {
-    if (e.checked) {
+  function showDebugToggled() {
+    if (document.getElementById('toggle_debug').checked) {
       document.getElementById('debug').style.display = 'inline';
     } else {
       document.getElementById('debug').style.display = 'none';
     }
   }
 
-  let OBVIOUS_COLORS = true;
-  function showObviousToggled(e) {
-    OBVIOUS_COLORS = e.checked;
+  let OBVIOUS_COLORS;
+  function showObviousToggled() {
+    OBVIOUS_COLORS = document.getElementById('toggle_obvious').checked;
     onSelectAnimation();
   }
 
