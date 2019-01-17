@@ -69,7 +69,7 @@
     }
 
     nextColor() {
-      let color = this.getColor(this.ns);
+      let color = this.getColor();
       if (this.isMotionCycle()) {
         color = this.ns.PADDLE_POSITION.set(color,
                                             this.position + this.getDY());

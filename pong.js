@@ -2,9 +2,9 @@
 /*
 The things that need to scale up for a larger ball are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
-need to get their MAX and MIN bits back, the paddle move delay
-counter, the isCenterRespawn detection and RESPAWN_PHASE_2_FLAG stuff...anything
-else?  Maybe another shading pixel for the ball's edges?]
+need to get their MAX and MIN bits back, PADDLE_MOVE_DELAY_COUNTER, the
+isCenterRespawn detection and RESPAWN_PHASE_2_FLAG stuff...anything else?  Maybe
+another shading pixel for the ball's edges?]
 */
 
 let bm;
@@ -67,7 +67,7 @@ let bm;
     nsNonbackground.combine('ID_BITS', ['ID_0', 'ID_1']);
     nsNonbackground.alias('BALL_FLAG', 'ID_BITS');
 
-    nsNonbackground.declare('FULL_ALPHA', 3, 28);
+    nsNonbackground.declare('FULL_ALPHA', 2, 29);
     if (obviousColors) {
       nsBackground.declare('FULL_ALPHA', 3, 28);
       nsBackground.alias('BASIC_BACKGROUND', 'FULL_ALPHA');
@@ -147,6 +147,9 @@ let bm;
     nsBall.alloc('RESPAWN_FLAG', 1);
 
     // Paddle fields
+    nsPaddle.declare('BRIGHT_COLOR_0', 1, 23);
+    nsPaddle.declare('BRIGHT_COLOR_1', 2, 12);
+    nsPaddle.declare('BRIGHT_COLOR_2', 1, 6);
     if (obviousColors) {
       nsPaddle.declare('DECIMATOR', 1, 22);
     } else {
@@ -347,7 +350,10 @@ let bm;
       assert(topInPaddleCoords + 10 <= insideWallHeight);
       assert(_.isNumber(dest) && dest >= 0 && dest < 8);
       let paddleBaseColor = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
-                                   nsNonbackground.PADDLE_FLAG.getMask()]);
+                                   nsNonbackground.PADDLE_FLAG.getMask(),
+                                   nsPaddle.BRIGHT_COLOR_0.getMask(),
+                                   nsPaddle.BRIGHT_COLOR_1.getMask(),
+                                   nsPaddle.BRIGHT_COLOR_2.getMask(),]);
       let bufferBaseColor = bm.or([nsBackground.BASIC_BACKGROUND.getMask(),
                                    nsBackground.PADDLE_BUFFER_FLAG.getMask(),
                                    nsBackground.BUFFER_X_FLAG.getMask()]);

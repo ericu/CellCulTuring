@@ -19,7 +19,6 @@
   const originX = borderSize;
   const originY = borderSize;
 
-  let CANVAS_SCALE = 1;
   function init() {
     canvas = document.getElementById('canvas');
     canvas2 = document.getElementById('canvas2');
@@ -41,10 +40,6 @@
     canvas.height = h;
     canvas2.width = w;
     canvas2.height = h;
-//    canvas.style.width = CANVAS_SCALE * canvas.width + 'px';
-//    canvas.style.height = CANVAS_SCALE * canvas.height + 'px';
-//    canvas2.style.width = CANVAS_SCALE * canvas.width + 'px';
-//    canvas2.style.height = CANVAS_SCALE * canvas.height + 'px';
     activeWidth = canvas.width - 2 * borderSize;
     activeHeight = canvas.height - 2 * borderSize;
   }
@@ -251,8 +246,10 @@
   }
 
   function onCanvasClicked(e) {
-    let x = Math.floor(e.offsetX / CANVAS_SCALE);
-    let y = Math.floor(e.offsetY / CANVAS_SCALE);
+    let xScale = canvas.clientWidth / canvas.width;
+    let yScale = canvas.clientHeight / canvas.height;
+    let x = Math.floor(e.offsetX / xScale);
+    let y = Math.floor(e.offsetY / yScale);
     let addr = getAddr32(x, y);
     let view;
     if (e.currentTarget.id === 'canvas') {
