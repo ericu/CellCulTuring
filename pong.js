@@ -1,4 +1,5 @@
 "use strict";
+// TODO: Why can't I miss?!
 /*
 The things that need to scale up for a larger ball are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
@@ -16,7 +17,8 @@ let bm;
   const BALL_SIZE = (1 << BALL_SIZE_BITS) - 1;
   // Paddle is 6, covers 6 + BALL_SIZE - 1 ball positions.  We encode for 8
   // paddle destinations in the AI message.  There's an extra BALL_SIZE - 1
-  // covered at the end due to how overlaps of the gaps work.
+  // space at the end where the ball can go but the paddle can't; the space at
+  // the top is already counted.
   const DESIRED_BALL_AREA_HEIGHT = (6 + BALL_SIZE - 1) * 8 + BALL_SIZE - 1;
   const DESIRED_BALL_AREA_WIDTH = DESIRED_BALL_AREA_HEIGHT + BALL_SIZE + 1;
   let nsBall, nsWall, nsPaddle, nsScoreboard;
@@ -658,12 +660,12 @@ let bm;
 
   function handleTroughAndPaddle(data, x, y) {
     let current = data[4];
-    let left = false;
+    let leftBall = false;
     if (isTrough(current) &&
-        ((left = _.every([0, 3, 6], i => isBall(data[i]))) ||
+        ((leftBall = _.every([0, 3, 6], i => isBall(data[i]))) ||
          _.every([2, 5, 8], i => isBall(data[i])))) {
       let ballMissedPaddle =
-        !nsBall.BUFFER_X_DEPTH_COUNTER.get(left ? data[0] : data[2])
+        !nsBall.BUFFER_X_DEPTH_COUNTER.get(leftBall ? data[0] : data[2])
       if (ballMissedPaddle) {
         return nsBackground.BALL_MISS_FLAG.set(current, 1);
       }
@@ -684,6 +686,9 @@ let bm;
       }
       return nextColor;
     }
+    let isLeft = isBackground(data[5]) || isBall(data[5]);
+    let useUserInput = isLeft ? !window.leftPlayerAI : !window.rightPlayerAI;
+
     for (let index of [1, 4, 7]) {
       let color = data[index];
       if (isPaddle(color)) {
@@ -691,8 +696,28 @@ let bm;
           // no need to check any other paddle pixels
           break;
         }
-        // TODO: Here's where to handle user input.  It overrides ps.getDY().
         let ps = new PaddleState(color);
+        let dY = ps.getDY();
+        if (useUserInput) {
+          if (isLeft) {
+            if (window.keyTable['w'] && ps.position > 0) {
+              dY = -1;
+            } else if (window.keyTable['s'] && ps.position < 64) {
+              dY = 1;
+            } else {
+              dY = 0;
+            }
+          } else {
+            if (window.keyTable['o'] && ps.position > 0) {
+              dY = -1;
+            } else if (window.keyTable['l'] && ps.position < 64) {
+              dY = 1;
+            } else {
+              dY = 0;
+            }
+          }
+          ps.setDY(dY);
+        }
         if ((index === 1 && ps.getDY() > 0) ||
             (index === 4 && ps.getDY() === 0) ||
             (index === 7 && ps.getDY() < 0)) {

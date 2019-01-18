@@ -6,6 +6,8 @@
   // This originally just dealt with paddles.  You can now create a PaddleState
   // from a PaddleBuffer, with or without a ball in it, so beware the underlying
   // ball bits and type when dealing with motion.
+  // Note that in setDY we assume a position range of 0-56, since that's what
+  // our current 3-bit-shifted-3 dest can encode.
   class PaddleState {
     static init(_nsPaddle_, _nsBall_, _nsBackground_,
                 _isPaddle_, _isBallInPaddleBuffer_, _isPaddleBuffer_) {
@@ -43,6 +45,9 @@
     }
 
     getDY() {
+      if (this.overrideDY !== undefined) {
+        return this.overrideDY;
+      }
       if (this.delay) {
         return 0;
       }
@@ -53,6 +58,12 @@
         return 1;
       } else {
         return 0;
+      }
+    }
+    setDY(dY) {
+      this.overrideDY = 0;
+      if ((dY > 0 && this.position < 56) || (dY < 0 && this.position > 0)) {
+        this.overrideDY = dY;
       }
     }
 

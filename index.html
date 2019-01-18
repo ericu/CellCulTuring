@@ -29,7 +29,7 @@ width=100%; we should fit the content instead.-->
       </label>
       <label for="toggle_debug">
         <input type="checkbox" id="toggle_debug"
-               onclick="showDebugToggled()">
+               onclick="showDebugToggled()" checked>
         </input>
         Show debug area
       </label>
@@ -42,13 +42,13 @@ width=100%; we should fit the content instead.-->
       <div class=player-select>
         <label for="select_left_player_human">
           <input type="radio" id="select_left_player_human" name="left_player"
-                 value="human" onclick="playerToggled('left')">
+                 value="human" onclick="playerToggled('left')" checked>
           </input>
           Left player human
         </label>
         <label for="select_left_player">
           <input type="radio" id="select_left_player_ai" name="left_player"
-                 value="ai" onclick="playerToggled('left')" checked>
+                 value="ai" onclick="playerToggled('left')">
           </input>
           Left player AI
         </label>

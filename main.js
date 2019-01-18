@@ -1,7 +1,5 @@
 "use strict";
 
-var leftPlayerAI;
-var rightPlayerAI;
 (function () {
 
   let canvas, canvas2;
@@ -37,6 +35,7 @@ var rightPlayerAI;
     canvas.addEventListener('click', onCanvasClicked);
     canvas2.addEventListener('click', onCanvasClicked);
   }
+  window.init = init;
 
   function setDimensions(w, h) {
     canvas.width = w;
@@ -78,7 +77,7 @@ var rightPlayerAI;
   var curFunc;
 
   let animation;
-  function onSelectAnimation() {
+  function initAnimation() {
     // Add 2 for the sentinel borders, which the animation doesn't think
     // about.
     setDimensions(animation.width + 2, animation.height + 2);
@@ -92,7 +91,6 @@ var rightPlayerAI;
     inputView.set(outputView);
     curFunc = animation.f;
   }
-  window.onSelectAnimation = onSelectAnimation;
 
   function registerAnimation(name, width, height, init, f) {
     animation = {
@@ -181,14 +179,15 @@ var rightPlayerAI;
     runConv3x3Step(curFunc, inputView, outputView2);
     context2.putImageData(outputBuffer2, 0, 0);
   }
+  window.test = test;
 
   function step() {
     runConv3x3Step(curFunc, inputView, outputView);
-//    context.clearRect(originX, originY, width, height);
     context.putImageData(outputBuffer, 0, 0,
                          originX, originY, activeWidth, activeHeight);
     inputView.set(outputView);
   }
+  window.step = step;
 
   function showTestToggled() {
     if (document.getElementById('toggle_test').checked) {
@@ -197,6 +196,7 @@ var rightPlayerAI;
       document.getElementById('canvas2').parentElement.style.display = 'none';
     }
   }
+  window.showTestToggled = showTestToggled;
 
   function showDebugToggled() {
     if (document.getElementById('toggle_debug').checked) {
@@ -205,19 +205,24 @@ var rightPlayerAI;
       document.getElementById('debug').style.display = 'none';
     }
   }
+  window.showDebugToggled = showDebugToggled;
 
   let OBVIOUS_COLORS;
   function showObviousToggled() {
     OBVIOUS_COLORS = document.getElementById('toggle_obvious').checked;
-    onSelectAnimation();
+    initAnimation();
   }
+  window.showObviousToggled = showObviousToggled;
 
+  window.leftPlayerAI = false;
+  window.rightPlayerAI = false;
   function playerToggled() {
     leftPlayerAI = document.getElementById('select_left_player_ai').checked;
     rightPlayerAI = document.getElementById('select_right_player_ai').checked;
     console.log('lPAI, rPAI', leftPlayerAI, rightPlayerAI);
-    onSelectAnimation();
+    initAnimation();
   }
+  window.playerToggled = playerToggled;
 
   let frameReady = false;
   let frameInProgress = false;
@@ -290,6 +295,7 @@ var rightPlayerAI;
       requestAnimationFrame(asyncAnimationFrame);
     }
   }
+  window.toggleRun = toggleRun;
 
   var fpsFrames = 0;
   var fpsStartTime = -1;
@@ -315,14 +321,5 @@ var rightPlayerAI;
       }
     }
   }
-
-  window.init = init;
-  window.toggleRun = toggleRun;
-  window.step = step;
-  window.test = test;
-  window.showTestToggled = showTestToggled;
-  window.showDebugToggled = showDebugToggled;
-  window.showObviousToggled = showObviousToggled;
-  window.playerToggled = playerToggled;
 })()
 
