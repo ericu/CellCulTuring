@@ -32,6 +32,11 @@ select {
   min-height: 40px;
 }
 
+.player-select {
+  display: flex;
+  flex-direction: column;
+}
+
 #controls {
   display: flex;
   flex-direction: row;

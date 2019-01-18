@@ -139,9 +139,11 @@ let bm;
 
     // Used by background and ball [since the ball has to replace the background
     // bits it runs over].
-    nsBall.alloc('BUFFER_X_FLAG', 1);
+    nsBall.alloc('BUFFER_X_MIN_FLAG', 1);
+    nsBall.alloc('BUFFER_X_MAX_FLAG', 1);
     nsBall.alloc('BUFFER_Y_FLAG', 1);
-    nsBackground.alloc('BUFFER_X_FLAG', 1);
+    nsBackground.alloc('BUFFER_X_MIN_FLAG', 1);
+    nsBackground.alloc('BUFFER_X_MAX_FLAG', 1);
     nsBackground.alloc('BUFFER_Y_FLAG', 1);
 
     nsBall.alloc('RESPAWN_FLAG', 1);
@@ -354,9 +356,11 @@ let bm;
                                    nsPaddle.BRIGHT_COLOR_0.getMask(),
                                    nsPaddle.BRIGHT_COLOR_1.getMask(),
                                    nsPaddle.BRIGHT_COLOR_2.getMask(),]);
+      let bufferFlag = isLeft ? nsBackground.BUFFER_X_MIN_FLAG.getMask() :
+                                nsBackground.BUFFER_X_MAX_FLAG.getMask();
       let bufferBaseColor = bm.or([nsBackground.BASIC_BACKGROUND.getMask(),
                                    nsBackground.PADDLE_BUFFER_FLAG.getMask(),
-                                   nsBackground.BUFFER_X_FLAG.getMask()]);
+                                   bufferFlag]);
       paddleBaseColor =
         nsPaddle.PADDLE_POSITION.set(paddleBaseColor, topInPaddleCoords);
       bufferBaseColor =
@@ -464,12 +468,11 @@ let bm;
              rightRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
 
     // buffer regions
-    let bufferX = nsBackground.BUFFER_X_FLAG.getMask();
     let bufferY = nsBackground.BUFFER_Y_FLAG.getMask();
-    c.orRect(bufferX,
+    c.orRect(nsBackground.BUFFER_X_MIN_FLAG.getMask(),
              ballAreaOriginX, ballAreaOriginY,
              BUFFER_SIZE, ballAreaHeight);
-    c.orRect(bufferX,
+    c.orRect(nsBackground.BUFFER_X_MAX_FLAG.getMask(),
              ballAreaOriginX + ballAreaWidth - BUFFER_SIZE,
              ballAreaOriginY,
              BUFFER_SIZE, ballAreaHeight);
@@ -551,33 +554,30 @@ let bm;
     // tell if we need to increment or decrement our depth counters, bounce,
     // etc.
     let current = data[4];
-    let bufferX;
+    let bufferXMin, bufferXMax;
     let bufferY;
     let paddleBuffer;
     if (isBall(current)) {
-      bufferX = nsBall.BUFFER_X_FLAG.get(current);
+      bufferXMin = nsBall.BUFFER_X_MIN_FLAG.get(current);
+      bufferXMax = nsBall.BUFFER_X_MAX_FLAG.get(current);
       bufferY = nsBall.BUFFER_Y_FLAG.get(current);
       paddleBuffer = nsBall.PADDLE_BUFFER_FLAG.get(current);
     } else {
       assert(isBackground(current));
-      bufferX = nsBackground.BUFFER_X_FLAG.get(current);
+      bufferXMin = nsBackground.BUFFER_X_MIN_FLAG.get(current);
+      bufferXMax = nsBackground.BUFFER_X_MAX_FLAG.get(current);
       bufferY = nsBackground.BUFFER_Y_FLAG.get(current);
       paddleBuffer = nsBackground.PADDLE_BUFFER_FLAG.get(current);
     }
-    let bufferXDir = null;
     let bufferYDir = null;
-    if (bufferX) {
-      bufferXDir = testBounds(data[3], current, data[5], 'BUFFER_X_FLAG',
-                              bs.depthX, bs.right);
-    }
     if (bufferY) {
       bufferYDir = testBounds(data[1], current, data[7], 'BUFFER_Y_FLAG',
                               bs.depthY, bs.down);
     }
     return {
-      xMin: bufferXDir === 'min',
+      xMin: bufferXMin,
       yMin: bufferYDir === 'min',
-      xMax: bufferXDir === 'max',
+      xMax: bufferXMax,
       yMax: bufferYDir === 'max',
       paddleBuffer: paddleBuffer
     };
@@ -894,7 +894,10 @@ let bm;
         // neighboring ball pixels and take the highest depth on the way in;
         // they'll all match on the way out.
         let bs = new BallState(nsBall, color);
-        if (!bs.getDepthX() && nsBall.BUFFER_X_FLAG.get(color) !== 0) {
+        // TODO: Can we make this more robust now that we know which buffer it
+        // is?
+        if (!bs.getDepthX() && (nsBall.BUFFER_X_MIN_FLAG.isSet(color) ||
+                                nsBall.BUFFER_X_MAX_FLAG.isSet(color))) {
           // The ball has hit the end wall and should vanish, so ignore it.
           break;
         }
@@ -969,11 +972,11 @@ let bm;
             }
           }
           let respawn;
-          let bufferXFlag = bufferXMin || bufferXMax;
           let bufferYFlag = bufferYMin || bufferYMax;
           let nextColor = bs.nextColor();
           nextColor = nsBall.DECIMATOR.set(nextColor, 0);
-          nextColor = nsBall.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
+          nextColor = nsBall.BUFFER_X_MIN_FLAG.set(nextColor, bufferXMin);
+          nextColor = nsBall.BUFFER_X_MAX_FLAG.set(nextColor, bufferXMax);
           nextColor = nsBall.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
           nextColor = nsBall.PADDLE_BUFFER_FLAG.set(nextColor,
                                                     bufferBits.paddleBuffer);
@@ -1149,7 +1152,8 @@ let bm;
   function getBackgroundOrBallSourceInfo(data, x, y) {
     const current = data[4];
     let respawn;
-    let bufferXFlag;
+    let bufferXMinFlag;
+    let bufferXMaxFlag;
     let bufferYFlag;
     let nextColor;
     let decimator;
@@ -1158,16 +1162,18 @@ let bm;
     if (isBall(current)) {
       decimator = nsBall.DECIMATOR.isSet(current);
       respawn = nsBall.RESPAWN_FLAG.get(current);
-      bufferXFlag = nsBall.BUFFER_X_FLAG.get(current);
+      bufferXMinFlag = nsBall.BUFFER_X_MIN_FLAG.get(current);
+      bufferXMaxFlag = nsBall.BUFFER_X_MAX_FLAG.get(current);
       bufferYFlag = nsBall.BUFFER_Y_FLAG.get(current);
       if (!isBallMotionCycle(current)) { // else it's becoming background.
-        if (bufferXFlag && !nsBall.BUFFER_X_DEPTH_COUNTER.get(current)) {
+        if ((bufferXMinFlag || bufferXMaxFlag) &&
+            !nsBall.BUFFER_X_DEPTH_COUNTER.get(current)) {
           // The ball has hit the end wall and should vanish, so ignore it.
         } else {
           willBeBall = true;
           let bs = new BallState(nsBall, current);
           nsOutput = nsBall;
-          // This already has respawn, bufferXFlag and bufferYFlag set
+          // This already has respawn, bufferXMin/MaxFlag and bufferYFlag set
           // correctly.
           nextColor = bs.nextColor();
           nextColor = nsBall.PADDLE_BALL_BITS.set(nextColor, 0);
@@ -1176,7 +1182,8 @@ let bm;
     } else {
       assert(isBackground(current));
       respawn = isRespawn(current);
-      bufferXFlag = nsBackground.BUFFER_X_FLAG.get(current);
+      bufferXMinFlag = nsBackground.BUFFER_X_MIN_FLAG.get(current);
+      bufferXMaxFlag = nsBackground.BUFFER_X_MAX_FLAG.get(current);
       bufferYFlag = nsBackground.BUFFER_Y_FLAG.get(current);
       if (respawn || isPaddleBuffer(current)) {
         decimator = nsBackground.DECIMATOR.isSet(current);
@@ -1185,14 +1192,16 @@ let bm;
     if (!willBeBall) {
       nsOutput = nsBackground;
       nextColor = nsBackground.BASIC_BACKGROUND.getMask()
-      nextColor = nsOutput.BUFFER_X_FLAG.set(nextColor, bufferXFlag);
+      nextColor = nsOutput.BUFFER_X_MIN_FLAG.set(nextColor, bufferXMinFlag);
+      nextColor = nsOutput.BUFFER_X_MAX_FLAG.set(nextColor, bufferXMaxFlag);
       nextColor = nsOutput.BUFFER_Y_FLAG.set(nextColor, bufferYFlag);
       nextColor = nsOutput.RESPAWN_FLAG.set(nextColor, respawn);
       nextColor = getAIMessage(data, x, y, nextColor);
     }
     let info = {
       respawn: respawn,
-      bufferXFlag: bufferXFlag,
+      bufferXMinFlag: bufferXMinFlag,
+      bufferXMaxFlag: bufferXMaxFlag,
       bufferYFlag: bufferYFlag,
       nextColor: nextColor,
       decimator: decimator,
@@ -1241,9 +1250,9 @@ let bm;
     let nsOutput = info.nsOutput;
 
     let willBePaddleBuffer = false;
-    if (info.bufferXFlag || info.bufferYFlag) {
+    if (info.bufferXMinFlag || info.bufferXMaxFlag || info.bufferYFlag) {
       assert(!info.respawn);
-      if (info.bufferXFlag) {
+      if (info.bufferXMinFlag | info.bufferXMaxFlag) {
         willBePaddleBuffer = willItBeAPaddleBuffer(data, x, y, info);
         if (willBePaddleBuffer) {
           nextColor = nsOutput.PADDLE_BUFFER_FLAG.set(nextColor, true);

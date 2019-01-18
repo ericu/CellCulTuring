@@ -1,5 +1,7 @@
 "use strict";
 
+var leftPlayerAI;
+var rightPlayerAI;
 (function () {
 
   let canvas, canvas2;
@@ -31,6 +33,7 @@
     showTestToggled();
     showDebugToggled();
     showObviousToggled();
+    playerToggled();
     canvas.addEventListener('click', onCanvasClicked);
     canvas2.addEventListener('click', onCanvasClicked);
   }
@@ -219,6 +222,13 @@
     onSelectAnimation();
   }
 
+  function playerToggled() {
+    leftPlayerAI = document.getElementById('select_left_player_ai').checked;
+    rightPlayerAI = document.getElementById('select_right_player_ai').checked;
+    console.log('lPAI, rPAI', leftPlayerAI, rightPlayerAI);
+    onSelectAnimation();
+  }
+
   let frameReady = false;
   let frameInProgress = false;
   function asyncStep() {
@@ -316,7 +326,6 @@
     }
   }
 
-
   window.init = init;
   window.toggleRun = toggleRun;
   window.step = step;
@@ -324,5 +333,6 @@
   window.showTestToggled = showTestToggled;
   window.showDebugToggled = showDebugToggled;
   window.showObviousToggled = showObviousToggled;
+  window.playerToggled = playerToggled;
 })()
 
