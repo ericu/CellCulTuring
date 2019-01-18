@@ -691,6 +691,7 @@ let bm;
           // no need to check any other paddle pixels
           break;
         }
+        // TODO: Here's where to handle user input.  It overrides ps.getDY().
         let ps = new PaddleState(color);
         if ((index === 1 && ps.getDY() > 0) ||
             (index === 4 && ps.getDY() === 0) ||

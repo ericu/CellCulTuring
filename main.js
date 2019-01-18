@@ -77,41 +77,31 @@ var rightPlayerAI;
 
   var curFunc;
 
+  let animation;
   function onSelectAnimation() {
-    const select = document.getElementById('animation');
-    if (select.selectedIndex >= 0) {
-      const animationIndex = select.options[select.selectedIndex].value;
-      const animation = animations[animationIndex];
-      // Add 2 for the sentinel borders, which the animation doesn't think
-      // about.
-      setDimensions(animation.width + 2, animation.height + 2);
-      initBuffers();
-      let c = new CanvasWrapper(outputBuffer);
-      c.fillRect(0, 0, 0, canvas.width, canvas.height);
-      animation.init(c, originX, originY, activeWidth, activeHeight,
-                     OBVIOUS_COLORS);
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.putImageData(outputBuffer, 0, 0);
-      inputView.set(outputView);
-      curFunc = animation.f;
-    }
+    // Add 2 for the sentinel borders, which the animation doesn't think
+    // about.
+    setDimensions(animation.width + 2, animation.height + 2);
+    initBuffers();
+    let c = new CanvasWrapper(outputBuffer);
+    c.fillRect(0, 0, 0, canvas.width, canvas.height);
+    animation.init(c, originX, originY, activeWidth, activeHeight,
+                   OBVIOUS_COLORS);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.putImageData(outputBuffer, 0, 0);
+    inputView.set(outputView);
+    curFunc = animation.f;
   }
   window.onSelectAnimation = onSelectAnimation;
 
-  var animations = {}
   function registerAnimation(name, width, height, init, f) {
-    animations[name] = {
+    animation = {
       init: init,
       f: f,
       name: name,
       width: width,
       height: height
     };
-    let select = document.getElementById('animation');
-    let opt = document.createElement('option');
-    opt.value = name;
-    opt.innerHTML = name;
-    select.appendChild(opt);
   }
   window.registerAnimation = registerAnimation;
 
