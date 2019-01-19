@@ -44,9 +44,26 @@
       return !this.decimator;
     }
 
-    getDY() {
-      if (this.overrideDY !== undefined) {
-        return this.overrideDY;
+    getDY(isLeft) {
+      let useUserInput = isLeft ? !window.leftPlayerAI : !window.rightPlayerAI;
+      if (useUserInput) {
+        if (isLeft) {
+          if (window.keyTable['w'] && this.position > 0) {
+            return -1;
+          } else if (window.keyTable['s'] && this.position < 64) {
+            return 1;
+          } else {
+            return 0;
+          }
+        } else {
+          if (window.keyTable['o'] && this.position > 0) {
+            return -1;
+          } else if (window.keyTable['l'] && this.position < 64) {
+            return 1;
+          } else {
+            return 0;
+          }
+        }
       }
       if (this.delay) {
         return 0;
@@ -58,12 +75,6 @@
         return 1;
       } else {
         return 0;
-      }
-    }
-    setDY(dY) {
-      this.overrideDY = 0;
-      if ((dY > 0 && this.position < 56) || (dY < 0 && this.position > 0)) {
-        this.overrideDY = dY;
       }
     }
 

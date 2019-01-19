@@ -687,8 +687,6 @@ let bm;
       return nextColor;
     }
     let isLeft = isBackground(data[5]) || isBall(data[5]);
-    let useUserInput = isLeft ? !window.leftPlayerAI : !window.rightPlayerAI;
-
     for (let index of [1, 4, 7]) {
       let color = data[index];
       if (isPaddle(color)) {
@@ -697,30 +695,10 @@ let bm;
           break;
         }
         let ps = new PaddleState(color);
-        let dY = ps.getDY();
-        if (useUserInput) {
-          if (isLeft) {
-            if (window.keyTable['w'] && ps.position > 0) {
-              dY = -1;
-            } else if (window.keyTable['s'] && ps.position < 64) {
-              dY = 1;
-            } else {
-              dY = 0;
-            }
-          } else {
-            if (window.keyTable['o'] && ps.position > 0) {
-              dY = -1;
-            } else if (window.keyTable['l'] && ps.position < 64) {
-              dY = 1;
-            } else {
-              dY = 0;
-            }
-          }
-          ps.setDY(dY);
-        }
-        if ((index === 1 && ps.getDY() > 0) ||
-            (index === 4 && ps.getDY() === 0) ||
-            (index === 7 && ps.getDY() < 0)) {
+        let dY = ps.getDY(isLeft);
+        if ((index === 1 && dY > 0) ||
+            (index === 4 && dY === 0) ||
+            (index === 7 && dY < 0)) {
           let nextColor = ps.nextColor();
           if (newDest !== undefined) {
             nextColor = nsPaddle.PADDLE_DEST.set(nextColor, newDest);
@@ -1109,9 +1087,11 @@ let bm;
     return nsBackground.ALL_MESSAGE_BITS.setMask(color, false);
   }
 
+  // TODO: Do we need to ignore this if we've got a live human playing?
   function handleAIMessageInPaddleBuffer(data, x, y, nextColor) {
     if (nsBackground.MESSAGE_PRESENT.isSet(nextColor)) {
       let isLeft, isLeadingEdge, isNotForUs = false;
+      // TODO: Can we now leverage the MIN/MAX flags to make this simpler?
       if (isBall(data[3]) || isBall(data[5])) {
         // No message for us comes while a ball is nearby.
         isNotForUs = true;
@@ -1145,7 +1125,8 @@ let bm;
         // all cases, so we'll figure it out below.
         isNotForUs = true;
       }
-      // Can't get a message while we're moving.
+      // Can't get a message while we're moving. // TODO: This appears to fail
+      // if a human's moving the paddle.
       assert(nsBackground.PADDLE_DEST.get(nextColor) ===
              (nsBackground.PADDLE_POSITION.get(nextColor) >>> 3));
       if (!isNotForUs &&
@@ -1254,7 +1235,10 @@ let bm;
           }
           let ps = new PaddleState(color);
           let source = sourceDirectionFromIndex(i);
-          if (source.dY === ps.getDY()) {
+          let flag = isBall(color) ? nsBall.BUFFER_X_MIN_FLAG :
+                                     nsBackground.BUFFER_X_MIN_FLAG;
+          let isLeft = flag.isSet(color);
+          if (source.dY === ps.getDY(isLeft)) {
             willBePaddleBuffer = true;
             info.paddleBufferBitsSource = ps.nextColor();
             info.decimator = ps.decimator;
