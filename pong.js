@@ -1,5 +1,4 @@
 "use strict";
-// TODO: Why can't I miss?!
 /*
 The things that need to scale up for a larger ball are:
 BUFFER_X_DEPTH_COUNTER_BITS, BUFFER_Y_DEPTH_COUNTER_BITS, the BUFFER_[XY]_FLAGs
@@ -1124,6 +1123,10 @@ let bm;
         // Some of the above messages may not be for us, but we don't know in
         // all cases, so we'll figure it out below.
         isNotForUs = true;
+      }
+      if ((isLeft && !window.leftPlayerAI) ||
+          (!isLeft && !window.rightPlayerAI)) {
+        return nextColor;
       }
       // Can't get a message while we're moving. // TODO: This appears to fail
       // if a human's moving the paddle.
