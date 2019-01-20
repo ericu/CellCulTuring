@@ -1,3 +1,4 @@
+// TODO: Paddle can go off the bottom again.
 "use strict";
 /*
 The things that need to scale up for a larger ball are:
@@ -698,7 +699,7 @@ let bm;
         if ((index === 1 && dY > 0) ||
             (index === 4 && dY === 0) ||
             (index === 7 && dY < 0)) {
-          let nextColor = ps.nextColor();
+          let nextColor = ps.nextColor(isLeft);
           if (newDest !== undefined) {
             nextColor = nsPaddle.PADDLE_DEST.set(nextColor, newDest);
           }
@@ -1086,47 +1087,50 @@ let bm;
     return nsBackground.ALL_MESSAGE_BITS.setMask(color, false);
   }
 
-  // TODO: Do we need to ignore this if we've got a live human playing?
   function handleAIMessageInPaddleBuffer(data, x, y, nextColor) {
+    let current = data[4];
+    let flag = isBall(current) ? nsBall.BUFFER_X_MIN_FLAG :
+                               nsBackground.BUFFER_X_MIN_FLAG;
+    let isLeft = flag.isSet(current);
+    if ((isLeft && !window.leftPlayerAI) ||
+        (!isLeft && !window.rightPlayerAI)) {
+      return nextColor;
+    }
     if (nsBackground.MESSAGE_PRESENT.isSet(nextColor)) {
-      let isLeft, isLeadingEdge, isNotForUs = false;
+      let isLeadingEdge, isNotForUs = false;
       // TODO: Can we now leverage the MIN/MAX flags to make this simpler?
       if (isBall(data[3]) || isBall(data[5])) {
         // No message for us comes while a ball is nearby.
         isNotForUs = true;
       } else if (isPaddle(data[3]) || isTrough(data[3])) {
         // Left paddle, left edge
-        isLeft = true;
+        assert(isLeft)
         isLeadingEdge = false;
       } else if (isPaddle(data[5]) || isTrough(data[5])) {
         // Right paddle, right edge
-        isLeft = false;
+        assert(!isLeft);
         isLeadingEdge = false;
       } else if (!isPaddleBuffer(data[3])) {
         // Right paddle, left edge
-        isLeft = false;
+        assert(!isLeft);
         isLeadingEdge = true;
       } else if (!isPaddleBuffer(data[5])) {
         // Left paddle, right edge
-        isLeft = true;
+        assert(isLeft)
         isLeadingEdge = true;
       } else if (nsBackground.PADDLE_MOVE_DELAY_COUNTER.get(data[3])) {
         // Right paddle, middle
-        isLeft = false;
+        assert(!isLeft);
         isLeadingEdge = false;
       } else if (nsBackground.PADDLE_MOVE_DELAY_COUNTER.get(data[5])) {
         // Left paddle, middle
-        isLeft = true;
+        assert(isLeft)
         isLeadingEdge = false;
       } else {
         // This is a message going the wrong direction for us.
         // Some of the above messages may not be for us, but we don't know in
         // all cases, so we'll figure it out below.
         isNotForUs = true;
-      }
-      if ((isLeft && !window.leftPlayerAI) ||
-          (!isLeft && !window.rightPlayerAI)) {
-        return nextColor;
       }
       // Can't get a message while we're moving. // TODO: This appears to fail
       // if a human's moving the paddle.
@@ -1243,7 +1247,7 @@ let bm;
           let isLeft = flag.isSet(color);
           if (source.dY === ps.getDY(isLeft)) {
             willBePaddleBuffer = true;
-            info.paddleBufferBitsSource = ps.nextColor();
+            info.paddleBufferBitsSource = ps.nextColor(isLeft);
             info.decimator = ps.decimator;
             info.nsSource = ps.getNamespace();
             break;

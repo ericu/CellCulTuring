@@ -45,6 +45,7 @@
     }
 
     getDY(isLeft) {
+      assert(isLeft !== undefined);
       let useUserInput = isLeft ? !window.leftPlayerAI : !window.rightPlayerAI;
       if (useUserInput) {
         if (isLeft) {
@@ -90,11 +91,11 @@
       return color;
     }
 
-    nextColor() {
+    nextColor(isLeft) {
       let color = this.getColor();
       if (this.isMotionCycle()) {
         color = this.ns.PADDLE_POSITION.set(color,
-                                            this.position + this.getDY());
+                                            this.position + this.getDY(isLeft));
       }
       color = this.ns.DECIMATOR.set(color, !this.decimator);
       return color;
