@@ -12,14 +12,18 @@
     if (event.code === 'Space') {
       document.getElementById('toggle_run').click();
     }
-    event.preventDefault();
+    if (_.indexOf(['w', 's', 'arrowup', 'arrowdown', ' '], key) !== -1) {
+      event.preventDefault();
+    }
     console.log(event);
   }
 
   function onKeyUp(event) {
     let key = event.key.toLowerCase();
     keyTable[key] = false;
-    event.preventDefault();
+    if (_.indexOf(['w', 's', 'arrowup', 'arrowdown', ' '], key) !== -1) {
+      event.preventDefault();
+    }
   }
 
   function keyIsPressed(lowerCaseChar) {

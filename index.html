@@ -41,33 +41,39 @@ width=100%; we should fit the content instead.-->
         </input>
         Use more revealing colors
       </label>
-      <div class=player-select>
-        <label for="select_left_player_human">
-          <input type="radio" id="select_left_player_human" name="left_player"
-                 value="human" onclick="playerToggled('left')" checked>
-          </input>
-          Left player human
-        </label>
-        <label for="select_left_player">
-          <input type="radio" id="select_left_player_ai" name="left_player"
-                 value="ai" onclick="playerToggled('left')">
-          </input>
-          Left player AI
-        </label>
-      </div>
-      <div class=player-select>
-        <label for="select_right_player_human">
-          <input type="radio" id="select_right_player_human" name="right_player"
-                 value="human" onclick="playerToggled('right')">
-          </input>
-          Right player human
-        </label>
-        <label for="select_right_player">
-          <input type="radio" id="select_right_player_ai" name="right_player"
-                 value="ai" onclick="playerToggled('right')" checked>
-          </input>
-          Right player AI
-        </label>
+      <div class=player-info>
+        <div class=player-select>
+          <label for="select_left_player_human">
+            <input type="radio" id="select_left_player_human" name="left_player"
+                   value="human" onclick="playerToggled('left')" checked>
+            </input>
+            Left player human
+          </label>
+          <label for="select_left_player">
+            <input type="radio" id="select_left_player_ai" name="left_player"
+                   value="ai" onclick="playerToggled('left')">
+            </input>
+            Left player AI
+          </label>
+        </div>
+        <div class=player-select>
+          <label for="select_right_player_human">
+            <input type="radio" id="select_right_player_human"
+                   name="right_player"
+                   value="human" onclick="playerToggled('right')">
+            </input>
+            Right player human
+          </label>
+          <label for="select_right_player">
+            <input type="radio" id="select_right_player_ai" name="right_player"
+                   value="ai" onclick="playerToggled('right')" checked>
+            </input>
+            Right player AI
+          </label>
+        </div>
+        <div>
+        Left player controls: w/s; Right player controls: arrows
+        </div>
       </div>
     </div>
     <div id="inner-container">

@@ -32,6 +32,13 @@ select {
   min-height: 40px;
 }
 
+.player-info {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .player-select {
   display: flex;
   flex-direction: column;
