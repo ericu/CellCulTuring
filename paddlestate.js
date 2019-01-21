@@ -51,7 +51,7 @@
         if (isLeft) {
           if (window.keyTable['w'] && this.position > 0) {
             return -1;
-          } else if (window.keyTable['s'] && this.position < 64) {
+          } else if (window.keyTable['s'] && this.position < 56) {
             return 1;
           } else {
             return 0;
@@ -59,7 +59,7 @@
         } else {
           if (window.keyTable['o'] && this.position > 0) {
             return -1;
-          } else if (window.keyTable['l'] && this.position < 64) {
+          } else if (window.keyTable['l'] && this.position < 56) {
             return 1;
           } else {
             return 0;
