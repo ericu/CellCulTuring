@@ -1,4 +1,3 @@
-// TODO: Paddle can go off the bottom again.
 "use strict";
 /*
 The things that need to scale up for a larger ball are:
@@ -1092,8 +1091,7 @@ let bm;
     let flag = isBall(current) ? nsBall.BUFFER_X_MIN_FLAG :
                                nsBackground.BUFFER_X_MIN_FLAG;
     let isLeft = flag.isSet(current);
-    if ((isLeft && !window.leftPlayerAI) ||
-        (!isLeft && !window.rightPlayerAI)) {
+    if ((isLeft && leftPlayerHuman) || (!isLeft && rightPlayerHuman)) {
       return nextColor;
     }
     if (nsBackground.MESSAGE_PRESENT.isSet(nextColor)) {
@@ -1132,8 +1130,7 @@ let bm;
         // all cases, so we'll figure it out below.
         isNotForUs = true;
       }
-      // Can't get a message while we're moving. // TODO: This appears to fail
-      // if a human's moving the paddle.
+      // Can't get a message while we're moving.
       assert(nsBackground.PADDLE_DEST.get(nextColor) ===
              (nsBackground.PADDLE_POSITION.get(nextColor) >>> 3));
       if (!isNotForUs &&

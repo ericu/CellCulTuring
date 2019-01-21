@@ -1,6 +1,6 @@
 TODO:
 Add GAME OVER message [flashing?] and of course game-end logic.
-Add user input.
+Add AI message on starting ball [start via spawn].
 Nicer scoreboard font using 1-hot encoding?
 
 Consider that crazy optimization for more bits, to do a larger ball with better

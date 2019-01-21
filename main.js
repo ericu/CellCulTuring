@@ -214,12 +214,13 @@
   }
   window.showObviousToggled = showObviousToggled;
 
-  window.leftPlayerAI = false;
-  window.rightPlayerAI = false;
+  window.leftPlayerHuman = false;
+  window.rightPlayerHuman = false;
   function playerToggled() {
-    leftPlayerAI = document.getElementById('select_left_player_ai').checked;
-    rightPlayerAI = document.getElementById('select_right_player_ai').checked;
-    console.log('lPAI, rPAI', leftPlayerAI, rightPlayerAI);
+    leftPlayerHuman =
+      document.getElementById('select_left_player_human').checked;
+    rightPlayerHuman =
+      document.getElementById('select_right_player_human').checked;
     initAnimation();
   }
   window.playerToggled = playerToggled;

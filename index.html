@@ -14,7 +14,9 @@ width=100%; we should fit the content instead.-->
 <body onload="init()">
   <div id="container">
     <div id="controls">
-      <button type="button" onclick="toggleRun()">toggleRun</button>
+      <button type="button" onclick="toggleRun()" id="toggle_run">
+        toggleRun
+      </button>
       <div id="fps_parent">
         <span>FPS: </span>
         <span id="fps">0.0</span>
@@ -23,7 +25,7 @@ width=100%; we should fit the content instead.-->
       <button type="button" onclick="test()">test</button>
       <label for="toggle_test">
         <input type="checkbox" id="toggle_test"
-               onclick="showTestToggled()" checked>
+               onclick="showTestToggled()">
         </input>
         Show test canvas
       </label>

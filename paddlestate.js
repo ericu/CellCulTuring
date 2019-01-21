@@ -46,20 +46,20 @@
 
     getDY(isLeft) {
       assert(isLeft !== undefined);
-      let useUserInput = isLeft ? !window.leftPlayerAI : !window.rightPlayerAI;
+      let useUserInput = isLeft ? leftPlayerHuman : rightPlayerHuman;
       if (useUserInput) {
         if (isLeft) {
-          if (window.keyTable['w'] && this.position > 0) {
+          if (keyIsPressed('w') && this.position > 0) {
             return -1;
-          } else if (window.keyTable['s'] && this.position < 56) {
+          } else if (keyIsPressed('s') && this.position < 56) {
             return 1;
           } else {
             return 0;
           }
         } else {
-          if (window.keyTable['o'] && this.position > 0) {
+          if (keyIsPressed('arrowup') && this.position > 0) {
             return -1;
-          } else if (window.keyTable['l'] && this.position < 56) {
+          } else if (keyIsPressed('arrowdown') && this.position < 56) {
             return 1;
           } else {
             return 0;
