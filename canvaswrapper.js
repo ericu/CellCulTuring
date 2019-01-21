@@ -80,6 +80,21 @@ class CanvasWrapper {
       this.view[this.getAddr32(x + w, j + y)] = color;
     }
   }
+
+  fillBitmap(x, y, message, key) {
+    assert(x >= 0);
+    assert(y >= 0);
+    for (let j = 0; j < message.length; ++j) {
+      assert(y + j < this.data.height);
+      let line = message[j];
+      for (let i = 0; i < line.length; ++i) {
+        assert(x + i < this.data.width);
+        assert(message[j][i] in key)
+        this.view[this.getAddr32(i + x, j + y)] = key[message[j][i]];
+      }
+    }
+  }
+
 }
 
 

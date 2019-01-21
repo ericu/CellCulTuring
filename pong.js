@@ -20,6 +20,7 @@ let bm;
   // the top is already counted.
   const DESIRED_BALL_AREA_HEIGHT = (6 + BALL_SIZE - 1) * 8 + BALL_SIZE - 1;
   const DESIRED_BALL_AREA_WIDTH = DESIRED_BALL_AREA_HEIGHT + BALL_SIZE + 1;
+  const GAME_OVER_SCORE = 3;
   let nsBall, nsWall, nsPaddle, nsScoreboard;
   let nsBackground, nsGlobal, nsNonbackground;
   let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
@@ -125,6 +126,7 @@ let bm;
     nsWall.alloc('TALK_DOWN_FOR_L', 1);
     nsWall.alloc('TALK_DOWN_FOR_R', 1);
     nsWall.alloc('SIDE_WALL_FLAG', 1);
+    nsWall.alloc('LISTEN_SIDE_FOR_GAME_OVER', 1);
 
     // TODO: We can do without this, by figuring out which respawn pixel we're
     // on and watching the message hit the center one, in a 3x3 ball.
@@ -262,7 +264,7 @@ let bm;
                           nsGlobal.IS_NOT_BACKGROUND.getMask());
     initScoreboard(nsScoreboard, nsGlobal.IS_NOT_BACKGROUND.getMask(),
                    nsNonbackground.FULL_ALPHA, isScoreboard,
-                   isSendingMessageDown, obviousColors);
+                   isSendingMessageDown, isSignallingGameOver, obviousColors);
     PaddleState.init(nsPaddle, nsBall, nsBackground, isPaddle,
                      isBallInPaddleBuffer, isPaddleBuffer);
     nsGlobal.dumpStatus();
@@ -270,6 +272,11 @@ let bm;
 
   function isSendingMessageDown(c) {
     return isSendingLeftMessageDown(c) || isSendingRightMessageDown(c);
+  }
+
+  function isSignallingGameOver(c) {
+    return isWall(c) && nsWall.LISTEN_SIDE_FOR_GAME_OVER.isSet(c) &&
+      nsWall.MESSAGE_PRESENT.isSet(c);
   }
 
   function isBallMotionCycle(c) {
@@ -450,13 +457,6 @@ let bm;
     c.orRect(nsWall.LISTEN_UP_FOR_R.getMask(),
              rightScoreboardLeftEdge + 1, originY + SCOREBOARD_HEIGHT, 1, 1);
 
-/*
-    c.orRect(nsWall.LISTEN_UP_FOR_L.getMask(),
-             leftScoreboardRightEdge - 1, originY, 1, 1);
-    c.orRect(nsWall.LISTEN_UP_FOR_R.getMask(),
-             rightScoreboardLeftEdge + 1, originY, 1, 1);
-    */
-
     c.orRect(nsWall.LISTEN_LEFT_FOR_L.getMask(),
              leftScoreboardRightEdge, originY + SCOREBOARD_HEIGHT,
              rightRespawnDownPathX - leftScoreboardRightEdge + 1, 1);
@@ -467,6 +467,11 @@ let bm;
              leftRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
     c.orRect(nsWall.TALK_DOWN_FOR_L.getMask(),
              rightRespawnDownPathX, originY + SCOREBOARD_HEIGHT, 1, 1);
+
+    c.orRect(nsWall.LISTEN_SIDE_FOR_GAME_OVER.getMask(),
+             leftScoreboardRightEdge, originY + SCOREBOARD_HEIGHT / 2, 1, 1);
+    c.orRect(nsWall.LISTEN_SIDE_FOR_GAME_OVER.getMask(),
+             rightScoreboardLeftEdge, originY + SCOREBOARD_HEIGHT / 2, 1, 1);
 
     // buffer regions
     let bufferY = nsBackground.BUFFER_Y_FLAG.getMask();
@@ -516,6 +521,9 @@ let bm;
                    SCOREBOARD_WIDTH - 2, SCOREBOARD_HEIGHT - 1);
     drawScoreboard(c, rightScoreboardLeftEdge + 1, originY + 1,
                    SCOREBOARD_WIDTH - 2, SCOREBOARD_HEIGHT - 1);
+    drawGameOver(c, leftScoreboardRightEdge + 1, originY + 1,
+                 rightScoreboardLeftEdge - leftScoreboardRightEdge - 1,
+                 SCOREBOARD_HEIGHT - 1);
   }
 
   function getBufferBits(data, bs) {
@@ -629,7 +637,8 @@ let bm;
         return getMessageFrom(data[1]);
       }
       if (isScoreboard(data[1]) &&
-          nsScoreboard.SCOREBOARD_CHANGED.isSet(data[1])) {
+          nsScoreboard.SCOREBOARD_CHANGED.isSet(data[1]) &&
+          (nsScoreboard.SCOREBOARD_BITS.get(data[1]) < GAME_OVER_SCORE)) {
         return getMessageFromScoreboard(false);
       }
     }
@@ -640,8 +649,18 @@ let bm;
         return getMessageFrom(data[1]);
       }
       if (isScoreboard(data[1]) &&
-          nsScoreboard.SCOREBOARD_CHANGED.isSet(data[1])) {
+          nsScoreboard.SCOREBOARD_CHANGED.isSet(data[1]) &&
+          (nsScoreboard.SCOREBOARD_BITS.get(data[1]) < GAME_OVER_SCORE)) {
         return getMessageFromScoreboard(true);
+      }
+    }
+    if (nsWall.LISTEN_SIDE_FOR_GAME_OVER.isSet(current)) {
+      for (let value of [data[3], data[5]]) {
+        if (isScoreboard(value) &&
+            nsScoreboard.SCOREBOARD_CHANGED.isSet(value) &&
+            (nsScoreboard.SCOREBOARD_BITS.get(value) === GAME_OVER_SCORE)) {
+          return nsWall.MESSAGE_PRESENT.set(current, 1);
+        }
       }
     }
     if (nsWall.SIDE_WALL_FLAG.isSet(current)) {

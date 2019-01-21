@@ -3,15 +3,16 @@
 (function () {
   let nsScoreboard, isScoreboard;
   let scoreboardColor, fullAlpha;
-  let isSendingMessageDown;
+  let isSendingMessageDown, isSignallingGameOver;
   function initScoreboard(_nsScoreboard_, _scoreboardColor_, _fullAlpha_,
-      _isScoreboard_, _isSendingMessageDown_, obviousColors) {
+      _isScoreboard_, _isSendingMessageDown_, _isSignallingGameOver_,
+      obviousColors) {
     nsScoreboard = _nsScoreboard_;
     scoreboardColor = _scoreboardColor_;
     fullAlpha = _fullAlpha_; // the on alpha mask
     isScoreboard = _isScoreboard_;
     isSendingMessageDown = _isSendingMessageDown_;
-    // Sentinel bits that determine type:
+    isSignallingGameOver = _isSignallingGameOver_;
     nsScoreboard.declare('SCOREBOARD_COLOR', 2, 22);
     if (obviousColors) {
       nsScoreboard.declare('SCOREBOARD_CHANGED', 3, 4);
@@ -21,9 +22,6 @@
     nsScoreboard.alloc('SCOREBOARD_BITS', 6);
     nsScoreboard.alloc('SCOREBOARD_SEGMENT_ID', 3);
     nsScoreboard.alloc('SCOREBOARD_HIGH_DIGIT', 1);
-
-    window.drawScoreboard = drawScoreboard;
-    window.handleScoreboard = handleScoreboard;
   }
   window.initScoreboard = initScoreboard;
 
@@ -98,6 +96,38 @@
     drawDigit(c, 0, left + width - 3 - SEGMENT_LENGTH, top + 1,
               SEGMENT_LENGTH, SEGMENT_THICKNESS);
   }
+  window.drawScoreboard = drawScoreboard;
+
+  // Use the middle segment to write the words, cheating value to 1 so that the
+  // increment to 2 turns it on.  Note that if GAME_OVER_SCORE is less than 4,
+  // there will be display issues.  TODO: Switch to using the high digit and a
+  // high value to reduce the chance of problems.
+  function drawGameOver(c, left, top, width, height) {
+    const MESSAGE = [
+       " XX    XX   XX   XX  XXXX",
+       "X     X  X  X X X X  X   ",
+       "X XX  XXXX  X  X  X  XXX ",
+       "X  X  X  X  X     X  X   ",
+       " XX   X  X  X     X  XXXX",
+       "                         ",
+       "  XX   X   X  XXXX  XXX  ",
+       " X  X  X   X  X     X  X ",
+       " X  X   X X   XXX   XXX  ",
+       " X  X   X X   X     X  X ",
+       "  XX     X    XXXX  X  X "];
+
+    let color = nsScoreboard.SCOREBOARD_BITS.set(scoreboardColor, 1);
+    let fgColor = nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 7);
+    let key = {
+      ' ' : color,
+      'X': fgColor
+    };
+    let messageWidth = MESSAGE[0].length;
+    c.fillRect(color, left, top, width, height);
+    left += Math.floor((width - messageWidth) / 2);
+    c.fillBitmap(left, top, MESSAGE, key);
+  }
+  window.drawGameOver = drawGameOver;
 
   // Segments numbered clockwise from top, then the middle last.
   // This table tells whether the segment is on for a given digit.
@@ -116,6 +146,9 @@
     let digit;
     if (highDigit) {
       digit = Math.floor((value + 0.5) / 10) % 10;
+      if (!digit) { // high digit never shows a zero
+        return false;
+      }
     } else {
       digit = value % 10;
     }
@@ -130,7 +163,9 @@
       .map(c => isScoreboard(c) ? nsScoreboard.SCOREBOARD_BITS.get(c) : 0)
       .max()
     let changed = curValue !== value;
-    if (isSendingMessageDown(data[1]) && !changed) {
+    if (!changed && (isSendingMessageDown(data[1]) ||
+                     isSignallingGameOver(data[3]) ||
+                     isSignallingGameOver(data[5]))) {
       ++value;
       changed = true;
     }
@@ -151,5 +186,14 @@
     }
     return current;
   }
+  window.handleScoreboard = handleScoreboard;
+
+/*
+ XX   X  X   X XXX   X  X   X XXX XX 
+X    X X XX XX X    X X X   X X   X X
+X XX XXX X X X XXX  X X  X X  XXX XX 
+X  X X X X   X X    X X  X X  X   X X
+ XX  X X X   X XXX   X    X   XXX X X
+ */
 
 })();
