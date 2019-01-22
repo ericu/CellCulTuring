@@ -1,5 +1,4 @@
 TODO:
-Add AI message on starting ball [start via spawn].
 Nicer scoreboard font using 1-hot encoding?
 Choose difficulty by widening board--how wide is perfect AI?
 

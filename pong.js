@@ -432,6 +432,11 @@ let bm;
       rightRespawnDownPathX - 1, gameOriginY + gameHalfHeight - 1,
       BALL_SIZE, BALL_SIZE);
 
+    // initial message to create the first ball
+    c.orRect(bm.or([nsBackground.MESSAGE_PRESENT.getMask(),
+                    nsBackground.MESSAGE_R_NOT_L.getMask()]),
+             leftRespawnDownPathX, gameOriginY + gameHalfHeight - 2, 1, 1);
+
     // walls
     let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                        nsNonbackground.WALL_FLAG.getMask(),
@@ -509,6 +514,7 @@ let bm;
     c.fillRect(trough, insideWallOriginX + insideWallWidth - 1,
                insideWallOriginY, 1, insideWallHeight);
 
+    /*
     // arbitrarily moving ball
     var left = gameOriginX + 55;
     var top = gameOriginY + 45;
@@ -520,6 +526,7 @@ let bm;
         .nextColor();
 
     c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
+    */
 
     if (HIT_FIRST_SERVE) {
       drawPaddle(c, true, 42, 4);
