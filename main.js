@@ -30,10 +30,11 @@
     context2.clearRect(0, 0, canvas2.width, canvas2.height);
     showTestToggled();
     showDebugToggled();
-    showObviousToggled();
-    playerToggled();
+    getColorInfo();
+    getPlayerInfo();
     canvas.addEventListener('click', onCanvasClicked);
     canvas2.addEventListener('click', onCanvasClicked);
+    initAnimation();
   }
   window.init = init;
 
@@ -54,25 +55,6 @@
     outputView = new Uint32Array(outputBuffer.data.buffer);
     outputView2 = new Uint32Array(outputBuffer2.data.buffer);
   }
-
-  function initArbitraryPattern(c) {
-    c.fillRect(0xffffff00, 0, 0, canvas.width, canvas.height);
-    let fillStyleBlack = 0xff000000;
-    let fillStyleWhite = 0xffffffff;
-    for (let i = 0; i < activeWidth; ++i) {
-      for (let j = 0; j < activeHeight; ++j) {
-        c.fillRect(i < j ? fillStyleBlack : fillStyleWhite,
-                   i + originX, j + originY, 1, 1);
-      }
-    }
-    c.fillRect(fillStyleWhite, 125, 145, 17, 30);
-    c.fillRect(fillStyleWhite, 25, 143, 17, 20);
-    c.fillRect(fillStyleWhite, 15, 113, 17, 20);
-    c.fillRect(fillStyleBlack, 45, 45, 7, 3);
-    c.fillRect(fillStyleBlack, 115, 20, 17, 20);
-    c.fillRect(fillStyleBlack, 85, 30, 17, 20);
-  }
-  window.initArbitraryPattern = initArbitraryPattern;
 
   var curFunc;
 
@@ -208,19 +190,25 @@
   window.showDebugToggled = showDebugToggled;
 
   let OBVIOUS_COLORS;
-  function showObviousToggled() {
+  function getColorInfo() {
     OBVIOUS_COLORS = document.getElementById('toggle_obvious').checked;
+  }
+  function showObviousToggled() {
+    getColorInfo();
     initAnimation();
   }
   window.showObviousToggled = showObviousToggled;
 
   window.leftPlayerHuman = false;
   window.rightPlayerHuman = false;
-  function playerToggled() {
+  function getPlayerInfo() {
     leftPlayerHuman =
       document.getElementById('select_left_player_human').checked;
     rightPlayerHuman =
       document.getElementById('select_right_player_human').checked;
+  }
+  function playerToggled() {
+    getPlayerInfo();
     initAnimation();
   }
   window.playerToggled = playerToggled;
