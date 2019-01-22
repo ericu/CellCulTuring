@@ -119,14 +119,25 @@ let bm;
     nsWall.alloc('LISTEN_DOWN', 1);
     nsWall.alloc('LISTEN_UP_FOR_L', 1);
     nsWall.alloc('LISTEN_UP_FOR_R', 1);
-    nsWall.alloc('LISTEN_RIGHT_FOR_R', 1);
-    nsWall.alloc('LISTEN_LEFT_FOR_L', 1);
-    nsWall.alloc('LISTEN_LEFT', 1);
-    nsWall.alloc('LISTEN_RIGHT', 1);
+    if (obviousColors) {
+      nsWall.alloc('LISTEN_RIGHT_FOR_R', 1);
+      nsWall.alloc('LISTEN_LEFT_FOR_L', 1);
+      nsWall.alloc('LISTEN_LEFT', 1);
+      nsWall.alloc('LISTEN_RIGHT', 1);
+    } else {
+      nsWall.declare('LISTEN_RIGHT_FOR_R', 1, 17);
+      nsWall.declare('LISTEN_LEFT_FOR_L', 1, 18);
+      nsWall.declare('LISTEN_LEFT', 1, 19);
+      nsWall.declare('LISTEN_RIGHT', 1, 20);
+    }
     nsWall.alloc('TALK_DOWN_FOR_L', 1);
     nsWall.alloc('TALK_DOWN_FOR_R', 1);
     nsWall.alloc('SIDE_WALL_FLAG', 1);
-    nsWall.alloc('LISTEN_SIDE_FOR_GAME_OVER', 1);
+    if (obviousColors) {
+      nsWall.alloc('LISTEN_SIDE_FOR_GAME_OVER', 1);
+    } else {
+      nsWall.declare('LISTEN_SIDE_FOR_GAME_OVER', 1, 16);
+    }
 
     // TODO: We can do without this, by figuring out which respawn pixel we're
     // on and watching the message hit the center one, in a 3x3 ball.

@@ -5,7 +5,6 @@
   let keyTable = { };
   function onKeyDown(event) {
     let key = event.key.toLowerCase();
-    console.log('key: ', key);
     if (!keyTable[key]) {
       keyTable[key] = true;
     }
@@ -15,7 +14,6 @@
     if (_.indexOf(['w', 's', 'arrowup', 'arrowdown', ' '], key) !== -1) {
       event.preventDefault();
     }
-    console.log(event);
   }
 
   function onKeyUp(event) {

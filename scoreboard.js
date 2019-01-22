@@ -16,12 +16,13 @@
     nsScoreboard.declare('SCOREBOARD_COLOR', 2, 22);
     if (obviousColors) {
       nsScoreboard.declare('SCOREBOARD_CHANGED', 3, 4);
+      nsScoreboard.declare('SCOREBOARD_SEGMENT_ID', 3, 10);
     } else {
-      nsScoreboard.alloc('SCOREBOARD_CHANGED', 1);
+      nsScoreboard.declare('SCOREBOARD_SEGMENT_ID', 3, 0);
+      nsScoreboard.declare('SCOREBOARD_CHANGED', 1, 25);
     }
-    nsScoreboard.alloc('SCOREBOARD_BITS', 6);
-    nsScoreboard.alloc('SCOREBOARD_SEGMENT_ID', 3);
-    nsScoreboard.alloc('SCOREBOARD_HIGH_DIGIT', 1);
+    nsScoreboard.alloc('SCOREBOARD_BITS', 5);
+    nsScoreboard.declare('SCOREBOARD_HIGH_DIGIT', 1, 24);
   }
   window.initScoreboard = initScoreboard;
 
@@ -98,10 +99,9 @@
   }
   window.drawScoreboard = drawScoreboard;
 
-  // Use the middle segment to write the words, cheating value to 1 so that the
-  // increment to 2 turns it on.  Note that if GAME_OVER_SCORE is less than 4,
-  // there will be display issues.  TODO: Switch to using the high digit and a
-  // high value to reduce the chance of problems.
+  // Use the middle segment to write the words, cheating value so that the
+  // increment turns it on.  Note that there can be display issues if
+  // GAME_OVER_SCORE is near the value used.
   function drawGameOver(c, left, top, width, height) {
     const MESSAGE = [
        " XX    XX   XX   XX  XXXX",
@@ -116,8 +116,9 @@
        " X  X   X X   X     X  X ",
        "  XX     X    XXXX  X  X "];
 
-    let color = nsScoreboard.SCOREBOARD_BITS.set(scoreboardColor, 1);
+    let color = nsScoreboard.SCOREBOARD_BITS.set(scoreboardColor, 27);
     let fgColor = nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 7);
+    fgColor = nsScoreboard.SCOREBOARD_HIGH_DIGIT.set(fgColor, 1);
     let key = {
       ' ' : color,
       'X': fgColor
