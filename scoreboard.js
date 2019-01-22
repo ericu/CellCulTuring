@@ -102,6 +102,7 @@
   // Use the middle segment to write the words, cheating value so that the
   // increment turns it on.  Note that there can be display issues if
   // GAME_OVER_SCORE is near the value used.
+  const SCOREBOARD_GAME_OVER_PREP_VALUE = 27;
   function drawGameOver(c, left, top, width, height) {
     const MESSAGE = [
        " XX    XX   XX   XX  XXXX",
@@ -116,7 +117,9 @@
        " X  X   X X   X     X  X ",
        "  XX     X    XXXX  X  X "];
 
-    let color = nsScoreboard.SCOREBOARD_BITS.set(scoreboardColor, 27);
+    let color =
+      nsScoreboard.SCOREBOARD_BITS.set(scoreboardColor,
+                                       SCOREBOARD_GAME_OVER_PREP_VALUE);
     let fgColor = nsScoreboard.SCOREBOARD_SEGMENT_ID.set(color, 7);
     fgColor = nsScoreboard.SCOREBOARD_HIGH_DIGIT.set(fgColor, 1);
     let key = {
@@ -165,8 +168,9 @@
       .max()
     let changed = curValue !== value;
     if (!changed && (isSendingMessageDown(data[1]) ||
-                     isSignallingGameOver(data[3]) ||
-                     isSignallingGameOver(data[5]))) {
+                     ((curValue === SCOREBOARD_GAME_OVER_PREP_VALUE) &&
+                      (isSignallingGameOver(data[3]) ||
+                       isSignallingGameOver(data[5]))))) {
       ++value;
       changed = true;
     }
