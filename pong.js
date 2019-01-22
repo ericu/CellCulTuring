@@ -69,7 +69,7 @@ let bm;
     nsNonbackground.combine('ID_BITS', ['ID_0', 'ID_1']);
     nsNonbackground.alias('BALL_FLAG', 'ID_BITS');
 
-    nsNonbackground.declare('FULL_ALPHA', 1, 30);
+    nsNonbackground.declare('FULL_ALPHA', 2, 29);
     if (obviousColors) {
       nsBackground.declare('FULL_ALPHA', 3, 28);
       nsBackground.alias('BASIC_BACKGROUND', 'FULL_ALPHA');
@@ -102,7 +102,6 @@ let bm;
     } else {
       nsBall.declare('DECIMATOR', 1, 24);
     }
-    nsBall.declare('BALL_DECORATION', 1, 29);
     nsBall.alloc('PADDLE_POSITION', 6);
     nsBall.alloc('PADDLE_DEST', 3);
     nsBall.alloc('MOVE_INDEX', 3);
@@ -787,8 +786,9 @@ let bm;
           let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                              nsNonbackground.BALL_FLAG.getMask(),
                              nsNonbackground.FULL_ALPHA.getMask()]);
-          if (i === "4") {
-            color = nsBall.BALL_DECORATION.setMask(color, true);
+          if (i !== "4") {
+            // turn down the alpha for a decorative dot
+            color = nsNonbackground.FULL_ALPHA.set(color, 1);
           }
           color = nsBall.RESPAWN_FLAG.setMask(color, true);
           var bs = BallState.create(nsBall, rightNotL, RESPAWN_DOWN,
