@@ -5,7 +5,7 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 # Q&A
 * Why would you want to write a video game as a cellular automaton?
 
-   You wouldn't.  It's inefficient, overly constrained, and tedious.
+   You wouldn't.  It's inefficient, overly constrained, tedious, and fun.
    
 * OK, then why did you?
 
@@ -55,5 +55,5 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE2NTA1NjYzOSwtNjY3MTc5NjM3XX0=
+eyJoaXN0b3J5IjpbLTIxMjM0ODU3ODgsLTY2NzE3OTYzN119
 -->
