@@ -29,7 +29,7 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
   
 * Then how does the computer's paddle know where to go to hit the ball?
 
-  When a paddle hits the ball, it causes the creation of a wave of color that sweeps ac
+  When a paddle hits the ball, it causes the creation of a wave of color that sweeps across to the other paddle.  That wave is a message telling the paddle where to expect the ball.  Since the ball's path is deterministic, I compute that from its angle and the board's dimensions, and I made it move across as fast as possible, 1 pixel per cycle.  I made the ball move at half that speed, to give the message time to get there while the paddle could still do something about it.  At t
 * How does the ball travel at angles other than 45°?
  
   I use [Bresenham's algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm).
@@ -50,5 +50,5 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE3Nzg5NDkzNTMsLTY2NzE3OTYzN119
+eyJoaXN0b3J5IjpbLTE1NjQyNjgzNzgsLTY2NzE3OTYzN119
 -->
