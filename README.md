@@ -21,7 +21,8 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
 * So you read and write the state right from the canvas?
 
-  No, that doesn't work.  If you write a value to canvas
+  No, that doesn't work.  If you write a value to the HTML5 canvas and read it back, you're not guaranteed to get the same value back.  In my experience, there's often a bit of rounding going on, which isn't a bit deal for graphics, but kills you if your colors are sets of bitflags.  I use an offscreen [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) and blit it to the canvas once per frame.
+  
 * How does the ball travel at angles other than 45°?
  
   I use [Bresenham's algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm).
@@ -42,5 +43,5 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTEyODQ2MzA1ODNdfQ==
+eyJoaXN0b3J5IjpbLTY2NzE3OTYzN119
 -->
