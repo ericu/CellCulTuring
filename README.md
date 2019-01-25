@@ -1,2 +1,2 @@
 # CellCulTuring
-A [https://en.wikipedia.org/wiki/Cellular_automaton][cellular automaton] that implements pong
+A [cellular automaton][https://en.wikipedia.org/wiki/Cellular_automaton] that implements pong
