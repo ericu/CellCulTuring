@@ -41,7 +41,7 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
 * How does that work?
 
-Anywhere the ball needs to bounce, there's a buffer region the same width as the ball with special marking and behavior.  As the ball travels into the buffer, it keeps track of how deep into it it's gone.  There are some tricks by which the pixels tell their neighbors about the current depth and we keep track of whether we're hitting or missing the paddle, but basically you can think of it as the ball counting up as it approaches the wall or paddle, and deciding to turn around when the count hits the ball width.
+  Anywhere the ball needs to bounce, there's a buffer region the same width as the ball with special marking and behavior.  As the ball travels into the buffer, it keeps track of how deep into it it's gone.  There are some tricks by which the pixels tell their neighbors about the current depth and we keep track of whether we're hitting or missing the paddle, but basically you can think of it as the ball counting up as it approaches the wall or paddle, and deciding to turn around when the count hits the ball width.
 
 * What else would you like to add to this game?
 
@@ -55,5 +55,5 @@ Anywhere the ball needs to bounce, there's a buffer region the same width as the
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTkyOTQ4MzY0NywtNjY3MTc5NjM3XX0=
+eyJoaXN0b3J5IjpbLTE2NTA1NjYzOSwtNjY3MTc5NjM3XX0=
 -->
