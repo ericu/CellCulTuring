@@ -3,7 +3,7 @@ This is a [cellular automaton](https://en.wikipedia.org/wiki/Cellular_automaton)
 implements [pong](https://en.wikipedia.org/wiki/Pong).
 
 # Q&A
-* Q: Why would you want to write a video game as a cellular automaton?
+* Why would you want to write a video game as a cellular automaton?
 
    You wouldn't.  It's inefficient, overly constrained, and tedious.
    
@@ -19,6 +19,9 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
    I haven't counted them, but it uses all 32 bits in various combinations, and there's not a lot of storage space wasted.  I believe it's safe to say that there are millions of valid states.  For example, the motion of the ball is described by 8 bits, to capture the 30 angles at which it can travel and the state involved in animating that motion.  And that ball can be traveling through regions of the board that hold other state, so the ball color needs to include those bits as it travels through them.
 
+* So you read and write the state right from the canvas?
+
+  No, that doesn't work.  If you write a value to canvas
 * How does the ball travel at angles other than 45°?
  
   I use [Bresenham's algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm).
@@ -38,3 +41,6 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 * Are you going to try to write that?
 
   Nope.
+<!--stackedit_data:
+eyJoaXN0b3J5IjpbLTEyODQ2MzA1ODNdfQ==
+-->
