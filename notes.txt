@@ -1,6 +1,5 @@
 TODO:
 Nicer scoreboard font using 1-hot encoding?
-Choose difficulty by widening board--how wide is perfect AI?
 
 Consider that crazy optimization for more bits, to do a larger ball with better
 shading?  How many bits do we need, and how many do we have?
@@ -36,8 +35,15 @@ paddlePixel.
 
 2: FULL_ALPHA is currently 3 bits in the background; we certainly wouldn't miss
 the bottom one, and could function without the bottom two if necessary.  We've
-already trimmed down to 1 in the foreground; it's dimmer, but not too bad, given
-that it gets the high bit just for being foreground.
+already trimmed down to 1-2 in the foreground; it's dimmer, but not too bad,
+given that it gets the high bit just for being foreground.
+
+3: Can we share bits for MESSAGE_PADDLE_POSITION and PADDLE_DEST in the
+background?  We can't get a message while we're moving, so PADDLE_DEST should be
+0 when MESSAGE_PADDLE_POSITION is set, and then PADDLE_MOVE_DELAY_COUNTER will
+keep us from acting on the MESSAGE_PADDLE_POSITION until we're ready.  Seems
+likely.  That only saves us bits in nsBackground, though, not nsBall, which is
+generally shorter on bits.
 --------------------------------------------------------------------------------
 The checkerboard ball state will probably work!  We can save a ton of bits that
 way.  Make a ball out of alternating pixels, where some have all the ball motion

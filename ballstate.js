@@ -106,11 +106,6 @@ function processState(bs) {
 // Note that these bit assignments are currently specific to various files.
 
 // Don't access color directly; it may be out of date.
-// TODO: How hard would it be to remove the explicit BitManager cleanly?  We
-// could pass in namespaces instead.  Possibly we can tweak calls to create() as
-// well to make it easier...that baseColor has always been odd, and may not be
-// necessary if we standardize the ball flag and associated alpha bits across
-// demos.
 class BallState {
   constructor(ns, color) {
 //    assert(ns.BALL_FLAG.isSet(color));
@@ -133,7 +128,7 @@ class BallState {
   }
 
   static create(ns, right, down, index, state, baseColor) {
-    let color = baseColor; // TODO: Remove baseColor?
+    let color = baseColor;
     color = ns.MOVE_R_NOT_L.set(color, right);
     color = ns.MOVE_D_NOT_U.set(color, down);
     color = ns.MOVE_INDEX.set(color, index);

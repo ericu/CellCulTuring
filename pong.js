@@ -19,8 +19,14 @@ let bm;
   // space at the end where the ball can go but the paddle can't; the space at
   // the top is already counted.
   const DESIRED_BALL_AREA_HEIGHT = (6 + BALL_SIZE - 1) * 8 + BALL_SIZE - 1;
-  const DESIRED_BALL_AREA_WIDTH = DESIRED_BALL_AREA_HEIGHT + BALL_SIZE + 1;
-  const GAME_OVER_SCORE = 3;
+  const DESIRED_BALL_AREA_WIDTH =
+    6 * Math.floor((DESIRED_BALL_AREA_HEIGHT + 5) / 6) - BALL_SIZE + 1;
+  // Game area excludes troughs/paddles.  We want the ball travel from paddle to
+  // paddle to be 1 mod 6 [see getNewAIMessage for why], where a
+  // paddle-to-paddle distance of BALL_SIZE would give ball travel of 0.
+  assert((DESIRED_BALL_AREA_WIDTH - BALL_SIZE) % 6 == 1);
+
+  const GAME_OVER_SCORE = 10;
   let nsBall, nsWall, nsPaddle, nsScoreboard;
   let nsBackground, nsGlobal, nsNonbackground;
   let isWall, isBackground, isBall, isRespawn, isTrough, isPaddle;
@@ -37,7 +43,9 @@ let bm;
   const SCOREBOARD_WIDTH = 18;
   const RESPAWN_INDEX = 5;
   const RESPAWN_DOWN = 1;
-  const RESPAWN_Y = 25 - SCOREBOARD_HEIGHT - 2;
+  // TODO: This is a hard-coded value because I'm lazy.  If you change the game
+  // dimensions, you'll have to code in the new value.
+  const RESPAWN_PADDLE_DEST = 16;
 
   // This is assumed throughout the file, in figuring out buffer bits and ball
   // pixels.
@@ -342,14 +350,16 @@ let bm;
   }
 
   function initPong(c, originX, originY, width, height, obviousColors) {
-    // width must be at least one plus BUFFER_SIZE greater than the height for
-    // the AI message to be safe, otherwise a corner-sourced message might not
-    // reach all pixels of the paddle, leading to it tearing in half.
     const gameOriginX = originX;
     const gameOriginY = originY + SCOREBOARD_HEIGHT;
     const gameWidth = width;
+
+    // width must be at least one plus BUFFER_SIZE greater than the height for
+    // the AI message to be safe, otherwise a corner-sourced message might not
+    // reach all pixels of the paddle, leading to it tearing in half.
     const gameHeight = height - SCOREBOARD_HEIGHT;
     assert(gameWidth + 1 + BUFFER_SIZE >= gameHeight);
+
     const insideWallOriginX = gameOriginX + 1;
     const insideWallOriginY = gameOriginY + 1;
     const insideWallWidth = gameWidth - 2;
@@ -361,6 +371,10 @@ let bm;
     ballAreaHeight = insideWallHeight;
     const gameHalfHeight = Math.floor(gameHeight / 2);
     paddleToPaddleBallDistance = ballAreaWidth - BALL_SIZE;
+
+    // See getNewAIMessage.
+    assert(paddleToPaddleBallDistance % 6 === 1);
+
     topWallToBottomWallBallDistance = ballAreaHeight - BALL_SIZE;
 
     const pixelEncoding = [0, 1, 0, 0, 0, 1, 1, 1, 0, 1];
@@ -513,20 +527,6 @@ let bm;
                insideWallHeight);
     c.fillRect(trough, insideWallOriginX + insideWallWidth - 1,
                insideWallOriginY, 1, insideWallHeight);
-
-    /*
-    // arbitrarily moving ball
-    var left = gameOriginX + 55;
-    var top = gameOriginY + 45;
-    const ballColor =
-      BallState.create(nsBall, 1, 1, 5, 1,
-                       bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
-                              nsNonbackground.BALL_FLAG.getMask(),
-                              nsNonbackground.FULL_ALPHA.getMask()]))
-        .nextColor();
-
-    c.fillRect(ballColor, left, top, BALL_SIZE, BALL_SIZE);
-    */
 
     if (HIT_FIRST_SERVE) {
       drawPaddle(c, true, 42, 4);
@@ -793,15 +793,15 @@ let bm;
           let color = bm.or([nsGlobal.IS_NOT_BACKGROUND.getMask(),
                              nsNonbackground.BALL_FLAG.getMask(),
                              nsNonbackground.FULL_ALPHA.getMask()]);
-          if (i !== "4") {
-            // turn down the alpha for a decorative dot
-            color = nsNonbackground.FULL_ALPHA.set(color, 1);
-          }
-          color = nsBall.RESPAWN_FLAG.setMask(color, true);
           var bs = BallState.create(nsBall, rightNotL, RESPAWN_DOWN,
                                     RESPAWN_INDEX, 0, color);
           let next = bs.getColor();
+          next = nsBall.RESPAWN_FLAG.setMask(next, true);
           next = nsBall.DECIMATOR.setMask(next, !decimator);
+          if (i !== "4") {
+            // turn down the alpha for a decorative dot
+            next = nsNonbackground.FULL_ALPHA.set(next, 1);
+          }
           return { value: next };
         }
       }
@@ -1065,10 +1065,10 @@ let bm;
      it's quite fiddly to determine how many Y moves happen in precisely the X
      distance across, due to quantization and the Bresenham algorithm.  To
      figure out exactly when the ball will strike the far end, we restrict the
-     width of the field to be 1 mod 6, since all slopes divide 6.  We use the
-     width without that extra 1 as the distance for the slope calculation, then
-     add back in the known motion from the current ball state for the last
-     pixel.
+     width of the field to be 1 mod 6, since all supported slopes divide 6.  We
+     use the width without that extra 1 as the distance for the slope
+     calculation, then add back in the known motion from the current ball state
+     for the last pixel.
    */
   function getNewAIMessage(data, x, y, color) {
     let current = data[4];
@@ -1315,8 +1315,6 @@ let bm;
           if (willBeBall === isBall(info.paddleBufferBitsSource)) {
             assert(nsOutput === info.nsSource);
             let bitFlag;
-            // TODO: Should these have the same name, despite having different
-            // members?  Maybe PADDLE_SHARED_BITS?
             if (willBeBall) {
               bitFlag = nsBall.PADDLE_BALL_BITS;
             } else {
@@ -1343,13 +1341,13 @@ let bm;
           !nsBackground.MESSAGE_H_NOT_V.isSet(data[3]) &&
           nsBackground.MESSAGE_R_NOT_L.isSet(data[3])) {
         // Depends on RESPAWN_DOWN and RESPAWN_INDEX
-        nextColor = setAIMessage(nextColor, true, RESPAWN_Y);
+        nextColor = setAIMessage(nextColor, true, RESPAWN_PADDLE_DEST);
       } else if (isRespawn(data[5]) && isRespawn(data[7]) &&
           nsBackground.MESSAGE_PRESENT.isSet(data[5]) &&
           !nsBackground.MESSAGE_H_NOT_V.isSet(data[5]) &&
           !nsBackground.MESSAGE_R_NOT_L.isSet(data[5])) {
         // Depends on RESPAWN_DOWN and RESPAWN_INDEX
-        nextColor = setAIMessage(nextColor, false, RESPAWN_Y);
+        nextColor = setAIMessage(nextColor, false, RESPAWN_PADDLE_DEST);
       }
     }
     if (willBeBall || willBePaddleBuffer || info.respawn) {

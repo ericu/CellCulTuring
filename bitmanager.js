@@ -30,7 +30,6 @@ class BitManager {
   }
   // TODO: This could generate its own whichBits records by capturing them at
   // combine calls.
-  // TODO: Switch the order to to then from?
   static copyBits(nsTo, packedTo, nsFrom, packedFrom, whichBits) {
     assert(_.isArray(whichBits));
     for (let value of whichBits) {
