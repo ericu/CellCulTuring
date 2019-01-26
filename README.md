@@ -49,7 +49,7 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
 * What else would you like to add to this game?
 
-  I'd wanted to make a slightly larger, rounder ball, but I ran out of bits.  the efficient ball sizes are 2^N - 1 pixels across, so going up from 3x3, you can go all the way up to 7x7 for the same cost as 4x4, but that cost is unfortunately rather high...something like 5 bits, and I've only got about 1 that's not *really* necessary right now.  I can see an optimization that might make it possible, but I think I'm already hitting diminishing returns on my time in this project.
+  I'd wanted to make a slightly larger, rounder ball, but I ran out of bits.  the efficient ball sizes are 2^N - 1 pixels across, so going up from 3x3, you can go all the way up to 7x7 for the same cost as 4x4, but that cost is unfortunately rather high...roughly 5 bits, and I've only got about 1 that's not *really* necessary right now.  I can see an optimization that might make it possible, but I think I'm already hitting diminishing returns on my time in this project.
 
 * What other games could be implemented similarly?
 
@@ -59,6 +59,6 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTIwNDM3MjQwOTEsNTE2ODc1ODQwLC02Nj
-cxNzk2MzddfQ==
+eyJoaXN0b3J5IjpbMTkyODAyMTA2OCw1MTY4NzU4NDAsLTY2Nz
+E3OTYzN119
 -->
