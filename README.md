@@ -13,13 +13,13 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
    
 * How does it work?
 
-   As in cellular automata such as [Conway's Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each generation [each screen refresh] the next state of each pixel is determined only by the current state of that pixel and those of its 8 immediate neighbors.  However, whereas Life has only 2 states--black and white--this Pong uses 32-bit colors; and whereas Life's rules can be written in 4 lines, Pong took a couple of thousand lines of JavaScript to implement.
+   As in cellular automata such as [Conway's Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each generation [each screen refresh] the next state of each pixel is determined only by the current state of that pixel and those of its 8 immediate neighbors.  However, whereas Life has only 2 states--black and white--this Pong uses 32-bit colors; and whereas Life's rules can be written in 4 lines, Pong's took a couple of thousand lines of JavaScript to express.
 
 * How many states does it have?
 
    I haven't counted them, but it uses all 32 bits in various combinations, and there's not a lot of storage space wasted.  I believe it's safe to say that there are millions of valid states.  For example, the motion of the ball is described by 8 bits, to capture the 30 angles at which it can travel and the state involved in animating that motion.  And that ball can be traveling through regions of the board that hold other state, so the ball color needs to include those bits as it travels through them.
 
-* How is this different from running a million copies of a video game and just letting each control one pixel?
+* How is this different from running a million copies of a video game and letting each control one display pixel?
 
   In that case, you'd have no dependency on your neighbors' states, and you'd have to store the entire game's state a million times.  In this case, the game's state is distributed across all the pixels, stored just in the colors themselves.  There is no hidden state, assuming your eyes can distinguish single-low-bit differences between colors.  And no pixel knows anything about what's going on elsewhere on the board.
 
@@ -59,5 +59,5 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMjEzNTc2MjkyNywtNjY3MTc5NjM3XX0=
+eyJoaXN0b3J5IjpbNzQzNjAyNDU4LC02NjcxNzk2MzddfQ==
 -->
