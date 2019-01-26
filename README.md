@@ -31,9 +31,9 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
   No, that doesn't work.  If you write a value to the HTML5 canvas and read it back, you're [not guaranteed to get the same value back](https://stackoverflow.com/questions/23497925/how-can-i-stop-the-alpha-premultiplication-with-canvas-imagedata/23501676#23501676).  In my experience, there's often a bit of rounding going on, which isn't a bit deal for graphics, but kills you if your colors are sets of bitflags.  I use an offscreen [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) and blit it to the canvas once per frame.
   
-* Then how does the computer's paddle know where to go to hit the ball?
+* How does the computer's paddle know where to go to hit the ball?
 
-  When a paddle hits the ball, it causes the creation of a wave of color that sweeps across to the other paddle.  That wave is a message telling the paddle where to expect the ball.  Since the ball's path is deterministic, I compute that from its angle and the board's dimensions, and I made it move across as fast as possible, 1 pixel per cycle.  I made the ball move at half that speed, to give the message time to get there while the paddle could still do something about it.  At the current board size, it makes for a good but not-unbeatable opponent.  If the board were twice as wide as it is high, the computer would never miss.
+  When a paddle hits the ball, it causes the creation of a wave of color that sweeps across to the other paddle.  That wave is a message telling the paddle where to expect the ball.  Since the ball's path is deterministic, I can compute that from its angle and the board's dimensions.  I made the message move across as fast as possible, 1 pixel per cycle.  I made the ball move at half that speed, to give the message time to get there while the paddle could still do something about it.  At the current board size, it makes for a good-but-not-unbeatable opponent.  If the board were twice as wide as it is high, the computer would never miss.
   
 * How does the ball travel at angles other than 45°?
  
@@ -59,6 +59,6 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTA5ODQ1NDEyOCw1MTY4NzU4NDAsLTY2Nz
-E3OTYzN119
+eyJoaXN0b3J5IjpbLTIwNDM3MjQwOTEsNTE2ODc1ODQwLC02Nj
+cxNzk2MzddfQ==
 -->
