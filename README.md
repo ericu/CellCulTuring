@@ -53,12 +53,12 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
 * What other games could be implemented similarly?
 
-   Well, [Breakout](https://en.wikipedia.org/wiki/Breakout_(video_game)) is an obvious next step, but I'd love to see if something like [Asteroids](https://en.wikipedia.org/wiki/Asteroids_(video_game)) could be done, with Life-style animations when you destroy an asteroid.
+   Well, [Breakout](https://en.wikipedia.org/wiki/Breakout_(video_game)) is an obvious next step, ideally with a local high score table, but I'd love to see if something like [Asteroids](https://en.wikipedia.org/wiki/Asteroids_(video_game)) could be done, with Life-style animations when you destroy an asteroid.
 
 * Are you going to try to write that?
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTkyODAyMTA2OCw1MTY4NzU4NDAsLTY2Nz
+eyJoaXN0b3J5IjpbLTk1Mzc1NTY0Niw1MTY4NzU4NDAsLTY2Nz
 E3OTYzN119
 -->
