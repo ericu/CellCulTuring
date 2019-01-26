@@ -13,7 +13,7 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
    
 * How does it work?
 
-   As in cellular automata such as [Conway's Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each generation [each screen refresh] the next state of each pixel is determined only by the current state of that pixel and those of its 8 immediate neighbors.  However, whereas Life has only 2 states--black and white--this Pong uses 32-bit colors; and whereas Life's rules can be written in 4 lines, Pong's took a couple of thousand lines of JavaScript to express.  If you want to get an idea of how it's working, click "Use more revealing colors".  That doesn't change how the game works; it just rearranges how the color bits are allocated, so that certain interesting values show up in high-order bits of the color components.
+   As in cellular automata such as [Conway's Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each generation [each screen refresh] the next state of each pixel is determined only by the current state of that pixel and those of its 8 immediate neighbors.  However, whereas Life has only 2 states--black and white--this Pong uses 32-bit colors; and whereas Life's rules can be written in 4 lines, Pong's took a couple of thousand lines of JavaScript to express.  If you want to get an idea of what it's doing, click "Use more revealing colors".  That doesn't change how the game works; it just rearranges how the color bits are allocated, so that certain interesting values show up in high-order bits of the color components.
 
 * How many states does it have?
 
@@ -59,5 +59,6 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbNTE2ODc1ODQwLC02NjcxNzk2MzddfQ==
+eyJoaXN0b3J5IjpbMTA5ODQ1NDEyOCw1MTY4NzU4NDAsLTY2Nz
+E3OTYzN119
 -->
