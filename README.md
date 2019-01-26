@@ -23,7 +23,10 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
   In that case, you'd have no dependency on your neighbors' states, and you'd have to store the entire game's state a million times.  In this case, the game's state is distributed across all the pixels, stored just in the colors themselves.  There is no hidden state, assuming your eyes can distinguish single-low-bit differences between colors.  And no pixel knows anything about what's going on elsewhere on the board.
 
-*  Then
+*  Then how does user input work?
+
+   It doesn't, really.  This is really only a true cellular automaton when it's playing against itself, but I couldn't very well publish a game that nobody could play, so I cheated.  In addition to the state of its neighb  If it makes you feel better, consider it a 3D grid, where the plane above and below the image plane have their colors controlled by the user input.
+    
 * So you read and write the state right from the canvas?
 
   No, that doesn't work.  If you write a value to the HTML5 canvas and read it back, you're [not guaranteed to get the same value back](https://stackoverflow.com/questions/23497925/how-can-i-stop-the-alpha-premultiplication-with-canvas-imagedata/23501676#23501676).  In my experience, there's often a bit of rounding going on, which isn't a bit deal for graphics, but kills you if your colors are sets of bitflags.  I use an offscreen [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) and blit it to the canvas once per frame.
@@ -56,5 +59,5 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE1MTYxMjMxNDEsLTY2NzE3OTYzN119
+eyJoaXN0b3J5IjpbMjA5Nzg0ODAxMiwtNjY3MTc5NjM3XX0=
 -->
