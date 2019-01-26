@@ -1,6 +1,6 @@
 # CellCulTuring
 This is a [cellular automaton](https://en.wikipedia.org/wiki/Cellular_automaton) that
-implements [pong](https://en.wikipedia.org/wiki/Pong).
+implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
 # Q&A
 * Why would you want to write a video game as a cellular automaton?
@@ -25,7 +25,7 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
 *  Then how does user input work?
 
-   It doesn't, really.  This is really only a true cellular automaton when it's playing against itself.  But I couldn't very well publish a game that nobody could play, so I cheated.  In addition to the state of its neighbors, each cell also has access to the keyboard state.  If it makes you feel better, imagine a plane behind the image whose color is controlled by user input, so every cell has one extra neig.
+   It doesn't, really.  This is really only a true cellular automaton when it's playing against itself.  But I couldn't very well publish a game that nobody could play, so I cheated.  In addition to the state of its neighbors, each cell also has access to the keyboard state.  If it makes you feel better, imagine a plane behind the image whose color is controlled by user input, so every cell has just one extra neighbor.
 
 * So you read and write the state right from the canvas?
 
@@ -59,5 +59,5 @@ implements [pong](https://en.wikipedia.org/wiki/Pong).
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMjExNjgzNTAwLC02NjcxNzk2MzddfQ==
+eyJoaXN0b3J5IjpbMjEzNTc2MjkyNywtNjY3MTc5NjM3XX0=
 -->
