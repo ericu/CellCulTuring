@@ -2,6 +2,8 @@
 This is a [cellular automaton](https://en.wikipedia.org/wiki/Cellular_automaton) that
 implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
+You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code [here](https://github.com/ericu/CellCulTuring).
+
 # Q&A
 * Why would you want to write a video game as a cellular automaton?
 
@@ -49,7 +51,7 @@ implements [Pong](https://en.wikipedia.org/wiki/Pong).
 
 * What else would you like to add to this game?
 
-  I'd wanted to make a slightly larger, rounder ball, but I ran out of bits.  the efficient ball sizes are 2^N - 1 pixels across, so going up from 3x3, you can go all the way up to 7x7 for the same cost as 4x4, but that cost is unfortunately rather high...roughly 5 bits, and I've only got about 1 that's not *really* necessary right now.  I can see an optimization that might make it possible, but I think I'm already hitting diminishing returns on my time in this project.
+  I'd wanted to make a slightly larger, rounder ball, but I ran out of bits.  the efficient ball sizes are (2^N - 1) pixels across, so going up from 3x3, you can go all the way up to 7x7 for the same cost as 4x4, but that cost is unfortunately rather high...roughly 5 bits, and I've only got about 1 that's not entirely necessary right now.  I can see an optimization that might make it possible, but I think I'm already hitting diminishing returns on my time in this project.  The center dot on the ball is my little nod toward styling; it has no actual function, and uses that one extra-ish bit.
 
 * What other games could be implemented similarly?
 
