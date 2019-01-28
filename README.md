@@ -23,7 +23,7 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
 * How is this different from running a million copies of a video game and letting each control one display pixel?
 
-  In that case, you'd have no dependency on your neighbors' states, and you'd have to store the entire game's state a million times.  In this case, the game's state is distributed across all the pixels, stored just in the colors themselves.  There is no hidden state, assuming your eyes can distinguish single-low-bit differences between colors.  And no pixel knows anything about what's going on elsewhere on the board.
+  In that case, you'd have no dependency on your neighbors' states, and you'd have to store the entire game's state a million times.  In this case, the game's state is distributed across all the pixels, stored just in the colors themselves.  There is no hidden state, assuming your eyes can distinguish single-low-bit differences between colors.  No pixel knows anything about what's going on elsewhere on the board.
 
 *  Then how does user input work?
 

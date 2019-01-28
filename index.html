@@ -14,44 +14,46 @@ width=100%; we should fit the content instead.-->
 <body onload="init()">
   <div id="container">
     <div id="controls">
-      <button type="button" onclick="toggleRun()" id="toggle_run">
-        toggleRun
-      </button>
-      <div id="fps_parent">
-        <span>FPS: </span>
-        <span id="fps">0.0</span>
+      <div id="debugging-controls" style="display: none">
+        <button type="button" onclick="toggleRun()" id="toggle_run">
+          toggleRun
+        </button>
+        <div id="fps_parent">
+          <span>FPS: </span>
+          <span id="fps">0.0</span>
+        </div>
+        <button type="button" onclick="step()">step</button>
+        <button type="button" onclick="test()">test</button>
+        <label for="toggle_test">
+          <input type="checkbox" id="toggle_test"
+                 onclick="showTestToggled()">
+          </input>
+          Show test canvas
+        </label>
+        <label for="toggle_debug">
+          <input type="checkbox" id="toggle_debug"
+                 onclick="showDebugToggled()">
+          </input>
+          Show debug area
+        </label>
+        <label for="toggle_obvious">
+          <input type="checkbox" id="toggle_obvious"
+                 onclick="showObviousToggled()">
+          </input>
+          Use more revealing colors
+        </label>
       </div>
-      <button type="button" onclick="step()">step</button>
-      <button type="button" onclick="test()">test</button>
-      <label for="toggle_test">
-        <input type="checkbox" id="toggle_test"
-               onclick="showTestToggled()">
-        </input>
-        Show test canvas
-      </label>
-      <label for="toggle_debug">
-        <input type="checkbox" id="toggle_debug"
-               onclick="showDebugToggled()" checked>
-        </input>
-        Show debug area
-      </label>
-      <label for="toggle_obvious">
-        <input type="checkbox" id="toggle_obvious"
-               onclick="showObviousToggled()">
-        </input>
-        Use more revealing colors
-      </label>
       <div class=player-info>
         <div class=player-select>
           <label for="select_left_player_human">
             <input type="radio" id="select_left_player_human" name="left_player"
-                   value="human" onclick="playerToggled('left')" checked>
+                   value="human" onclick="playerToggled('left')">
             </input>
             Left player human
           </label>
           <label for="select_left_player">
             <input type="radio" id="select_left_player_ai" name="left_player"
-                   value="ai" onclick="playerToggled('left')">
+                   value="ai" onclick="playerToggled('left')" checked>
             </input>
             Left player AI
           </label>
@@ -71,8 +73,21 @@ width=100%; we should fit the content instead.-->
             Right player AI
           </label>
         </div>
-        <div>
-        Left player controls: w/s; Right player controls: arrows
+        <div id="keyboard-info">
+          <div>
+            Keyboard controls:
+          </div>
+          <div>
+            <p>
+              Left player: w/s
+            </p>
+            <p>
+              Right player: arrows
+            </p>
+            <p>
+              Pause/continue: space
+            </p>
+          </div>
         </div>
       </div>
     </div>
