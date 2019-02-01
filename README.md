@@ -43,7 +43,7 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
 * How does that work?
 
-  Anywhere the ball needs to bounce, there's a buffer region the same width as the ball with special marking and behavior.  As the ball travels into the buffer, it keeps track of how deep into it it's gone.  There are some tricks by which the pixels tell their neighbors about the current depth and we keep track of whether we're hitting or missing the paddle, but basically you can think of it as the ball counting up as it approaches the wall or paddle, and deciding to turn around when the count reacheT the ball width.
+  Anywhere the ball needs to bounce, there's a buffer region the same width as the ball with special marking and behavior.  As the ball travels into the buffer, it keeps track of how deep into it it's gone.  There are some tricks by which the pixels tell their neighbors about the current depth and we keep track of whether we're hitting or missing the paddle, but basically you can think of it as the ball counting up as it approaches the wall or paddle, and deciding to turn around when the count reaches the ball width.
 
 * What else would you like to add to this game?
 
@@ -57,6 +57,7 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE1NTQ0ODM1MjEsNzQwNDI0MDk1LC05NT
-M3NTU2NDYsNTE2ODc1ODQwLC02NjcxNzk2MzddfQ==
+eyJoaXN0b3J5IjpbMTAwMzk5NDA0OCwtMTU1NDQ4MzUyMSw3ND
+A0MjQwOTUsLTk1Mzc1NTY0Niw1MTY4NzU4NDAsLTY2NzE3OTYz
+N119
 -->
