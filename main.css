@@ -32,11 +32,12 @@ select {
   min-height: 40px;
 }
 
-.player-info {
+.basic-info {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-items: stretch;
+  justify-content: space-between;
   border: 1px solid black;
 }
 

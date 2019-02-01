@@ -35,6 +35,7 @@
     canvas.addEventListener('click', onCanvasClicked);
     canvas2.addEventListener('click', onCanvasClicked);
     initAnimation();
+    toggleRun();
   }
   window.init = init;
 
@@ -188,6 +189,16 @@
     }
   }
   window.showDebugToggled = showDebugToggled;
+
+  function hideDebugControls() {
+    document.getElementById('debugging-controls').style.display = 'none';
+  }
+  window.hideDebugControls = hideDebugControls;
+
+  function showDebugControls() {
+    document.getElementById('debugging-controls').style.display = 'inline';
+  }
+  window.showDebugControls = showDebugControls;
 
   let OBVIOUS_COLORS;
   function getColorInfo() {

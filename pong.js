@@ -19,8 +19,11 @@ let bm;
   // space at the end where the ball can go but the paddle can't; the space at
   // the top is already counted.
   const DESIRED_BALL_AREA_HEIGHT = (6 + BALL_SIZE - 1) * 8 + BALL_SIZE - 1;
+  // Add a little extra width to make the AI a bit more competitive.
+  const EXTRA_WIDTH_UNITS = 1
   const DESIRED_BALL_AREA_WIDTH =
-    6 * Math.floor((DESIRED_BALL_AREA_HEIGHT + 5) / 6) - BALL_SIZE + 1;
+    6 * (EXTRA_WIDTH_UNITS + Math.floor((DESIRED_BALL_AREA_HEIGHT + 5) / 6))
+    - BALL_SIZE + 1;
   // Game area excludes troughs/paddles.  We want the ball travel from paddle to
   // paddle to be 1 mod 6 [see getNewAIMessage for why], where a
   // paddle-to-paddle distance of BALL_SIZE would give ball travel of 0.
@@ -45,7 +48,7 @@ let bm;
   const RESPAWN_DOWN = 1;
   // TODO: This is a hard-coded value because I'm lazy.  If you change the game
   // dimensions, you'll have to code in the new value.
-  const RESPAWN_PADDLE_DEST = 16;
+  const RESPAWN_PADDLE_DEST = 8;
 
   // This is assumed throughout the file, in figuring out buffer bits and ball
   // pixels.
