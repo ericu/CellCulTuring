@@ -1,7 +1,4 @@
 <html>
-<!-- this doesn't seem to help with mobile issues.  If we zoom in, canvases move
-off the side, and we can't scroll to them.  It's probably to do with the
-width=100%; we should fit the content instead.-->
 <meta name="viewport"
       content="width=device-width,height=device-height,initial-scale=1,user-scalable=yes">
 <head>
@@ -14,33 +11,6 @@ width=100%; we should fit the content instead.-->
 <body onload="init()">
   <div id="container">
     <div id="controls">
-      <div id="debugging-controls" style="display: none">
-        <button type="button" onclick="toggleRun()" id="toggle_run">
-          toggleRun
-        </button>
-        <div id="fps_parent">
-          <span>FPS: </span>
-          <span id="fps">0.0</span>
-        </div>
-        <button type="button" onclick="step()">step</button>
-        <button type="button" onclick="test()">test</button>
-        <label for="toggle_test">
-          <input type="checkbox" id="toggle_test"
-                 onclick="showTestToggled()">
-          </input>
-          Show test canvas
-        </label>
-        <label for="toggle_debug">
-          <input type="checkbox" id="toggle_debug"
-                 onclick="showDebugToggled()">
-          </input>
-          Show debug area
-        </label>
-        <button type="button" onclick="hideDebugControls()"
-          id="hide_debug_controls">
-          Hide debugging controls
-        </button>
-      </div>
       <div class=basic-info>
         <div class=player-select>
           <label for="select_left_player_human">
@@ -72,29 +42,57 @@ width=100%; we should fit the content instead.-->
           </label>
         </div>
         <div id="keyboard-info">
-          <div>
+          <div id="keyboard-controls-label">
             Keyboard controls:
           </div>
-          <div>
-            <p>
+          <div id="keyboard-controls-list">
+            <div>
               Left player: w/s
-            </p>
-            <p>
+            </div>
+            <div>
               Right player: arrows
-            </p>
-            <p>
+            </div>
+            <div>
               Pause/continue: space
-            </p>
-            <p>
-              Show debugging controls: d
-            </p>
+            </div>
           </div>
         </div>
-        <label for="toggle_obvious">
-          <input type="checkbox" id="toggle_obvious"
-                 onclick="showObviousToggled()">
+        <div id="checkboxes">
+          <label for="toggle_obvious">
+            <input type="checkbox" id="toggle_obvious"
+                   onclick="showObviousToggled()">
+            </input>
+            Use more revealing colors
+          </label>
+          <label for="toggle_debug_controls">
+            <input type="checkbox" id="toggle_debug_controls"
+                   onclick="showDebugControlsToggled()">
+            </input>
+            Show debugging controls
+          </label>
+        </div>
+      </div>
+      <div id="debugging-controls" style="display: none">
+        <button type="button" onclick="toggleRun()" id="toggle_run">
+          toggleRun
+        </button>
+        <div id="fps_parent">
+          <span>FPS: </span>
+          <span id="fps">0.0</span>
+        </div>
+        <button type="button" onclick="step()">step</button>
+        <button type="button" onclick="test()">test</button>
+        <label for="toggle_test">
+          <input type="checkbox" id="toggle_test"
+                 onclick="showTestToggled()">
           </input>
-          Use more revealing colors
+          Show test canvas
+        </label>
+        <label for="toggle_debug">
+          <input type="checkbox" id="toggle_debug"
+                 onclick="showDebugToggled()">
+          </input>
+          Show debug area
         </label>
       </div>
     </div>

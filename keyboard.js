@@ -11,9 +11,6 @@
     if (event.key === ' ') {
       document.getElementById('toggle_run').click();
       event.preventDefault();
-    } else if (event.key === 'd') {
-      showDebugControls();
-      event.preventDefault();
     }
     if (_.indexOf(['w', 's', 'arrowup', 'arrowdown', ' '], key) !== -1) {
       event.preventDefault();

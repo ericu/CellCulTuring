@@ -54,7 +54,6 @@ select {
   flex-direction: row;
   flex: 0 0 auto;
   height: auto;
-//  width: 90vw;
   flex-wrap: wrap;
 }
 #controls * {
@@ -66,6 +65,39 @@ select {
   flex-direction: row;
   align-items: center;
   border: 1px solid black;
+}
+
+#keyboard-controls-list {
+  flex: 2 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  div {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: row;
+  }
+}
+
+#keyboard-controls-label {
+  flex: 1 1 auto;
+}
+
+#checkboxes {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#debugging-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: stretch;
 }
 
 #container {

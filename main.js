@@ -30,6 +30,7 @@
     context2.clearRect(0, 0, canvas2.width, canvas2.height);
     showTestToggled();
     showDebugToggled();
+    showDebugControlsToggled();
     getColorInfo();
     getPlayerInfo();
     canvas.addEventListener('click', onCanvasClicked);
@@ -190,15 +191,14 @@
   }
   window.showDebugToggled = showDebugToggled;
 
-  function hideDebugControls() {
-    document.getElementById('debugging-controls').style.display = 'none';
+  function showDebugControlsToggled() {
+    if (document.getElementById('toggle_debug_controls').checked) {
+      document.getElementById('debugging-controls').style.display = 'flex';
+    } else {
+      document.getElementById('debugging-controls').style.display = 'none';
+    }
   }
-  window.hideDebugControls = hideDebugControls;
-
-  function showDebugControls() {
-    document.getElementById('debugging-controls').style.display = 'inline';
-  }
-  window.showDebugControls = showDebugControls;
+  window.showDebugControlsToggled = showDebugControlsToggled;
 
   let OBVIOUS_COLORS;
   function getColorInfo() {
