@@ -9,10 +9,6 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
    You wouldn't.  It's inefficient, overly constrained, tedious, and fun.
    
-* OK, then why did you?
-
-   Because it wasn't there.
-   
 * How does it work?
 
    As in cellular automata such as [Conway's Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each generation [each screen refresh] the next state of each pixel is determined only by the current state of that pixel and those of its 8 immediate neighbors.  However, whereas Life has only 2 states--black and white--this Pong uses 32-bit colors; and whereas Life's rules can be written in 4 lines, Pong's took a couple of thousand lines of JavaScript to express.  If you want to get an idea of what it's doing, click "Use more revealing colors".  That doesn't change how the game works; it just rearranges how the color bits are allocated, so that certain interesting values show up in high-order bits of the color components.
@@ -31,7 +27,7 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
 * So you read and write the state right from the canvas?
 
-  No, that doesn't work.  If you write a value to the HTML5 canvas and read it back, you're [not guaranteed to get the same value back](https://stackoverflow.com/questions/23497925/how-can-i-stop-the-alpha-premultiplication-with-canvas-imagedata/23501676#23501676).  In my experience, there's often a bit of rounding going on, which isn't a bit deal for graphics, but kills you if your colors are sets of bitflags.  I use an offscreen [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) and blit it to the canvas once per frame.
+  No, that doesn't work.  If you write a value to the HTML5 canvas and read it back, you're [not guaranteed to get the same value back](https://stackoverflow.com/questions/23497925/how-can-i-stop-the-alpha-premultiplication-with-canvas-imagedata/23501676#23501676).  In my experience, there's often a bit of rounding going on, which isn't a big deal for graphics, but kills you if your colors are sets of bitflags.  I use an offscreen [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) and blit it to the canvas once per frame.
   
 * How does the computer's paddle know where to go to hit the ball?
 
@@ -61,6 +57,6 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbNzQwNDI0MDk1LC05NTM3NTU2NDYsNTE2OD
-c1ODQwLC02NjcxNzk2MzddfQ==
+eyJoaXN0b3J5IjpbLTE0NjY1OTI4MDcsNzQwNDI0MDk1LC05NT
+M3NTU2NDYsNTE2ODc1ODQwLC02NjcxNzk2MzddfQ==
 -->
