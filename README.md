@@ -43,11 +43,11 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
 * How does that work?
 
-  Anywhere the ball needs to bounce, there's a buffer region the same width as the ball with special marking and behavior.  As the ball travels into the buffer, it keeps track of how deep into it it's gone.  There are some tricks by which the pixels tell their neighbors about the current depth and we keep track of whether we're hitting or missing the paddle, but basically you can think of it as the ball counting up as it approaches the wall or paddle, and deciding to turn around when the count hits the ball width.
+  Anywhere the ball needs to bounce, there's a buffer region the same width as the ball with special marking and behavior.  As the ball travels into the buffer, it keeps track of how deep into it it's gone.  There are some tricks by which the pixels tell their neighbors about the current depth and we keep track of whether we're hitting or missing the paddle, but basically you can think of it as the ball counting up as it approaches the wall or paddle, and deciding to turn around when the count reacheT the ball width.
 
 * What else would you like to add to this game?
 
-  I'd wanted to make a slightly larger, rounder ball, but I ran out of bits.  the efficient ball sizes are (2^N - 1) pixels across, so going up from 3x3, you can go all the way up to 7x7 for the same cost as 4x4, but that cost is unfortunately rather high...roughly 5 bits, and I've only got about 1 that's not entirely necessary right now.  I can see an optimization that might make it possible, but I think I'm already hitting diminishing returns on my time in this project.  The center dot on the ball is my little nod toward styling; it has no actual function, and uses that one extra-ish bit.
+  I'd wanted to make a slightly larger, rounder ball, but I ran out of bits.  The efficient ball sizes are (2^N - 1) pixels across, so going up from 3x3, you can go all the way up to 7x7 for the same cost as 4x4, but that cost is unfortunately rather high...roughly 5 bits, and I've only got about 1 that's not entirely necessary right now.  I can see an optimization that might make it possible, but I think I'm already hitting diminishing returns on my time in this project.  The center dot on the ball is my little nod toward styling; it has no actual function, and uses that one extra-ish bit.
 
 * What other games could be implemented similarly?
 
@@ -57,6 +57,6 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
   Nope.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE0NjY1OTI4MDcsNzQwNDI0MDk1LC05NT
+eyJoaXN0b3J5IjpbLTE1NTQ0ODM1MjEsNzQwNDI0MDk1LC05NT
 M3NTU2NDYsNTE2ODc1ODQwLC02NjcxNzk2MzddfQ==
 -->
