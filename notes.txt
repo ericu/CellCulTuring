@@ -1,7 +1,5 @@
 TODO:
 Nicer scoreboard font using 1-hot encoding?
-Auto-play on load, AI vs. AI.
-Turn off debug controls, add instructions+key handler to get them back.
 
 Consider that crazy optimization for more bits, to do a larger ball with better
 shading?  How many bits do we need, and how many do we have?
