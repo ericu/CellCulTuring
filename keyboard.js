@@ -12,7 +12,9 @@
       document.getElementById('toggle_run').click();
       event.preventDefault();
     }
-    if (_.indexOf(['w', 's', 'arrowup', 'arrowdown', ' '], key) !== -1) {
+    if (_.indexOf(['w', 's', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown',
+                  ' '],
+                  key) !== -1) {
       event.preventDefault();
     }
   }
