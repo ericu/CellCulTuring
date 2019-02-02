@@ -35,6 +35,7 @@
     getPlayerInfo();
     canvas.addEventListener('click', onCanvasClicked);
     canvas2.addEventListener('click', onCanvasClicked);
+    window.addEventListener('resize', resizeCanvasCSS);
     initAnimation();
     toggleRun();
   }
@@ -47,6 +48,29 @@
     canvas2.height = h;
     activeWidth = canvas.width - 2 * borderSize;
     activeHeight = canvas.height - 2 * borderSize;
+    resizeCanvasCSS();
+  }
+
+  function resizeCanvasCSS() {
+    function helper(container, canvas) {
+      let rect = container.getBoundingClientRect();
+      let boundingWidth = rect.width;
+      let boundingHeight = rect.height;
+      if (!(boundingWidth && boundingHeight && canvas.width && canvas.height)) {
+        return; // not yet initialized
+      }
+      let ratio = canvas.height / canvas.width;
+      if (boundingWidth * ratio > boundingHeight) {
+        // height is the limiting dimension
+        canvas.style.height = boundingHeight;
+        canvas.style.width = boundingHeight / ratio;
+      } else {
+        canvas.style.height = boundingWidth * ratio;
+        canvas.style.width = boundingWidth;
+      }
+    }
+    helper(document.getElementById('canvas-container'), canvas);
+    helper(document.getElementById('canvas2-container'), canvas2);
   }
 
   function initBuffers() {
@@ -179,6 +203,7 @@
     } else {
       document.getElementById('canvas2').parentElement.style.display = 'none';
     }
+    resizeCanvasCSS();
   }
   window.showTestToggled = showTestToggled;
 
@@ -188,6 +213,7 @@
     } else {
       document.getElementById('debug').style.display = 'none';
     }
+    resizeCanvasCSS();
   }
   window.showDebugToggled = showDebugToggled;
 
@@ -197,6 +223,7 @@
     } else {
       document.getElementById('debugging-controls').style.display = 'none';
     }
+    resizeCanvasCSS();
   }
   window.showDebugControlsToggled = showDebugControlsToggled;
 
