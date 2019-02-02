@@ -39,7 +39,7 @@ select {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: stretch;
-  justify-content: space-between;
+  justify-content: center;
   border: 1px solid black;
 }
 
@@ -54,6 +54,7 @@ select {
 #controls {
   display: flex;
   flex-direction: row;
+  justify-content: center;
   flex: 0 0 auto;
   height: auto;
   flex-wrap: wrap;
@@ -99,7 +100,7 @@ select {
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
-  justify-content: stretch;
+  justify-content: center;
 }
 
 #container {
@@ -115,7 +116,6 @@ select {
   display: flex;
   flex-direction: row;
   flex: 1 1 auto;
-  align-items: center;
   flex-wrap: wrap;
   width: 100%;
   height: 100%;
@@ -135,4 +135,5 @@ canvas {
   bottom: 0;
   left: 0;
   right: 0;
+  margin: auto;
 }
