@@ -56,8 +56,30 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 * Are you going to try to write that?
 
   Nope.
+  
+  <!-- Statcounter -->
+  <script type="text/javascript">
+    var sc_project=11947282;
+    var sc_invisible=1;
+    var sc_security="dd885c2d";
+  </script>
+  <script type="text/javascript"
+    src="https://www.statcounter.com/counter/counter.js"
+    async>
+  </script>
+  <noscript>
+    <div class="statcounter">
+      <a title="StatCounter" href="https://statcounter.com/"
+         target="_blank"><img class="statcounter"
+         src="https://c.statcounter.com/11947282/0/dd885c2d/1/"
+         alt="StatCounter">
+      </a>
+    </div>
+  </noscript>
+  <!-- End of Statcounter Code -->
+
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTAwMzk5NDA0OCwtMTU1NDQ4MzUyMSw3ND
-A0MjQwOTUsLTk1Mzc1NTY0Niw1MTY4NzU4NDAsLTY2NzE3OTYz
-N119
+eyJoaXN0b3J5IjpbLTYyNjk2NDE1MCwxMDAzOTk0MDQ4LC0xNT
+U0NDgzNTIxLDc0MDQyNDA5NSwtOTUzNzU1NjQ2LDUxNjg3NTg0
+MCwtNjY3MTc5NjM3XX0=
 -->
