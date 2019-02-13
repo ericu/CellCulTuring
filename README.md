@@ -68,7 +68,7 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
     async>
   </script>
   <noscript>
-    <div class="statcounter">
+    <div class="statcounter" style="z-index: -1">
       <a title="StatCounter" href="https://statcounter.com/"
          target="_blank"><img class="statcounter"
          src="https://c.statcounter.com/11947282/0/dd885c2d/1/"
@@ -79,7 +79,7 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
   <!-- End of Statcounter Code -->
 
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTYyNjk2NDE1MCwxMDAzOTk0MDQ4LC0xNT
-U0NDgzNTIxLDc0MDQyNDA5NSwtOTUzNzU1NjQ2LDUxNjg3NTg0
-MCwtNjY3MTc5NjM3XX0=
+eyJoaXN0b3J5IjpbLTEyNTcwNTIwMjUsMTAwMzk5NDA0OCwtMT
+U1NDQ4MzUyMSw3NDA0MjQwOTUsLTk1Mzc1NTY0Niw1MTY4NzU4
+NDAsLTY2NzE3OTYzN119
 -->
