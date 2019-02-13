@@ -8,7 +8,7 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 * Why would you want to write a video game as a cellular automaton?
 
    You wouldn't.  It's inefficient, overly constrained, tedious, and fun.
-   
+
 * How does it work?
 
    As in cellular automata such as [Conway's Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), at each generation [each screen refresh] the next state of each pixel is determined only by the current state of that pixel and those of its 8 immediate neighbors.  However, whereas Life has only 2 states--black and white--this Pong uses 32-bit colors; and whereas Life's rules can be written in 4 lines, Pong's took a couple of thousand lines of JavaScript to express.  If you want to get an idea of what it's doing, click "Use more revealing colors".  That doesn't change how the game works; it just rearranges how the color bits are allocated, so that certain interesting values show up in high-order bits of the color components.
@@ -28,13 +28,13 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 * So you read and write the state right from the canvas?
 
   No, that doesn't work.  If you write a value to the HTML5 canvas and read it back, you're [not guaranteed to get the same value back](https://stackoverflow.com/questions/23497925/how-can-i-stop-the-alpha-premultiplication-with-canvas-imagedata/23501676#23501676).  In my experience, there's often a bit of rounding going on, which isn't a big deal for graphics, but kills you if your colors are sets of bitflags.  I use an offscreen [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) and blit it to the canvas once per frame.
-  
+
 * How does the computer's paddle know where to go to hit the ball?
 
   When a paddle hits the ball, it causes the creation of a wave of color that sweeps across to the other paddle.  That wave is a message telling the paddle where to expect the ball.  Since the ball's path is deterministic, I can compute that from its angle and the board's dimensions.  I made the message move across as fast as possible, 1 pixel per cycle.  I made the ball move at half that speed, to give the message time to get there while the paddle could still do something about it.  At the current board size, it makes for a good-but-not-unbeatable opponent.  If the board were twice as wide as it is high, the computer would never miss.
-  
+
 * How does the ball travel at angles other than 45°?
- 
+
   I use [Bresenham's algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm).
 
 * What was the most complex feature to implement?
@@ -56,8 +56,21 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 * Are you going to try to write that?
 
   Nope.
+
+<!-- Statcounter -->
+<noscript>
+  <div class="statcounter" style="z-index:-1;position:relative;">
+    <a title="StatCounter" href="https://statcounter.com/"
+       target="_blank"><img class="statcounter"
+       src="https://c.statcounter.com/11947282/0/dd885c2d/1/"
+       alt="StatCounter">
+    </a>
+  </div>
+</noscript>
+<!-- End of Statcounter Code -->
+
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTAwMzk5NDA0OCwtMTU1NDQ4MzUyMSw3ND
-A0MjQwOTUsLTk1Mzc1NTY0Niw1MTY4NzU4NDAsLTY2NzE3OTYz
-N119
+eyJoaXN0b3J5IjpbLTcyMTM0ODE2OCwtMTg2NTk0NTY4LDEwMD
+M5OTQwNDgsLTE1NTQ0ODM1MjEsNzQwNDI0MDk1LC05NTM3NTU2
+NDYsNTE2ODc1ODQwLC02NjcxNzk2MzddfQ==
 -->
