@@ -51,11 +51,20 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
 * What other games could be implemented similarly?
 
-   Well, [Breakout](https://en.wikipedia.org/wiki/Breakout_(video_game)) is an obvious next step, ideally with a local high score table, but I'd love to see if something like [Asteroids](https://en.wikipedia.org/wiki/Asteroids_(video_game)) could be done, with Life-style animations when you destroy an asteroid.
+   Well, [Breakout](https://en.wikipedia.org/wiki/Breakout_(video_game)) is an
+   obvious next step, ideally with a local high score table, but I'd love to see
+   if something like
+   [Asteroids](https://en.wikipedia.org/wiki/Asteroids_(video_game)) could be
+   done, with Life-style animations when you destroy an asteroid.  What do you
+   think, could you write [Pac Man](https://en.wikipedia.org/wiki/Pac-Man)?
 
-* Are you going to try to write that?
+* Are you going to try to write any of those?
 
   Nope.
+
+* How long is a game?
+
+  The first player to 10 points wins.
 
 <!-- Statcounter -->
 <noscript>
