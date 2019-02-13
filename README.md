@@ -58,15 +58,6 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
   Nope.
   
 <!-- Statcounter -->
-<script type="text/javascript">
-  var sc_project=11947282;
-  var sc_invisible=1;
-  var sc_security="dd885c2d";
-</script>
-<script type="text/javascript"
-  src="https://www.statcounter.com/counter/counter.js"
-  async>
-</script>
 <noscript>
   <div class="statcounter" style="z-index:-1;position:relative;">
     <a title="StatCounter" href="https://statcounter.com/"
