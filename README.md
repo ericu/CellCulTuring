@@ -57,26 +57,26 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
   Nope.
   
-  <!-- Statcounter -->
-  <script type="text/javascript">
-    var sc_project=11947282;
-    var sc_invisible=1;
-    var sc_security="dd885c2d";
-  </script>
-  <script type="text/javascript"
-    src="https://www.statcounter.com/counter/counter.js"
-    async>
-  </script>
-  <noscript>
-    <div class="statcounter" style="z-index:-1;position:relative;">
-      <a title="StatCounter" href="https://statcounter.com/"
-         target="_blank"><img class="statcounter"
-         src="https://c.statcounter.com/11947282/0/dd885c2d/1/"
-         alt="StatCounter">
-      </a>
-    </div>
-  </noscript>
-  <!-- End of Statcounter Code -->
+<!-- Statcounter -->
+<script type="text/javascript">
+  var sc_project=11947282;
+  var sc_invisible=1;
+  var sc_security="dd885c2d";
+</script>
+<script type="text/javascript"
+  src="https://www.statcounter.com/counter/counter.js"
+  async>
+</script>
+<noscript>
+  <div class="statcounter" style="z-index:-1;position:relative;">
+    <a title="StatCounter" href="https://statcounter.com/"
+       target="_blank"><img class="statcounter"
+       src="https://c.statcounter.com/11947282/0/dd885c2d/1/"
+       alt="StatCounter">
+    </a>
+  </div>
+</noscript>
+<!-- End of Statcounter Code -->
 
 <!--stackedit_data:
 eyJoaXN0b3J5IjpbLTE4NjU5NDU2OCwxMDAzOTk0MDQ4LC0xNT
