@@ -33,6 +33,10 @@ You can play it [here](https://ericu.github.io/CellCulTuring/) and see the code 
 
   When a paddle hits the ball, it causes the creation of a wave of color that sweeps across to the other paddle.  That wave is a message telling the paddle where to expect the ball.  Since the ball's path is deterministic, I can compute that from its angle and the board's dimensions.  I made the message move across as fast as possible, 1 pixel per cycle.  I made the ball move at half that speed, to give the message time to get there while the paddle could still do something about it.  At the current board size, it makes for a good-but-not-unbeatable opponent.  If the board were twice as wide as it is high, the computer would never miss.
 
+* Is the scoreboard part of the automaton?
+
+  Yes, everything inside the canvas is part of it, and is running under the same set of rules.
+
 * How does the ball travel at angles other than 45°?
 
   I use [Bresenham's algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm).
